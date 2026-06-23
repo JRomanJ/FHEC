@@ -1,4 +1,4 @@
-import { TestRegistro } from './TestRegistro';
+import { TestComms } from './TestComms';
 
 function App() {
 
@@ -6,7 +6,7 @@ function App() {
     <div className="App">
       <h1>Prueba de Integracion</h1>
 
-      <TestRegistro/>
+      <TestComms/>
     </div>
   );
 }

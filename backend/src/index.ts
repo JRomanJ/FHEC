@@ -5,7 +5,7 @@ const runSystem = async () => {
     try{
         //Registrar un nuevo usuario
         console.log('---Registrando usuario---');
-        const newUser = await userLogger('prueba1@correo.com', 'clave123');
+        const newUser = await userLogger('prueba1@correo.com', 'clave123', 'user', 'nombre', '12345183', '+58-0201023');
         console.log('Usuario registrado con exito!', newUser);
 
 

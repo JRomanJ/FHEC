@@ -18,9 +18,6 @@ export const apiClient = async (endpoint: string, data: object) => {
     } catch (error) {
         
         console.error('Error en la peticion:', error);
-        return {
-            success: false,
-            message: (error as Error).message || 'No se pudo conectar con el servidor'
-        };
+        return { success: false, message: (error as Error).message || 'No se pudo conectar con el servidor'};
     }
 };

@@ -10,9 +10,9 @@ app.use(express.json());
 
 app.post('/api/log', async (req: Request, res: Response) => {
     try {
-        const {email, password} = req.body;
+        const {email, password, rol, nombre, cedula, telefono} = req.body;
 
-        await userLogger(email, password);
+        await userLogger(email, password, rol, nombre, cedula, telefono);
 
         res.status(200).json({ success: true, message: 'Usuario registrado exitosamente' });
 
@@ -31,8 +31,8 @@ app.post('/api/login', async (req: Request, res: Response) => {
     try {
         const {email, password} = req.body;
 
-        await loginUser(email, password);
-        res.status(200).json({ success: true, message: 'Inicio de sesion exitoso'});
+        const user = await loginUser(email, password);
+        res.status(200).json({ success: true, message: 'Inicio de sesion exitoso', data: user});
     
     }catch (error) {
         res.status(401).json({success: false, message: 'Credenciales invalidas'});

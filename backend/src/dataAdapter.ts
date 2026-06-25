@@ -1,13 +1,13 @@
 import { supabase } from './supabaseClient.js';
 
-// Cuando se tenga la base de datos real estos adaptadores se deberan modificar
+// Cuando se tengamos la base de datos real estos adaptadores se deberan modificar
 
 
 // GUARDAR en la tabla de usuarios
-export const insertUser = async (email: string, passwordHash: string) => {
+export const insertUser = async (email: string, passwordHash: string, rol: string, nombre: string, cedula: string, telefono: string) => {
     const { data, error } = await supabase
     .from('users')
-    .insert([{ email, password_hash: passwordHash}])
+    .insert([{ email, password_hash: passwordHash, nombre, rol, cedula, telefono}])
     .select()
     .single();
 
@@ -28,10 +28,10 @@ export const getUsers = async () => {
     return data;
 }
 
-export const getUserByEmail =  async (email: string) => {
+export const getUserCredentials =  async (email: string) => {
     const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select('id, email, password_hash, rol')
     .eq('email', email)
     .single();
 

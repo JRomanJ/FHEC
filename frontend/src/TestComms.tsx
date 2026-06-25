@@ -7,7 +7,7 @@ export const TestComms = () => {
     const handleLogin = async () => {
         try{
             const response = await apiClient('/login', { 
-                email: 'prueba1@correo.com',
+                email: 'prueba2@correo.com',
                 password: 'clave123'
             });
 
@@ -30,7 +30,11 @@ export const TestComms = () => {
             const response = await apiClient('/log', {
                 //Datos que recibira el backend
                 email: "prueba2@correo.com",
-                password: "123"
+                password: "clave123", 
+                rol: "user", 
+                nombre: "Carlos",
+                cedula: "12345193", 
+                telefono: "+58-0001023"
             });
             setMessage(JSON.stringify(response));
 
@@ -51,8 +55,6 @@ export const TestComms = () => {
             <button style={{ color: 'black' }} onClick={handleLogin}>Probar Loggin</button>
             <button style={{ color: 'black' }} onClick={handleLogg}>Probar Registro</button>
             <p>Respuesta del servidor: {message}</p>
-
-
         </div>
     );
     

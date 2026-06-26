@@ -10,9 +10,9 @@ app.use(express.json());
 
 app.post('/api/log', async (req: Request, res: Response) => {
     try {
-        const {email, password, rol, nombre, cedula, telefono} = req.body;
+        const {correo, password, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones} = req.body;
 
-        await userLogger(email, password, rol, nombre, cedula, telefono);
+        await userLogger(correo, password, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones);
 
         res.status(200).json({ success: true, message: 'Usuario registrado exitosamente' });
 

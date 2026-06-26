@@ -29,12 +29,15 @@ export const TestComms = () => {
         try{
             const response = await apiClient('/log', {
                 //Datos que recibira el backend
-                email: "prueba2@correo.com",
-                password: "clave123", 
-                rol: "user", 
-                nombre: "Carlos",
-                cedula: "12345193", 
-                telefono: "+58-0001023"
+                correo: "prueba2@correo.com",
+                password: "clave123",
+                nombre_completo: "Carlos", 
+                tipo_documento_identidad: "V",
+                documento_identidad: "153451923",
+                acepta_terminos: true,
+                acepta_promociones: true, 
+                telefono: "+58-0208023",
+                codigo_area: "0286"                
             });
             setMessage(JSON.stringify(response));
 

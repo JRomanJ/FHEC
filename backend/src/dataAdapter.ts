@@ -4,10 +4,10 @@ import { supabase } from './supabaseClient.js';
 
 
 // GUARDAR en la tabla de usuarios
-export const insertUser = async (email: string, passwordHash: string, rol: string, nombre: string, cedula: string, telefono: string) => {
+export const insertUser = async (correo: string, password_hash: string, nombre_completo: string, tipo_documento_identidad: string, documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean) => {
     const { data, error } = await supabase
-    .from('users')
-    .insert([{ email, password_hash: passwordHash, nombre, rol, cedula, telefono}])
+    .from('clientes')
+    .insert([{ correo, password_hash, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones }])
     .select()
     .single();
 
@@ -21,8 +21,8 @@ export const insertUser = async (email: string, passwordHash: string, rol: strin
 // LEER de la tabla de usuarios
 export const getUsers = async () => {
     const { data, error } = await supabase
-    .from('users')
-    .select('email, created_at');    
+    .from('clientes')
+    .select('correo, created_at');    
 
     if (error) throw error;
     return data;
@@ -30,9 +30,9 @@ export const getUsers = async () => {
 
 export const getUserCredentials =  async (email: string) => {
     const { data, error } = await supabase
-    .from('users')
-    .select('id, email, password_hash, rol')
-    .eq('email', email)
+    .from('clientes')
+    .select('id, correo, password_hash')
+    .eq('correo', email)
     .single();
 
     if (error) return null; // Si no se encuentra el usuario, devuelve null

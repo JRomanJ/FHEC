@@ -38,3 +38,29 @@ export const getUserCredentials =  async (email: string) => {
     if (error) return null; // Si no se encuentra el usuario, devuelve null
     return data;
 }
+
+export const procesarIngresoInventario = async(productoData: any, sedeId: string) =>{
+    const { data: producto, error} = await supabase
+    .from('productos')
+    .upsert(
+        productoData,
+        { onConflict: 'codigo_barras' }
+    )
+    .select('id')
+    .single();
+
+    if (error) {
+        throw new Error(`Fallo en el registro de producto: ${error.message}`);
+    }
+
+    const { error: errStock } = await (supabase as any)
+        .rpc('incrementar_stock', {
+            p_producto_id: producto.id,
+            p_sede_id: sedeId
+        });
+    if (errStock) {
+        throw new Error(`Fallo en la actualizacion de inventario: ${errStock.message}`)
+    }
+    
+    return { success: true, productoId: producto.id }
+}

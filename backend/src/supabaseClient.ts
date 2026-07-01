@@ -10,4 +10,20 @@ if (!supabaseUrl || !supabaseKey){
     throw new Error('Faltan las variables de entorno de Supabase');
 }
 
+export const getAuthedClient = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        throw new Error("No hay una sesión activa.");
+    }
+
+    // Configura el cliente con el token actual
+    supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+    });
+
+    return supabase;
+};
+
 export const supabase = createClient(supabaseUrl, supabaseKey);

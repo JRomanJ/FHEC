@@ -1,25 +1,42 @@
-import bcrypt from 'bcryptjs';
-import { insertUser, getUserCredentials } from './dataAdapter.js';
+import { supabase } from './supabaseClient.js';
+import { insertUser, getUserCredentials, insertProfile } from './dataAdapter.js';
 
-export const userLogger = async (correo: string, password: string, nombre_completo: string, tipo_documento_identidad: string, documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean) => {
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+export const userLogger = async (email: string, password: string, nombre_completo: string, tipo_documento_identidad: string, documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean) => {
+    
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password
+    });
+    if (authError) {
+        console.error("Error completo de Supabase:", JSON.stringify(authError, null, 2));
+        throw new Error(`Error en registro: ${authError.message || 'Error desconocido'}`);
+    }
+    if (!authData.user) {
+        throw new Error('No se pudo crear el usuario en el sistema de autenticacion.');
+    }
+    const userId = authData.user!.id;
 
-    const newUser = await insertUser(correo, passwordHash, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones);
+    const newUser = await insertUser(userId, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones);
+    await insertProfile(userId);
+    
     return newUser;
 };
 
-export const loginUser = async (correo: string, plainPassword: string) => {
+export const loginUser = async (email: string, password: string) => {
     
-    const user = await getUserCredentials(correo);
-    if (!user) {
-        throw new Error('Invalid credentials');
-    }
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
 
-    const isValidPassword = await bcrypt.compare(plainPassword, user.password_hash);
-    
-    if (!isValidPassword) {
-        throw new Error('Invalid credentials');
+    if (error?.message === 'Email not confirmed') {
+        // En lugar de lanzar un error, devuelves un estado especial
+        return { 
+            status: 'PENDING_VERIFICATION', 
+            message: 'Registro exitoso. Por favor, revisa tu correo para confirmar tu cuenta.' 
+        };
     }
-    return user;
+    
+    return data;
 };

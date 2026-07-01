@@ -1,5 +1,9 @@
 import { userLogger, loginUser } from './authService.js';
-import { procesarIngresoInventario,  actualizarPrecioSede, buscarProducto, registrarSede, cambiarSedePerfil, getUserCredentials, obtenerSedePorNombre} from './dataAdapter.js';
+import { getUserAuth } from './db/usuarios.js'
+import { processInventoryEntry } from './db/inventario.js';
+import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js';
+import { getProduct } from './db/productos.js';
+import { updateProfileBranch } from './db/perfiles.js';
 
 const productoDePrueba = {
   principio_activo: 'Loratadina',

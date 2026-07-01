@@ -1,5 +1,7 @@
-import { supabase } from './supabaseClient.js';
-import { insertUser, getUserCredentials, insertProfile } from './dataAdapter.js';
+import { supabase } from './db/supabaseClient.js';
+import { insertUser } from './db/usuarios.js';
+import { insertProfile } from './db/perfiles.js';
+
 
 export const userLogger = async (email: string, password: string, nombre_completo: string, tipo_documento_identidad: string, documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean) => {
     

@@ -1,9 +1,12 @@
-import { supabase } from './db/supabaseClient.js';
+import { supabase, getAuthedClient } from './db/supabaseClient.js';
 import { insertUser } from './db/usuarios.js';
 import { insertProfile } from './db/perfiles.js';
 
 
-export const userLogger = async (email: string, password: string, nombre_completo: string, tipo_documento_identidad: string, documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean) => {
+export const userLogger = async (email: string, password: string, nombre_completo: string, tipo_documento_identidad: string, 
+    documento_identidad: string, telefono: string, codigo_area: string, acepta_terminos: boolean, acepta_promociones: boolean, acepta_promociones_sms: boolean, acepta_promociones_correo: boolean, 
+    acepta_notificaciones: boolean, acepta_notificaciones_sms: boolean, acepta_notificaciones_correo: boolean) => {
+    console.log("Intentando conectar a:", process.env.SUPABASE_URL);
     
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email,
@@ -17,28 +20,27 @@ export const userLogger = async (email: string, password: string, nombre_complet
         throw new Error('No se pudo crear el usuario en el sistema de autenticacion.');
     }
     const userId = authData.user!.id;
+    await getAuthedClient(); // Asegurar de que el cliente esté autenticado antes de insertar en la base de datos
 
-    const newUser = await insertUser(userId, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones);
+    const newUser = await insertUser( userId, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, 
+        codigo_area, acepta_terminos, acepta_promociones, acepta_promociones_sms, acepta_promociones_correo, acepta_notificaciones, acepta_notificaciones_sms, acepta_notificaciones_correo);
     await insertProfile(userId);
     
     return newUser;
 };
 
 export const loginUser = async (email: string, password: string) => {
-    
-    
     const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
+        email,
+        password
     });
 
-    if (error?.message === 'Email not confirmed') {
-        // En lugar de lanzar un error, devuelves un estado especial
-        return { 
-            status: 'PENDING_VERIFICATION', 
-            message: 'Registro exitoso. Por favor, revisa tu correo para confirmar tu cuenta.' 
-        };
+    if (error) {
+        if (error.message === 'Email not confirmed') {
+            return { status: 'PENDING_VERIFICATION', message: 'Confirma tu correo.' };
+        }
+        throw error; // Lanza el error para capturarlo en el index
     }
-    
-    return data;
+
+    return { status: 'SUCCESS', user: data.user };
 };

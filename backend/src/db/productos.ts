@@ -15,7 +15,7 @@ export const createProduct = async (productoData: any) => {
     }
     return producto;
 }
-export const getProduct = async (criterios:{principio_activo?: string, marca_comercial?: string, presentacion?: string}) => {
+export const getProduct = async (criterios:{principio_activo?: string, marca_comercial?: string, forma_farmaceutica?: string}) => {
     const supabase = await getAuthedClient();
     
     let query = supabase.from('productos').select('*');
@@ -26,8 +26,8 @@ export const getProduct = async (criterios:{principio_activo?: string, marca_com
     if (criterios.marca_comercial) {
         query = query.ilike('marca_comercial', `%${criterios.marca_comercial}%`);
     }
-    if (criterios.presentacion) {
-        query = query.ilike('presentacion', `%${criterios.presentacion}%`);
+    if (criterios.forma_farmaceutica) {
+        query = query.ilike('forma_farmaceutica', `%${criterios.forma_farmaceutica}%`);
     }
     
     const {data: producto, error} = await query.maybeSingle();

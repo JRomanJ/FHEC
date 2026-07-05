@@ -1,0 +1,38 @@
+import type { InventarioSede } from "../domain";
+import { PRODUCTO_IDS } from "./mockProductos";
+import { SEDE_IDS } from "./mockSedes";
+
+export const mockInventarioSedes: InventarioSede[] = [
+  { id_producto: PRODUCTO_IDS.Metformina500, id_sede: SEDE_IDS.Principal, stock_disponible: 15 },
+  { id_producto: PRODUCTO_IDS.Metformina500, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 9 },
+  { id_producto: PRODUCTO_IDS.Losartan50, id_sede: SEDE_IDS.Principal, stock_disponible: 10 },
+  { id_producto: PRODUCTO_IDS.Losartan50, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 8 },
+  { id_producto: PRODUCTO_IDS.Amoxicilina500, id_sede: SEDE_IDS.Principal, stock_disponible: 0 },
+  { id_producto: PRODUCTO_IDS.Amoxicilina500, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 0 },
+  { id_producto: PRODUCTO_IDS.VitaminaC1000, id_sede: SEDE_IDS.Principal, stock_disponible: 30 },
+  { id_producto: PRODUCTO_IDS.VitaminaC1000, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 22 },
+  { id_producto: PRODUCTO_IDS.Atorvastatina20, id_sede: SEDE_IDS.Principal, stock_disponible: 7 },
+  { id_producto: PRODUCTO_IDS.Atorvastatina20, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 4 },
+  { id_producto: PRODUCTO_IDS.Omeprazol20, id_sede: SEDE_IDS.Principal, stock_disponible: 22 },
+  { id_producto: PRODUCTO_IDS.Omeprazol20, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 16 },
+  { id_producto: PRODUCTO_IDS.Paracetamol500, id_sede: SEDE_IDS.Principal, stock_disponible: 50 },
+  { id_producto: PRODUCTO_IDS.Paracetamol500, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 37 },
+  { id_producto: PRODUCTO_IDS.Clonazepam05, id_sede: SEDE_IDS.Principal, stock_disponible: 5 },
+  { id_producto: PRODUCTO_IDS.Clonazepam05, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 2 },
+  { id_producto: PRODUCTO_IDS.Metformina850, id_sede: SEDE_IDS.Principal, stock_disponible: 10 },
+  { id_producto: PRODUCTO_IDS.Metformina850, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 8 },
+  { id_producto: PRODUCTO_IDS.Losartan100, id_sede: SEDE_IDS.Principal, stock_disponible: 7 },
+  { id_producto: PRODUCTO_IDS.Losartan100, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 5 },
+  { id_producto: PRODUCTO_IDS.Amoxicilina250, id_sede: SEDE_IDS.Principal, stock_disponible: 14 },
+  { id_producto: PRODUCTO_IDS.Amoxicilina250, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 8 },
+  { id_producto: PRODUCTO_IDS.VitaminaC500, id_sede: SEDE_IDS.Principal, stock_disponible: 28 },
+  { id_producto: PRODUCTO_IDS.VitaminaC500, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 17 },
+  { id_producto: PRODUCTO_IDS.Atorvastatina40, id_sede: SEDE_IDS.Principal, stock_disponible: 5 },
+  { id_producto: PRODUCTO_IDS.Atorvastatina40, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 4 },
+  { id_producto: PRODUCTO_IDS.Omeprazol40, id_sede: SEDE_IDS.Principal, stock_disponible: 12 },
+  { id_producto: PRODUCTO_IDS.Omeprazol40, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 8 },
+  { id_producto: PRODUCTO_IDS.Paracetamol1000, id_sede: SEDE_IDS.Principal, stock_disponible: 35 },
+  { id_producto: PRODUCTO_IDS.Paracetamol1000, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 20 },
+  { id_producto: PRODUCTO_IDS.Clonazepam2, id_sede: SEDE_IDS.Principal, stock_disponible: 2 },
+  { id_producto: PRODUCTO_IDS.Clonazepam2, id_sede: SEDE_IDS.ClinicaHumana, stock_disponible: 2 },
+];

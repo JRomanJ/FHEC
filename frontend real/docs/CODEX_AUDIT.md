@@ -369,3 +369,144 @@ Recomendacion para la fase siguiente:
 - Centralizar datos mock de productos, categorias, sedes, cupones, usuarios demo, pedidos, recetas, notificaciones e inventario.
 - Mapear primero los datos mock hacia los tipos de `src/domain`.
 - Mantener `App.tsx` como fuente visual hasta tener paridad clara, y migrar por pantallas o flujos pequenos con build despues de cada paso.
+
+## 10. Fase 3 - Centralizacion de datos mock
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Crear una fuente mock centralizada alineada con `src/domain`.
+- Reducir duplicacion en `src/app/data.ts` y `src/app/shared.ts` mediante puentes compatibles.
+- Mantener intacta la UI aprobada y no refactorizar `App.tsx`.
+
+Archivos creados:
+
+- `src/data/mockCategorias.ts`
+- `src/data/mockSedes.ts`
+- `src/data/mockProductos.ts`
+- `src/data/mockInventarioSedes.ts`
+- `src/data/mockUsuarios.ts`
+- `src/data/mockPersonalOperativo.ts`
+- `src/data/mockCupones.ts`
+- `src/data/mockCarritos.ts`
+- `src/data/mockPedidos.ts`
+- `src/data/mockDetallePedidos.ts`
+- `src/data/mockRecipes.ts`
+- `src/data/mockAuditoriaRecipes.ts`
+- `src/data/mockTransacciones.ts`
+- `src/data/mockSolicitudesReembolso.ts`
+- `src/data/mockNotificaciones.ts`
+- `src/data/mockBanners.ts`
+- `src/data/mockEntregas.ts`
+- `src/data/selectors.ts`
+- `src/data/adapters.ts`
+- `src/data/viewModels.ts`
+- `src/data/index.ts`
+- `docs/MOCK_DATA_MODEL.md`
+
+Archivos modificados:
+
+- `src/app/data.ts`
+- `src/app/shared.ts`
+- `docs/CODEX_AUDIT.md`
+
+Datos centralizados:
+
+- Categorias y metadata visual temporal.
+- Formas farmaceuticas desde `src/domain/constants.ts`.
+- Productos en formato `Producto`, con metadata visual separada.
+- Inventario por sede con `stock_disponible`.
+- Usuarios demo.
+- Personal operativo.
+- Cupones generales, de usuario, vigentes y vencidos.
+- Carritos.
+- Pedidos en revision medica, pendiente por pago, preparacion, retiro, delivery, camino, entregado y cancelado.
+- Detalles de pedidos.
+- Recipes pendientes, aprobados y rechazados.
+- Auditorias de recipes.
+- Transacciones con monto exacto.
+- Solicitudes de reembolso pendientes, realizadas y rechazadas.
+- Notificaciones principales.
+- Banners con imagen plana.
+
+Selectores creados:
+
+- `getCategoriaById`
+- `getCategorias`
+- `getFormasFarmaceuticas`
+- `getSedes`
+- `getSedesHabilitadas`
+- `getProductoById`
+- `getProductos`
+- `getProductosHabilitados`
+- `getInventarioProductoEnSede`
+- `getStockDisponible`
+- `getProductosDisponiblesPorSede`
+- `getProductosSimilares`
+- `getCupones`
+- `getCuponesGenerales`
+- `getCuponesDeUsuario`
+- `getCuponByCodigo`
+- `getPedidosByUsuario`
+- `getPedidoActivoByUsuario`
+- `getDetallesByPedido`
+- `getRecipesByPedido`
+- `getRecipesPendientes`
+- `getPedidosPorPreparar`
+- `getPedidosSinRepartidor`
+- `getPedidosAsignadosARepartidor`
+- `getSolicitudesReembolsoByUsuario`
+- `getNotificacionesByUsuario`
+- `getAuditoriaByRecipe`
+- `getTransaccionById`
+- `getPersonalOperativoByUsuario`
+- `getBanners`
+- `getCarritoByUsuario`
+
+Exports mantenidos por compatibilidad:
+
+- `PRODUCTS`
+- `CATS`
+- `SEDES`
+- `SEDES_LIST`
+- `DEMO_ACCOUNTS`
+- `DEMO_CONTACT`
+- `DEMO_ORDERS`
+- `DEMO_GLOBAL_ORDERS`
+- `DISCOUNT_CODES`
+- `NOTIF_DATA`
+- `DEFAULT_SLIDES`
+- `STATUS_COLORS`
+- `BRAND_SYNONYMS`
+- `FREQUENTLY_BOUGHT_TOGETHER`
+
+Decisiones tomadas:
+
+- `Producto` de dominio se mantiene limpio y alineado con DB.
+- Propiedades visuales como color, rating, reviews, contraindicaciones, posologia y stock legacy viven en metadata/adaptadores.
+- `stock` global legacy se deriva de `mockInventarioSedes`.
+- `stockSedes` legacy se deriva del inventario por sede.
+- Los banners de dominio usan imagen plana; los gradientes necesarios para formato legacy quedan solo en adaptador.
+- `src/app/data.ts` y `src/app/shared.ts` quedaron como puentes temporales hacia `src/data`.
+
+Que sigue dependiendo de mocks antiguos:
+
+- `src/app/App.tsx` conserva sus datos inline (`PRODUCTS`, `CATS`, `SEDES`, `DEMO_ACCOUNTS`, `DEMO_ORDERS`, `NOTIF_DATA`, etc.).
+- Algunas pantallas separadas en `src/app/components` tienen mocks internos propios, por ejemplo paneles de admin/delivery.
+- No se migraron esos bloques porque hacerlo exigiria tocar flujos visuales y estado local del prototipo.
+
+Verificacion:
+
+- Validacion aislada de `src/data/index.ts` con Vite SSR: exitosa.
+- Validacion aislada de `src/app/shared.ts` con Vite SSR: exitosa.
+- Validacion aislada de `src/app/data.ts` con Vite SSR: exitosa.
+- Build completo con `pnpm build`: exitoso.
+- Se mantiene la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Recomendacion para la siguiente fase:
+
+- Crear servicios mock sobre `src/data/selectors.ts`.
+- Conectar `App.tsx` de forma incremental a `src/app/data.ts` o directamente a servicios mock.
+- Migrar primero categorias, sedes, productos e inventario porque tienen menor riesgo visual.
+- Dejar pedidos, recipes, admin y delivery para una fase posterior con pruebas de flujo.

@@ -14,6 +14,12 @@ import recipeMaria from "../imports/recipe-Maria.jpg";
 import recipeJose from "../imports/recipe-Jose.jpg";
 import recipeAna from "../imports/recipe-Ana.jpg";
 import codigoQrUsuario from "../imports/codigoqr-usuario.jpg";
+import {
+  getBannersLegacy,
+  getCategoriasParaFiltro,
+  getSedesLegacy,
+  getSedesListLegacy,
+} from "../services";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const VES_RATE = 40.50;
@@ -112,26 +118,9 @@ const PRODUCTS: Product[] = [
   { id: 16, name: "Clonazepam 2mg", brand: "Genfar", category: "Sistema Nervioso", presentation: "Comprimidos", packSize: "20", priceUSD: 28.00, stock: 4, needsRecipe: true, rating: 4.3, reviews: 22, bgColor: "#e8eaf6", accentColor: "#283593", description: "Benzodiazepina de alta potencia en dosis de 2 mg para epilepsia y trastorno de pánico.", activeIngredient: "Clonazepam", contraindications: "Miastenia gravis, apnea del sueño.", posology: "2 mg 1–2 veces/día según indicación médica.", controlledSubstance: true, concentration: "2", concentrationUnit: "mg", stockSedes: { principal: 2, clinica: 2 } },
 ];
 
-const DEFAULT_SLIDES: Slide[] = [
-  { title: "Control de Diabetes", subtitle: "Medicamentos de primera línea con los mejores precios del mercado venezolano.", badge: "HASTA 20% OFF", from: "#0b1e1e", via: "#003d2e", to: "#179150", img: "https://images.unsplash.com/photo-1576602976047-174e57a47881?w=900&h=500&fit=crop&auto=format", cta: "Ver Medicamentos →" },
-  { title: "Vitaminas & Suplementos", subtitle: "Refuerza tu sistema inmune con los mejores suplementos. Entrega rápida en Ciudad Guayana.", badge: "DESTACADOS", from: "#031b24", via: "#00546a", to: "#50e9f8", img: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=900&h=500&fit=crop&auto=format", cta: "Explorar Vitaminas →" },
-  { title: "Salud Cardiovascular", subtitle: "Tratamientos completos para cuidar tu corazón. Pedido con o sin récipe médico.", badge: "RECOMENDADO", from: "#006064", via: "#5c0f0f", to: "#c62828", img: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=900&h=500&fit=crop&auto=format", cta: "Ver Cardioprotectores →" },
-];
+const DEFAULT_SLIDES: Slide[] = getBannersLegacy();
 
-const CATS = [
-  { name: "Diabetes", count: 12, emoji: "💉", color: "#179150" },
-  { name: "Cardiovascular", count: 28, emoji: "🫀", color: "#c62828" },
-  { name: "Antibióticos", count: 19, emoji: "💊", color: "#e65100" },
-  { name: "Vitaminas", count: 35, emoji: "⚡", color: "#f9a825" },
-  { name: "Analgésicos", count: 22, emoji: "🩺", color: "#1565c0" },
-  { name: "Gastrointestinal", count: 15, emoji: "🔬", color: "#006064" },
-  { name: "Sistema Nervioso", count: 9, emoji: "🧠", color: "#283593" },
-  { name: "Equipos Médicos", count: 8, emoji: "🩻", color: "#6a1b9a" },
-  { name: "Descartables", count: 14, emoji: "🧤", color: "#37474f" },
-  { name: "Higiene Personal", count: 31, emoji: "🧴", color: "#0277bd" },
-  { name: "Dermatología", count: 17, emoji: "🫧", color: "#ad1457" },
-  { name: "Oftalmología", count: 6, emoji: "👁️", color: "#00695c" },
-];
+const CATS = getCategoriasParaFiltro();
 
 // ─── Stars ───────────────────────────────────────────────────────────────────
 function Stars({ rating }: { rating: number }) {
@@ -686,10 +675,7 @@ function CatNavButton({ page, onNav, onCategorySelect }: {
 }
 
 // ─── SedeSelector ─────────────────────────────────────────────────────────────
-const SEDES_LIST = [
-  { id: "principal", name: "Sede Principal", city: "Ciudad Guayana", address: "Calle 07, Manzana 04, Bolívar" },
-  { id: "clinica",   name: "Clínica Humana",  city: "Ciudad Guayana", address: "Av. José Gumilla, Bolívar" },
-];
+const SEDES_LIST = getSedesListLegacy();
 function SedeSelector({ selectedSede, onSedeChange }: { selectedSede: string; onSedeChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -2440,10 +2426,7 @@ function RefundForm({ amountUSD, onSubmit }: { amountUSD: number; onSubmit: () =
 }
 
 // ─── CheckoutPage — Payment ───────────────────────────────────────────────────
-const SEDES = [
-  { id: "principal", name: "Ciudad Guayana — Principal", address: "Parcela 01-02, Local Manzana 04, Calle 07, Ciudad Guayana 8050, Bolívar", hours: "Lun–Sáb: 8:00 am – 8:00 pm · Dom: 9:00 am – 6:00 pm", mapsUrl: "https://maps.google.com/?q=Ciudad+Guayana+Bolivar+Venezuela" },
-  { id: "clinica",   name: "Clínica Humana",              address: "986M+QJ4, Frente a la Mezquita, Av. José Gumilla, Ciudad Guayana 8051, Bolívar",         hours: "Lun–Sáb: 8:00 am – 8:00 pm · Dom: 9:00 am – 6:00 pm", mapsUrl: "https://maps.google.com/?q=Clinica+Humana+Ciudad+Guayana+Venezuela" },
-];
+const SEDES = getSedesLegacy();
 const DISCOUNT_CODES: Record<string,number> = { FHEC10:10, SALUD15:15, BIENVENIDO:5, FHEC2024:20 };
 
 function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMode = "delivery", selectedSede = "principal", onClearCart = () => {}, user = null }: {

@@ -510,3 +510,82 @@ Recomendacion para la siguiente fase:
 - Conectar `App.tsx` de forma incremental a `src/app/data.ts` o directamente a servicios mock.
 - Migrar primero categorias, sedes, productos e inventario porque tienen menor riesgo visual.
 - Dejar pedidos, recipes, admin y delivery para una fase posterior con pruebas de flujo.
+
+## Fase 4 - Servicios mock y primeras conexiones seguras
+
+Archivos creados:
+
+- `src/config/api.ts`
+- `src/services/categoryService.ts`
+- `src/services/productService.ts`
+- `src/services/sedeService.ts`
+- `src/services/inventoryService.ts`
+- `src/services/cartService.ts`
+- `src/services/orderService.ts`
+- `src/services/couponService.ts`
+- `src/services/userService.ts`
+- `src/services/authService.ts`
+- `src/services/profileService.ts`
+- `src/services/recipeService.ts`
+- `src/services/refundService.ts`
+- `src/services/notificationService.ts`
+- `src/services/adminService.ts`
+- `src/services/bannerService.ts`
+- `src/services/deliveryService.ts`
+- `src/services/httpClient.ts`
+- `src/services/index.ts`
+- `docs/APP_DATA_REFERENCES.md`
+- `docs/SERVICES_LAYER.md`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `docs/CODEX_AUDIT.md`
+
+Servicios creados:
+
+- Categorias, productos, sedes, inventario, cupones, usuarios, auth mock, perfil, pedidos, carrito, recipes, reembolsos, notificaciones, admin, banners y delivery.
+- Todos leen desde `src/data` y `src/domain`.
+- No se agregaron dependencias.
+- No se implementaron llamadas reales a API, Supabase ni `fetch`.
+
+Placeholder de API:
+
+- `src/config/api.ts` define `USE_MOCK_DATA`, `API_BASE_URL` y `API_TIMEOUT_MS`.
+- `src/services/httpClient.ts` queda como placeholder intencional; si se usa hoy, lanza error para evitar llamadas reales accidentales.
+
+Conexiones seguras hechas en `App.tsx`:
+
+- `DEFAULT_SLIDES` ahora se obtiene desde `bannerService.getBannersLegacy()`.
+- `CATS` ahora se obtiene desde `categoryService.getCategoriasParaFiltro()`.
+- `SEDES_LIST` ahora se obtiene desde `sedeService.getSedesListLegacy()`.
+- `SEDES` ahora se obtiene desde `sedeService.getSedesLegacy()`.
+
+Datos locales que siguen pendientes:
+
+- `PRODUCTS`, porque el adapter central no replica exactamente el formato visible de `packSize` usado por `App.tsx`.
+- `DISCOUNT_CODES`, porque la fuente central incluye cupones de usuario y vencidos que podrian cambiar validacion visible.
+- `DEMO_ACCOUNTS`, `DEMO_ORDERS`, `DEMO_GLOBAL_ORDERS`, `DEMO_RECIPES`, `DEMO_ADMIN_ORDERS`, `DEMO_REFUNDS`, `NOTIF_DATA`, delivery y datos de perfil.
+- Constantes de formularios como `DOC_TYPES` quedan pendientes porque el prototipo usa `G` y el dominio usa `RIF`.
+
+Documentacion nueva:
+
+- `docs/APP_DATA_REFERENCES.md` lista arrays y constantes locales de `App.tsx`, estado de migracion y riesgo.
+- `docs/SERVICES_LAYER.md` explica la diferencia entre `src/data` y `src/services`, servicios disponibles y ruta futura hacia API.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Riesgos detectados:
+
+- Reemplazar productos sin adapter visual exacto puede cambiar texto de cards y detalle.
+- Conectar cupones directamente puede cambiar codigos aceptados o estados visibles.
+- Admin, delivery, recipes, reembolsos y notificaciones requieren adapters especificos antes de conectarse a servicios.
+
+Recomendacion para la siguiente fase:
+
+- Crear adapters visuales exactos para productos y cupones antes de reemplazar esos arrays en `App.tsx`.
+- Migrar formularios de pago/reembolso por constantes compartidas, cuidando `G` vs `RIF`.
+- Dejar admin, delivery y recipes para una fase de modularizacion con pruebas de flujo.

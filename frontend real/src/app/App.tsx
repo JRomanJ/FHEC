@@ -10,15 +10,21 @@ import {
   Instagram, Facebook,
 } from "lucide-react";
 import logoFarmahumana from "../imports/logo-farmahumana.png";
-import recipeMaria from "../imports/recipe-Maria.jpg";
-import recipeJose from "../imports/recipe-Jose.jpg";
-import recipeAna from "../imports/recipe-Ana.jpg";
 import codigoQrUsuario from "../imports/codigoqr-usuario.jpg";
 import {
   getAppProductViewModels,
   getBannersLegacy,
   getCategoriasParaFiltro,
   getCouponApplyCodeMap,
+  getLegacyAdminMonitorOrderViewModels,
+  getLegacyAdminOrderViewModels,
+  getLegacyAdminRefundViewModels,
+  getLegacyDeliveryAvailableOrderViewModels,
+  getLegacyDeliveryCompletedTripViewModels,
+  getLegacyNotificationViewModels,
+  getLegacyOrderHistoryViewModels,
+  getLegacyProfileRefundViewModels,
+  getLegacyRecipeAuditViewModels,
   getLegacyAdminCouponViewModels,
   getLegacyProfileCouponViewModels,
   getSedesLegacy,
@@ -3535,14 +3541,7 @@ function toWaLink(phone: string): string {
   return `https://wa.me/${num}`;
 }
 
-const COMPLETED_TRIPS_DEMO = [
-  { id: "FHEC-20241201-8101", date: "2024-12-01", customer: "Ana Martínez", sede: "principal", shippingCost: 3.50 },
-  { id: "FHEC-20241202-8210", date: "2024-12-02", customer: "Pedro Castillo", sede: "clinica", shippingCost: 4.00 },
-  { id: "FHEC-20241202-8215", date: "2024-12-02", customer: "Luisa Mora", sede: "principal", shippingCost: 3.50 },
-  { id: "FHEC-20241203-8312", date: "2024-12-03", customer: "Roberto Silva", sede: "principal", shippingCost: 5.00 },
-  { id: "FHEC-20241203-8320", date: "2024-12-03", customer: "Carmen Ríos", sede: "clinica", shippingCost: 4.50 },
-  { id: "FHEC-20241204-8401", date: "2024-12-04", customer: "Miguel Torres", sede: "principal", shippingCost: 3.50 },
-];
+const COMPLETED_TRIPS_DEMO = getLegacyDeliveryCompletedTripViewModels();
 
 function DeliveryPanel({ onNav, userSede }: { onNav: (p: Page) => void; userSede?: string }) {
   const [activeTab, setActiveTab] = useState<"available" | "myTrips" | "completed">("available");
@@ -3563,29 +3562,7 @@ function DeliveryPanel({ onNav, userSede }: { onNav: (p: Page) => void; userSede
 
   const DEMO_OTP = "1234";
 
-  const ALL_ORDERS = [
-    {
-      id: "FHEC-20241204-8471", customer: "Carlos Rodríguez", phone: "+58 412-1234567",
-      sede: "principal", address: "Calle 07, Manzana 04, Ciudad Guayana 8050, Bolívar",
-      items: 3, total: 45.50, pin: "1234", distance: "2.4 km",
-      products: ["Metformina 500mg ×2", "Vitamina C 1000mg ×1"],
-      notes: "Entregar en recepción del edificio",
-    },
-    {
-      id: "FHEC-20241204-8472", customer: "María González", phone: "+58 424-9876543",
-      sede: "principal", address: "Av. Las Américas, Torre Mar, Piso 5, Apto 5B",
-      items: 2, total: 32.00, pin: "5678", distance: "4.1 km",
-      products: ["Losartán 50mg ×1", "Omeprazol 20mg ×1"],
-      notes: "",
-    },
-    {
-      id: "FHEC-20241204-8473", customer: "Luis Pérez", phone: "+58 414-5551234",
-      sede: "clinica", address: "Frente a la Mezquita, Av. José Gumilla, Ciudad Guayana",
-      items: 5, total: 67.90, pin: "9012", distance: "1.2 km",
-      products: ["Paracetamol 500mg ×3", "Atorvastatina 20mg ×1", "Clonazepam 0.5mg ×1"],
-      notes: "Cliente espera en la puerta — llamar al llegar",
-    },
-  ];
+  const ALL_ORDERS = getLegacyDeliveryAvailableOrderViewModels();
 
   const availableOrders = ALL_ORDERS.filter(o => o.sede === selectedSede && !myTrips.includes(o.id));
   const myTripOrders = ALL_ORDERS.filter(o => myTrips.includes(o.id));
@@ -4711,16 +4688,7 @@ function LoginPage({ onLogin, onNav, initialView = "login" }: { onLogin: (u: Aut
 type SuperTab = "contenido" | "catalogo" | "personal" | "monitor" | "inventario" | "cupones";
 
 // payRef only present when the order has been paid
-const DEMO_GLOBAL_ORDERS = [
-  { id: "ORD-2024-301", date: "2024-06-08 16:20", client: "María González",  sede: "Principal",   status: "Entregado",           total: 34.75, shippingCost: 3.50, payRef: "00291847362", approvedBy: "Carlos Vega", preparedBy: "Ana Torres", dispatchedBy: "José Ramos" },
-  { id: "ORD-2024-302", date: "2024-06-08 15:50", client: "Pedro Martínez",  sede: "Clínica Sur", status: "En tránsito",         total: 18.50, shippingCost: 4.00, payRef: "00384756291", approvedBy: "Carlos Vega", preparedBy: "Ana Torres", dispatchedBy: "José Ramos" },
-  { id: "ORD-2024-303", date: "2024-06-08 15:30", client: "Laura Díaz",      sede: "Principal",   status: "Por preparar",        total: 55.00, shippingCost: 3.50, payRef: "00473918562", approvedBy: "—",           preparedBy: "—",          dispatchedBy: "—" },
-  { id: "ORD-2024-304", date: "2024-06-08 15:10", client: "Roberto Sánchez", sede: "Clínica Sur", status: "Pendiente pago",      total: 12.25, shippingCost: 0,    approvedBy: "Carlos Vega", preparedBy: "—",          dispatchedBy: "—" },
-  { id: "ORD-2024-305", date: "2024-06-08 14:45", client: "Sofía Jiménez",   sede: "Maternidad",  status: "Cancelado",           total: 8.00,  shippingCost: 0,    approvedBy: "—",           preparedBy: "—",          dispatchedBy: "—" },
-  { id: "ORD-2024-306", date: "2024-06-08 14:20", client: "Carlos Blanco",   sede: "Principal",   status: "Entregado",           total: 22.90, shippingCost: 3.50, payRef: "00562837194", approvedBy: "Carlos Vega", preparedBy: "Ana Torres", dispatchedBy: "José Ramos" },
-  { id: "ORD-2024-307", date: "2024-06-08 13:55", client: "Elena Rojas",     sede: "Maternidad",  status: "Por retirar",         total: 41.30, shippingCost: 0,    payRef: "00619283746", approvedBy: "Carlos Vega", preparedBy: "Ana Torres", dispatchedBy: "—" },
-  { id: "ORD-2024-308", date: "2024-06-08 13:30", client: "Marcos Herrera",  sede: "Principal",   status: "En validación médica", total: 67.50, shippingCost: 5.00, approvedBy: "—",           preparedBy: "—",          dispatchedBy: "—" },
-];
+const DEMO_GLOBAL_ORDERS = getLegacyAdminMonitorOrderViewModels();
 
 const STATUS_COLORS: Record<string, string> = {
   "En validación médica": "bg-amber-100 text-amber-800",
@@ -5889,18 +5857,9 @@ function SuperadminModules({ onNav, products, setProducts, slides, setSlides, fo
 
 // ─── AdminPanel ───────────────────────────────────────────────────────────────
 // Demo data for admin panel
-const DEMO_RECIPES = [
-  { id: 1, orderId: "ORD-2024-123", clientName: "María González", product: "Losartán 50mg",     activeIngredient: "Losartán Potásico",          concentration: "50",  concentrationUnit: "mg", packSize: "28", quantity: 1, uploadDate: "2024-06-08 14:32", imageUrl: recipeMaria, status: "pending"  as "pending"|"approved"|"rejected" },
-  { id: 2, orderId: "ORD-2024-124", clientName: "José Ramos",    product: "Amoxicilina 500mg", activeIngredient: "Amoxicilina Trihidrato",       concentration: "500", concentrationUnit: "mg", packSize: "21", quantity: 2, uploadDate: "2024-06-08 14:28", imageUrl: recipeJose, status: "pending"  as "pending"|"approved"|"rejected" },
-  { id: 3, orderId: "ORD-2024-125", clientName: "Ana Torres",    product: "Clonazepam 0.5mg",  activeIngredient: "Clonazepam",                  concentration: "0.5", concentrationUnit: "mg", packSize: "30", quantity: 1, uploadDate: "2024-06-08 14:15", imageUrl: recipeAna,  status: "pending"  as "pending"|"approved"|"rejected" },
-];
+const DEMO_RECIPES = getLegacyRecipeAuditViewModels();
 
-const DEMO_ADMIN_ORDERS = [
-  { id: "ORD-2024-201", clientName: "Pedro Martínez", sede: "principal", status: "Por preparar", items: 3, total: 45.50, paymentMethod: "Pago Móvil", createdAt: "2024-06-08 15:30", products: ["Metformina 500mg x2", "Vitamina C 1000mg x1"] },
-  { id: "ORD-2024-202", clientName: "Laura Díaz", sede: "clinica", status: "Por retirar", items: 2, total: 28.00, paymentMethod: "Transferencia", createdAt: "2024-06-08 15:15", products: ["Paracetamol 500mg x2"] },
-  { id: "ORD-2024-203", clientName: "Carlos Ruiz", sede: "principal", status: "Listo para delivery", items: 4, total: 67.20, paymentMethod: "Pago Móvil", createdAt: "2024-06-08 14:50", products: ["Omeprazol 20mg x2", "Losartán 50mg x2"], deliveryAddress: "Calle 07, Manzana 04" },
-  { id: "ORD-2024-204", clientName: "Isabel Vega", sede: "principal", status: "Por preparar", items: 1, total: 22.00, paymentMethod: "Presencial", createdAt: "2024-06-08 15:45", products: ["Clonazepam 0.5mg x1"], controlled: true },
-];
+const DEMO_ADMIN_ORDERS = getLegacyAdminOrderViewModels();
 
 function AdminPanel({ user, onNav, products, setProducts, slides, setSlides }: {
   user: AuthUser;
@@ -5936,23 +5895,7 @@ function AdminPanel({ user, onNav, products, setProducts, slides, setSlides }: {
   const [pinInput, setPinInput] = useState("");
 
   // Superadmin - Reembolsos
-  const DEMO_REFUNDS = [
-    // Pago Móvil → reembolso por Pago Móvil
-    { id: "REM-001", method: "Pago Móvil",    bank: "Banco de Venezuela", areaCode: "0414", phone: "1234567",
-      reference: "987654321", amount: "$12.50", date: "2024-06-08", status: "Pendiente" as "Pendiente" | "Realizada",
-      refundMethod: "Pago Móvil",    refundBank: "Banco de Venezuela", refundAreaCode: "0414", refundPhone: "1234567",
-      refundDocType: "V", refundDoc: "12345678", holder: "", account: "" },
-    // Transferencia → reembolso por Transferencia
-    { id: "REM-002", method: "Transferencia", bank: "Banesco",            areaCode: "", phone: "",
-      reference: "123456789", amount: "$8.00",  date: "2024-06-07", status: "Pendiente" as "Pendiente" | "Realizada",
-      refundMethod: "Transferencia", refundBank: "Banesco",            refundAreaCode: "", refundPhone: "",
-      refundDocType: "V", refundDoc: "87654321", holder: "Pedro Martínez", account: "0134-0000-10-0000000001" },
-    // Pago Móvil → reembolso por Transferencia
-    { id: "REM-003", method: "Pago Móvil",    bank: "Mercantil",          areaCode: "0416", phone: "5551234",
-      reference: "456789012", amount: "$22.00", date: "2024-06-05", status: "Realizada" as "Pendiente" | "Realizada",
-      refundMethod: "Transferencia", refundBank: "Mercantil",          refundAreaCode: "", refundPhone: "",
-      refundDocType: "E", refundDoc: "8765432", holder: "Laura Díaz", account: "0105-0000-21-0000000099" },
-  ];
+  const DEMO_REFUNDS = getLegacyAdminRefundViewModels();
   const [refunds, setRefunds] = useState(DEMO_REFUNDS);
   const [selectedRefund, setSelectedRefund] = useState<typeof DEMO_REFUNDS[0] | null>(null);
 
@@ -6704,15 +6647,7 @@ function AdminPanel({ user, onNav, products, setProducts, slides, setSlides }: {
 }
 
 // ─── ProfilePage ─────────────────────────────────────────────────────────────
-const DEMO_ORDERS = [
-  { id: "ORD-2024-001", date: "2024-05-28", status: "En curso", items: 3, totalBs: 125.50, totalUsd: 3.10, products: ["Metformina 500mg", "Vitamina C 1000mg", "Paracetamol 500mg"] },
-  { id: "ORD-2024-002", date: "2024-05-25", status: "Entregado", items: 2, totalBs: 89.00, totalUsd: 2.20, products: ["Losartán 50mg", "Omeprazol 20mg"] },
-  { id: "ORD-2024-003", date: "2024-05-20", status: "Entregado", items: 5, totalBs: 234.75, totalUsd: 5.79, products: ["Amoxicilina 500mg", "Paracetamol 500mg", "Vitamina C 1000mg", "Metformina 500mg", "Atorvastatina 20mg"] },
-  { id: "ORD-2024-004", date: "2024-05-10", status: "Entregado", items: 4, totalBs: 189.90, totalUsd: 4.69, products: ["Losartán 50mg", "Atorvastatina 20mg", "Metformina 500mg", "Paracetamol 500mg"] },
-  { id: "ORD-2024-005", date: "2024-05-05", status: "Entregado", items: 2, totalBs: 67.50, totalUsd: 1.67, products: ["Vitamina C 1000mg", "Paracetamol 500mg"] },
-  { id: "ORD-2024-006", date: "2024-04-28", status: "Entregado", items: 3, totalBs: 156.00, totalUsd: 3.85, products: ["Amoxicilina 500mg", "Omeprazol 20mg", "Metformina 500mg"] },
-  { id: "ORD-2024-007", date: "2024-04-20", status: "Entregado", items: 1, totalBs: 45.50, totalUsd: 1.12, products: ["Paracetamol 500mg"] },
-];
+const DEMO_ORDERS = getLegacyOrderHistoryViewModels();
 
 // Per-account demo contact data keyed by email
 const DEMO_CONTACT: Record<string, { phone: string; address: string }> = {
@@ -6830,10 +6765,7 @@ function ProfilePage({ user, onNav, onLogout }: { user: AuthUser; onNav: (p: Pag
   const USER_COUPONS = getLegacyProfileCouponViewModels();
 
   // ── Refund requests ──
-  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([
-    { id: "REM-001", method: "Pago Móvil", bank: "Banco de Venezuela", reference: "987654321", amount: "$12.50", status: "Aprobado" },
-    { id: "REM-002", method: "Transferencia", bank: "Banesco", reference: "123456789", amount: "$8.00", status: "Pendiente" },
-  ]);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>(getLegacyProfileRefundViewModels());
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundStep, setRefundStep]   = useState<1 | 2>(1);
 
@@ -7707,15 +7639,7 @@ function ProfilePage({ user, onNav, onLogout }: { user: AuthUser; onNav: (p: Pag
 }
 
 // ─── NotificationsPage ────────────────────────────────────────────────────────
-const NOTIF_DATA = [
-  { id: 1, type: "order",  icon: "📦", title: "Pedido listo para retiro", body: "Tu pedido #FHEC-20241204-8471 está listo. Preséntate con tu PIN y cédula.", time: "Hace 5 min",   read: false },
-  { id: 2, type: "recipe", icon: "✅", title: "Récipe aprobado",          body: "Tu récipe para Losartán 50mg fue validado. Ya puedes proceder al pago.",   time: "Hace 1 hr",   read: false },
-  { id: 3, type: "promo",  icon: "💊", title: "Oferta especial",          body: "Hasta 20% OFF en vitaminas y suplementos esta semana.",                     time: "Hace 3 hrs",  read: false },
-  { id: 4, type: "order",  icon: "🏠", title: "Pedido entregado",         body: "Tu pedido anterior fue entregado. ¿Cómo fue tu experiencia?",              time: "Ayer",        read: true  },
-  { id: 5, type: "recipe", icon: "⚠️", title: "Récipe rechazado",         body: "El récipe para Amoxicilina 500mg requiere correcciones. Ver detalles.",    time: "Hace 2 días", read: true  },
-  { id: 6, type: "info",   icon: "🕐", title: "Horario extendido",        body: "Esta semana atendemos L–S hasta las 9 PM en nuestra sede principal.",      time: "Hace 3 días", read: true  },
-  { id: 7, type: "promo",  icon: "⭐", title: "Programa de puntos",       body: "¡Acumula puntos con cada compra y canjéalos por descuentos!",              time: "Hace 5 días", read: true  },
-];
+const NOTIF_DATA = getLegacyNotificationViewModels();
 
 function NotificationsPage({ onNav, notifs, setNotifs }: {
   onNav: (p: Page) => void;

@@ -1,6 +1,17 @@
 import { TipoNotificacion } from "../domain";
 import { mockNotificaciones } from "../data";
 
+export {
+  getLegacyNotificationViewModels,
+  getLegacyUnreadNotificationCount,
+  getNotificationDropdownViewModels,
+  getNotificationPanelViewModels,
+  getNotificationViewModels,
+  getUnreadNotificationCount,
+  toNotificationBadgeViewModel,
+  toNotificationViewModel,
+} from "../viewModels/notificationViewModels";
+
 export function getNotificaciones() {
   return mockNotificaciones;
 }

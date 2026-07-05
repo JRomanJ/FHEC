@@ -11,6 +11,38 @@ import {
 import { EstadoPedido, esPickupObligatorio, requiereRecipeDigital, requiereRecipeFisico } from "../domain";
 import type { EstadoPedido as EstadoPedidoType } from "../domain";
 
+export {
+  getActiveOrderViewModel,
+  getAdminMonitorOrderViewModels,
+  getAdminOrderViewModels,
+  getDeliveryOrderViewModels,
+  getLegacyActiveOrderViewModel,
+  getLegacyAdminMonitorOrderViewModels,
+  getLegacyAdminOrderViewModels,
+  getLegacyDeliveryOrderViewModels,
+  getLegacyOrderHistoryViewModels,
+  getLegacyOrderPreparationViewModels,
+  getLegacyOrderReviewViewModels,
+  getLegacyPickupOrderViewModels,
+  getOrderHistoryViewModels,
+  getOrderPreparationViewModels,
+  getOrderReviewViewModels,
+  getOrderSummaryViewModel,
+  getPickupOrderViewModels,
+  pedidoTieneCuponUnico,
+  pedidoTienePagoExacto,
+  toActiveOrderViewModel,
+  toAdminMonitorOrderViewModel,
+  toAdminOrderViewModel,
+  toDeliveryOrderViewModel,
+  toOrderDetailLineViewModel,
+  toOrderHistoryViewModel,
+  toOrderPreparationViewModel,
+  toOrderReviewViewModel,
+  toOrderSummaryViewModel,
+  toPickupOrderViewModel,
+} from "../viewModels/orderViewModels";
+
 export function getPedidos() {
   return mockPedidos;
 }

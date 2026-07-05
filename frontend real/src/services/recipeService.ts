@@ -8,6 +8,19 @@ import {
 } from "../data";
 import { EstadoRecipe } from "../domain";
 
+export {
+  getAuditedRecipeViewModels,
+  getLegacyAuditedRecipeViewModels,
+  getLegacyPendingRecipeViewModels,
+  getLegacyRecipeAuditViewModels,
+  getPendingRecipeViewModels,
+  getRecipeAuditViewModelsFromData,
+  toRecipeAuditViewModel,
+  toRecipeDetailModalViewModel,
+  toRecipeOrderContextViewModel,
+  toRecipeStatusViewModel,
+} from "../viewModels/recipeViewModels";
+
 export function getRecipes() {
   return mockRecipes;
 }

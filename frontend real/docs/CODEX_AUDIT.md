@@ -684,3 +684,81 @@ Recomendacion para la siguiente fase:
 - Crear adapters para recipes/admin/delivery/reembolsos antes de tocar esos flujos.
 - Migrar constantes de formularios de bajo riesgo (`VE_AREAS`, `VE_BANKS`) manteniendo `DOC_TYPES` pendiente.
 - Empezar una modularizacion controlada solo cuando los view models principales esten estables.
+
+## Fase 6 - Adaptadores operacionales
+
+Archivos creados:
+
+- `src/viewModels/orderViewModels.ts`
+- `src/viewModels/recipeViewModels.ts`
+- `src/viewModels/deliveryViewModels.ts`
+- `src/viewModels/refundViewModels.ts`
+- `src/viewModels/notificationViewModels.ts`
+- `docs/OPERATIONAL_VIEW_MODELS.md`
+
+Archivos modificados:
+
+- `src/viewModels/index.ts`
+- `src/services/orderService.ts`
+- `src/services/recipeService.ts`
+- `src/services/deliveryService.ts`
+- `src/services/refundService.ts`
+- `src/services/notificationService.ts`
+- `src/services/adminService.ts`
+- `src/app/data.ts`
+- `src/app/App.tsx`
+- `docs/APP_DATA_REFERENCES.md`
+- `docs/CODEX_AUDIT.md`
+
+View models creados:
+
+- Pedidos: `OrderHistoryViewModel`, `ActiveOrderViewModel`, `AdminOrderViewModel`, `AdminMonitorOrderViewModel`, `OrderPreparationViewModel`, `PickupOrderViewModel`, `DeliveryOrderViewModel`, `OrderReviewViewModel`, `OrderDetailLineViewModel`, `OrderSummaryViewModel`.
+- Recipes/auditoria: `RecipeAuditViewModel`, `RecipeDetailModalViewModel`, `RecipeStatusViewModel`, `RecipeOrderContextViewModel`.
+- Delivery: `DeliveryAvailableOrderViewModel`, `DeliveryAssignedOrderViewModel`, `DeliveryCompletedTripViewModel`, `DeliveryDashboardStatsViewModel`.
+- Reembolsos: `RefundProfileViewModel`, `RefundAdminViewModel`, `RefundRequestFormViewModel`, `RefundStatusViewModel`.
+- Notificaciones: `NotificationViewModel`, `NotificationDropdownViewModel`, `NotificationPanelViewModel`, `NotificationBadgeViewModel`.
+
+Cambios en `App.tsx`:
+
+- `COMPLETED_TRIPS_DEMO` ahora usa `getLegacyDeliveryCompletedTripViewModels()`.
+- `ALL_ORDERS` ahora usa `getLegacyDeliveryAvailableOrderViewModels()`.
+- `DEMO_GLOBAL_ORDERS` ahora usa `getLegacyAdminMonitorOrderViewModels()`.
+- `DEMO_RECIPES` ahora usa `getLegacyRecipeAuditViewModels()`.
+- `DEMO_ADMIN_ORDERS` ahora usa `getLegacyAdminOrderViewModels()`.
+- `DEMO_REFUNDS` ahora usa `getLegacyAdminRefundViewModels()`.
+- `DEMO_ORDERS` ahora usa `getLegacyOrderHistoryViewModels()`.
+- El estado inicial de `refundRequests` ahora usa `getLegacyProfileRefundViewModels()`.
+- `NOTIF_DATA` ahora usa `getLegacyNotificationViewModels()`.
+- Se retiraron imports directos de imagenes de recipe desde `App.tsx`; esas imagenes se importan en `recipeViewModels.ts`.
+
+Compatibilidad preservada:
+
+- Se mantuvieron los nombres locales `DEMO_*`, `ALL_ORDERS`, `COMPLETED_TRIPS_DEMO` y `NOTIF_DATA`.
+- Los getters legacy devuelven clones para que `useState` pueda editar estado local sin mutar la semilla.
+- Se preservaron ids visibles, fechas, nombres, productos, precios, costos de envio, referencias de pago, PIN, distancias, iconos, textos e imagenes.
+- `src/app/data.ts` sigue como puente temporal y ahora exporta listas operacionales legacy.
+
+Que no se toco:
+
+- No se cambio layout, color, responsive, cards, tablas, modales, navegacion, textos visibles ni comportamiento visual.
+- No se modularizo `App.tsx`.
+- No se tocaron `backend` ni `frontend`.
+- No se implemento API real, Supabase ni `fetch`.
+- No se migraron `DEMO_ACCOUNTS`, `DEMO_CONTACT`, `USER_SEDE_MAP`, `STAFF_SEDES`, `VE_AREAS`, `DOC_TYPES`, `VE_BANKS` ni `VENEZUELA_BANKS`.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Riesgos pendientes:
+
+- Auth/profile/personal operativo siguen con datos locales en `App.tsx`.
+- Formularios de pago/reembolso siguen con constantes locales; `DOC_TYPES` requiere decidir `G` vs `RIF`.
+- Los snapshots legacy de pedidos, recipes, delivery, reembolsos y notificaciones preservan UI; reemplazarlos por datos 100% derivados de `src/data` debe hacerse durante modularizacion con verificacion visual.
+
+Recomendacion para la siguiente fase:
+
+- Modularizar de forma controlada empezando por componentes de bajo riesgo ya alimentados por view models.
+- Mantener `src/app/data.ts` como puente hasta extraer features por pantalla.
+- No sustituir snapshots legacy por datos derivados sin una comparacion visual de las pantallas afectadas.

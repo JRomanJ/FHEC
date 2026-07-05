@@ -1,6 +1,20 @@
 import { EstadoPedido } from "../domain";
 import { getPedidosAsignadosARepartidor, getPedidosSinRepartidor, mockEntregasDelivery, mockPedidos } from "../data";
 
+export {
+  getDeliveryAssignedOrderViewModels,
+  getDeliveryAvailableOrderViewModels,
+  getDeliveryCompletedTripViewModels,
+  getDeliveryDashboardStats,
+  getLegacyDeliveryAssignedOrderViewModels,
+  getLegacyDeliveryAvailableOrderViewModels,
+  getLegacyDeliveryCompletedTripViewModels,
+  getLegacyDeliveryDashboardStats,
+  toDeliveryAssignedOrderViewModel,
+  toDeliveryAvailableOrderViewModel,
+  toDeliveryCompletedTripViewModel,
+} from "../viewModels/deliveryViewModels";
+
 const MAX_PEDIDOS_ACTIVOS_REPARTIDOR = 3;
 
 export function getPedidosDisponiblesDelivery() {

@@ -1,6 +1,17 @@
 import { EstadoSolicitudReembolso } from "../domain";
 import { getTransaccionById, mockSolicitudesReembolso } from "../data";
 
+export {
+  getAdminRefundViewModels,
+  getLegacyAdminRefundViewModels,
+  getLegacyProfileRefundViewModels,
+  getProfileRefundViewModels,
+  toRefundAdminViewModel,
+  toRefundProfileViewModel,
+  toRefundRequestFormViewModel,
+  toRefundStatusViewModel,
+} from "../viewModels/refundViewModels";
+
 export function getSolicitudesReembolso() {
   return mockSolicitudesReembolso;
 }

@@ -1,5 +1,4 @@
 import {
-  DEMO_GLOBAL_ORDERS,
   PRODUCTS,
   STATUS_COLORS,
   mockPersonalOperativo,
@@ -8,8 +7,8 @@ import {
 import { getCupones } from "./couponService";
 import { getInventario } from "./inventoryService";
 import { getPedidosPorPreparar } from "./orderService";
-import { getRefundAdminViewModels } from "./refundService";
 import { getRecipeAuditViewModels } from "./recipeService";
+import { getAdminRefundViewModels, getLegacyAdminMonitorOrderViewModels } from "../viewModels";
 
 export function getCatalogoAdmin() {
   return PRODUCTS;
@@ -24,7 +23,7 @@ export function getPersonalOperativoAdmin() {
 }
 
 export function getMonitorGlobalPedidos() {
-  return DEMO_GLOBAL_ORDERS;
+  return getLegacyAdminMonitorOrderViewModels();
 }
 
 export function getResenasServicio() {
@@ -36,7 +35,7 @@ export function getCuponesAdmin() {
 }
 
 export function getReembolsosAdmin() {
-  return getRefundAdminViewModels();
+  return getAdminRefundViewModels();
 }
 
 export function getOperacionesAdmin() {

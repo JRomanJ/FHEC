@@ -3,3 +3,7 @@ export * from "./profile";
 export * from "./catalog";
 export * from "./search";
 export * from "./product-detail";
+export * from "./cart";
+export * from "./checkout";
+export * from "./payment";
+export * from "./recipes";

@@ -245,3 +245,150 @@ Esta fase extrajo componentes completos de producto, catalogo, busqueda y detall
 2. Modularizar delivery select, pre-checkout, checkout, pago y tracking en una fase separada.
 3. Extraer admin catalogo/inventario solo despues de aislar formularios y tablas de bajo riesgo.
 4. Mantener `ProductCard` sin unificacion adicional hasta validar todas sus apariciones visuales.
+
+## Fase 9 - Carrito, checkout, pago y recipes
+
+Esta fase extrajo pantallas completas del flujo de compra desde `src/app/App.tsx`, manteniendo el estado principal y la navegacion en `App.tsx`. La extraccion fue mecanica: JSX, clases, textos, condiciones, calculos visibles y callbacks se conservaron.
+
+### Estado inicial de la fase
+
+- `git status --short`: limpio antes de editar.
+- `App.tsx`: 5469 lineas aproximadamente al iniciar la fase.
+- El carrito y checkout seguian con estado local/mock.
+- No se tocaron `frontend` ni `backend`.
+
+### Secciones extraidas
+
+| Seccion | Ubicacion aproximada anterior en `App.tsx` | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---:|---|---|---|---|
+| `CartPage` | `src/app/App.tsx:638` | Si | `src/features/cart/components/CartPage.tsx` | medio | Mantiene carrito vacio, items, cantidades, vaciar carrito, cupon, stock por sede y modales de login/stock. |
+| Items del carrito | dentro de `CartPage` | Si | `src/features/cart/components/CartPage.tsx` | medio | Sigue usando `ProductBox` compartido; no se cambio sumar/restar/eliminar. |
+| Resumen de carrito | dentro de `CartPage` | Si | `src/features/cart/components/CartPage.tsx` | medio | Se preservaron subtotal, IVA, descuento, total y formato USD/VES. |
+| Aplicacion visual de cupon | dentro de `CartPage` y `DeliverySelectPage` | Si | `src/features/cart/components/CartPage.tsx`, `src/features/checkout/components/DeliverySelectPage.tsx` | medio | `DISCOUNT_CODES` sigue en `App.tsx` y se pasa como prop. |
+| `DeliverySelectPage` | `src/app/App.tsx:1003` | Si | `src/features/checkout/components/DeliverySelectPage.tsx` | medio | Mantiene delivery/pickup, sede, direccion, receptor, resumen y bloqueo de delivery para controlados. |
+| `GpsMapWidget` | `src/app/App.tsx:2517` | Si | `src/components/order/GpsMapWidget.tsx` | bajo | Se movio como componente compartido porque tambien lo usa el panel delivery. |
+| `addressToPin` | `src/app/App.tsx:2613` | Si | `src/components/order/GpsMapWidget.tsx` | bajo | Se exporta junto al mapa para conservar uso en delivery sin cambiar la pantalla. |
+| `PreCheckoutMedicalPage` | `src/app/App.tsx:1257` | Si | `src/features/recipes/components/PreCheckoutMedicalPage.tsx` | medio | Mantiene carga mock de recipe, contador, aprobacion simulada y avisos de recipe fisico. |
+| `CheckoutPage` | `src/app/App.tsx:1507` | Si | `src/features/payment/components/CheckoutPage.tsx` | medio | Mantiene pago movil, transferencia, datos fiscales, temporizador y validacion de pago exacto. |
+| `TrackingPage` | `src/app/App.tsx:1814` | No | Pendiente | medio | Queda para una fase de pedidos/tracking/resenas. |
+| `RefundForm` | `src/app/App.tsx:1425` | No | Pendiente | medio | Pertenece a perfil/reembolsos y no al checkout normal. |
+| Admin completo | varias secciones | No | Pendiente | alto | Fuera de alcance. |
+| Delivery completo | varias secciones | No | Pendiente | alto | Solo se movio el mapa compartido; el panel delivery sigue en `App.tsx`. |
+
+### Archivos creados
+
+- `src/features/cart/components/CartPage.tsx`
+- `src/features/cart/index.ts`
+- `src/features/checkout/components/DeliverySelectPage.tsx`
+- `src/features/checkout/index.ts`
+- `src/features/payment/components/CheckoutPage.tsx`
+- `src/features/payment/index.ts`
+- `src/features/recipes/components/PreCheckoutMedicalPage.tsx`
+- `src/features/recipes/index.ts`
+- `src/components/order/GpsMapWidget.tsx`
+- `src/components/order/index.ts`
+
+### Archivos modificados
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+### Props principales
+
+`CartPage` recibe:
+
+- `cartItems`
+- `setCartItems`
+- `onNav`
+- `discountApplied`
+- `discountCode`
+- `setDiscountApplied`
+- `setDiscountCode`
+- `user`
+- `hasActiveOrder`
+- `selectedSede`
+- `products`
+- `discountCodes`
+
+`DeliverySelectPage` recibe:
+
+- `cartItems`
+- `onNav`
+- `deliveryMode`
+- `setDeliveryMode`
+- `selectedSede`
+- `setSelectedSede`
+- `deliveryAddress`
+- `setDeliveryAddress`
+- `discountApplied`
+- `discountCode`
+- `setDiscountApplied`
+- `setDiscountCode`
+- `user`
+- `onConfirmOrder`
+- `sedes`
+- `discountCodes`
+- `demoContact`
+- `veAreas`
+
+`PreCheckoutMedicalPage` recibe:
+
+- `cartItems`
+- `onNav`
+
+`CheckoutPage` recibe:
+
+- `cartItems`
+- `onNav`
+- `discountApplied`
+- `deliveryMode`
+- `selectedSede`
+- `onClearCart`
+- `user`
+- `veAreas`
+- `docTypes`
+- `veBanks`
+
+### Estado que quedo en App.tsx
+
+- Pantalla actual (`page`).
+- Carrito (`cartItems`), cantidades y `activeOrderItems`.
+- Cupon aplicado (`cartDiscountApplied`, `cartDiscountCode`).
+- Estado global de pedido activo (`hasActiveOrder`).
+- Modo de entrega, sede y direccion de checkout.
+- Usuario autenticado.
+- Constantes compartidas de formularios y pago: `VE_AREAS`, `DOC_TYPES`, `VE_BANKS`.
+- Datos puente: `SEDES`, `DISCOUNT_CODES`, `DEMO_CONTACT`.
+
+### Estado que se movio con los componentes
+
+- Estado local de input/error/exito de cupon en carrito.
+- Modal de login requerido y modal de stock insuficiente del carrito.
+- Estado local de receptor en metodo de entrega.
+- Estado local de cupon dentro de metodo de entrega.
+- Estado local de archivos de recipe, envio mock y contador de auditoria.
+- Estado local de metodo de pago, referencia, banco, monto, temporizador y datos fiscales.
+- Estado local del pin del mapa compartido.
+
+### Decisiones
+
+- No se extrajo un `OrderSummaryCard` comun porque carrito, metodo de entrega y pago tienen variaciones visuales pequenas. Unificarlos ahora podia cambiar estructura o textos.
+- `DISCOUNT_CODES`, `SEDES` y `DEMO_CONTACT` se mantienen en `App.tsx` como datos compartidos y se pasan por props.
+- `VE_AREAS`, `DOC_TYPES` y `VE_BANKS` siguen en `App.tsx` porque tambien alimentan auth/perfil/reembolsos; moverlas debe hacerse con una normalizacion separada.
+- `GpsMapWidget` se movio a `src/components/order` para evitar dependencias desde features hacia `App.tsx`.
+- No se implemento persistencia real, backend, Supabase, API ni `fetch`.
+
+### Verificacion
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- `App.tsx` paso de 5469 lineas a 4288 lineas.
+
+### Pendiente recomendado
+
+1. Extraer `TrackingPage` en una fase de pedidos, tracking y resenas.
+2. Modularizar `RefundForm` junto con reembolsos de perfil/admin.
+3. Extraer constantes compartidas de formularios y pago cuando se resuelva `G` vs `RIF`.
+4. Modularizar admin y delivery completo en fases posteriores.

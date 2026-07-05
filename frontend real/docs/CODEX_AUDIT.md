@@ -897,3 +897,81 @@ Recomendacion para la siguiente fase:
 - Modularizar carrito y componentes de resumen usando `ProductBox`/`ProductCard` ya extraidos.
 - Despues separar checkout/pago/tracking con el mismo patron de props, sin cambiar persistencia mock.
 - Mantener admin y delivery completo fuera del alcance hasta que el flujo de compra este aislado.
+
+## Fase 9 - Modularizacion de carrito, checkout, pago y recipes
+
+Archivos creados:
+
+- `src/features/cart/components/CartPage.tsx`
+- `src/features/cart/index.ts`
+- `src/features/checkout/components/DeliverySelectPage.tsx`
+- `src/features/checkout/index.ts`
+- `src/features/payment/components/CheckoutPage.tsx`
+- `src/features/payment/index.ts`
+- `src/features/recipes/components/PreCheckoutMedicalPage.tsx`
+- `src/features/recipes/index.ts`
+- `src/components/order/GpsMapWidget.tsx`
+- `src/components/order/index.ts`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Secciones extraidas:
+
+- `CartPage`, incluyendo carrito vacio, items, cantidades, eliminar/vaciar, resumen, cupon, modal de login y modal de stock insuficiente.
+- `DeliverySelectPage`, incluyendo metodo delivery/pickup, sede, direccion, receptor, cupon y resumen.
+- `PreCheckoutMedicalPage`, incluyendo carga mock de recipes, contador de auditoria, aprobacion simulada y avisos de recipe fisico.
+- `CheckoutPage`, incluyendo pago movil, transferencia, datos fiscales, temporizador, resumen y validacion de pago exacto.
+- `GpsMapWidget` y `addressToPin` hacia `src/components/order` como componente compartido.
+
+Cambios en `App.tsx`:
+
+- `App.tsx` importa `CartPage` desde `src/features/cart`.
+- `App.tsx` importa `DeliverySelectPage` desde `src/features/checkout`.
+- `App.tsx` importa `CheckoutPage` desde `src/features/payment`.
+- `App.tsx` importa `PreCheckoutMedicalPage` desde `src/features/recipes`.
+- `App.tsx` importa `GpsMapWidget` y `addressToPin` desde `src/components/order`.
+- `App.tsx` sigue controlando `cartItems`, `activeOrderItems`, `hasActiveOrder`, cupon aplicado, modo de entrega, sede, direccion, usuario y navegacion.
+- `DISCOUNT_CODES`, `SEDES`, `DEMO_CONTACT`, `VE_AREAS`, `DOC_TYPES` y `VE_BANKS` se mantienen en `App.tsx` y se pasan como props a los componentes extraidos.
+
+Secciones no extraidas:
+
+- `TrackingPage`, que queda pendiente para una fase de pedidos/tracking/resenas.
+- `RefundForm`, que queda pendiente para modularizacion de reembolsos.
+- Admin completo, inventario admin, auditoria admin, monitor global y delivery completo.
+- Navegacion principal completa.
+
+Reduccion aproximada:
+
+- `App.tsx` paso de 5469 lineas a 4288 lineas.
+- Se movieron 1181 lineas aproximadamente a features de carrito, checkout, pago, recipes y componente compartido de mapa.
+
+Impacto visual esperado:
+
+- Ninguno. La extraccion fue mecanica y con JSX, clases, textos, badges, condiciones, callbacks, calculos visibles y estilos preservados.
+- No se agrego React Router, state management externo, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+- El pago sigue validando monto exacto; no se introdujeron subpagos, pagos parciales ni pagos de diferencia.
+- Productos controlados siguen forzando pickup visualmente.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Riesgos pendientes:
+
+- `TrackingPage` todavia mezcla pedido activo, timers, estados, recipe rechazada, delivery/pickup y resena.
+- `RefundForm` sigue compartiendo `VE_AREAS`, `DOC_TYPES` y `VE_BANKS` desde `App.tsx`.
+- `GpsMapWidget` ahora es compartido por checkout y delivery; cualquier cambio futuro debe validarse en ambas pantallas.
+- Los resumenes de pedido siguen duplicados visualmente por pantalla para evitar una unificacion prematura.
+
+Recomendacion para la siguiente fase:
+
+- Modularizar `TrackingPage` como feature de pedidos/tracking/resenas.
+- Despues modularizar reembolsos y separar `RefundForm`.
+- Mantener admin y delivery completo para fases dedicadas.

@@ -1042,3 +1042,93 @@ Recomendacion para la siguiente fase:
 
 - Modularizar delivery/repartidor completo y notificaciones globales.
 - Luego dividir `AdminPanelPage.tsx` en secciones internas mas pequenas si el panel ya fue validado visualmente.
+
+## Fase 11 - Modularizacion final y preparacion de limpieza
+
+Archivos creados:
+
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `src/features/delivery/index.ts`
+- `src/features/favorites/components/FavoritesPage.tsx`
+- `src/features/favorites/components/index.ts`
+- `src/features/favorites/index.ts`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `src/features/notifications/components/index.ts`
+- `src/features/notifications/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/orders/index.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+- `src/features/admin/components/BannerManagementPage.tsx`
+- `docs/CLEANUP_CANDIDATES.md`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `src/features/admin/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Secciones extraidas:
+
+- Layout global y navegacion: `NavDropdown`, `CatNavButton`, `SedeSelector`, `MobileUserMenu`, `Navbar`, `MenuBtn` y `Footer`.
+- Pedido activo/tracking/reseña: `TrackingPage`.
+- Delivery/repartidor: `DeliveryPanel`.
+- Notificaciones globales: `NotificationsPage` e `INITIAL_NOTIFICATIONS`.
+- Favoritos: `FavoritesPage`.
+- Gestion de banners standalone: `BannerManagementPage`.
+- Reembolso cliente legacy: `RefundForm`, extraido pero no conectado porque no estaba renderizado.
+
+Cambios en `App.tsx`:
+
+- `App.tsx` importa `Navbar` y `Footer` desde `src/components/layout`.
+- `App.tsx` importa `TrackingPage`, `DeliveryPanel`, `NotificationsPage`, `FavoritesPage` y `BannerManagementPage` desde sus features.
+- `App.tsx` mantiene solo el estado orquestador: pantalla, sesion, carrito, producto seleccionado, favoritos, busqueda, sede, checkout, pedido activo, slides y notificaciones.
+- No se cambio navegacion, textos, clases, badges, formularios ni comportamiento visual.
+
+Secciones no extraidas:
+
+- `AdminPanelPage.tsx` no se dividio internamente; sigue en `src/features/admin/components/AdminPanelPage.tsx` porque partirlo requiere manejar estado compartido entre tabs, modales y secciones.
+- No se crearon modales globales reutilizables; los modales siguen dentro de sus features para no cambiar overlays.
+- No se hizo limpieza profunda de `src/app/components/*`, assets ni puentes legacy.
+
+Reduccion aproximada:
+
+- `App.tsx` paso de 2321 lineas a 287 lineas.
+- `AdminPanelPage.tsx` se mantuvo en 2001 lineas.
+
+Impacto visual esperado:
+
+- Ninguno. La extraccion fue mecanica y preservo JSX, clases, textos visibles, iconos, badges, tablas, formularios, modales, condiciones y callbacks.
+- No se agrego React Router, state management externo, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Inventario de limpieza:
+
+- Se creo `docs/CLEANUP_CANDIDATES.md`.
+- El inventario lista candidatos en `src/app/components/*`, `src/app/shared.ts`, helpers inline de `App.tsx`, assets posiblemente residuales en `src/imports`, puentes legacy y duplicados entre `src/app/data.ts`, `src/data`, `src/services`, `src/viewModels`, `src/app/types.ts` y `src/domain/types.ts`.
+- No se borraron archivos de riesgo medio o alto.
+
+Riesgos pendientes:
+
+- `src/app/components/ui/*` no debe borrarse sin confirmacion archivo por archivo.
+- `src/app/data.ts` y `src/app/types.ts` siguen siendo puentes activos para features visuales.
+- `src/features/refunds/components/RefundForm.tsx` requiere decision: conectar, conservar como referencia o eliminar.
+- `AdminPanelPage.tsx`, `AppLayout.tsx`, `TrackingPage.tsx` y `DeliveryPanelPage.tsx` todavia pueden dividirse internamente en fases futuras.
+
+Recomendacion para la fase 12:
+
+- Empezar por borrar duplicados confirmados de bajo riesgo y helpers inline sin uso.
+- Revisar manualmente `src/app/components/*` y assets no importados antes de eliminarlos.
+- Mantener `src/app/components/ui/*`, `src/app/data.ts` y `src/app/types.ts` hasta completar una migracion controlada de tipos/helpers.

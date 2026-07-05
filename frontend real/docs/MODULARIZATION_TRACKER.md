@@ -491,3 +491,129 @@ Esta fase extrajo el bloque administrativo completo desde `src/app/App.tsx` haci
 2. Extraer `BannerManagementPage` standalone si se decide integrarlo al feature admin o mantenerlo como feature de contenido.
 3. Crear una seccion de resenas admin si el prototipo final la requiere visualmente.
 4. Modularizar delivery/repartidor completo y notificaciones globales en la ultima tanda.
+
+## Fase 11 - Modularizacion final y preparacion de limpieza
+
+Esta fase extrajo las ultimas zonas grandes desde `src/app/App.tsx` sin cambiar UI: layout global, navbar/footer, notificaciones, delivery, tracking/reseña, favoritos, banners standalone y un formulario legacy de reembolso. Tambien se creo el inventario de limpieza para la fase 12.
+
+### Estado inicial de la fase
+
+- `git status --short`: limpio antes de editar.
+- `App.tsx`: 2321 lineas al iniciar la fase.
+- `AdminPanelPage.tsx`: 2001 lineas; se reviso pero no se dividio internamente por riesgo de tocar tabs y estado compartido.
+
+### Secciones extraidas
+
+| Seccion | Ubicacion aproximada anterior | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---:|---|---|---|---|
+| Navbar y barras de navegacion | `src/app/App.tsx:124-626` | Si | `src/components/layout/AppLayout.tsx` | medio | Incluye `NavDropdown`, `CatNavButton`, `SedeSelector`, `MobileUserMenu`, `Navbar` y `MenuBtn`. |
+| Footer | `src/app/App.tsx:2064` | Si | `src/components/layout/AppLayout.tsx` | bajo | Se preservaron columnas, redes, metodos de pago y categorias. |
+| Tracking / Mi Pedido / reseña | `src/app/App.tsx:731` | Si | `src/features/orders/components/TrackingPage.tsx` | medio | Incluye timeline, PIN, demo controls, receta rechazada, resumen y reseña. |
+| Favorites | `src/app/App.tsx:1247` | Si | `src/features/favorites/components/FavoritesPage.tsx` | bajo | Se movio porque seguia como pagina grande standalone. |
+| Gestion de banners standalone | `src/app/App.tsx:1326` | Si | `src/features/admin/components/BannerManagementPage.tsx` | bajo | Se mantiene como pantalla standalone `page === "banners"`. |
+| Delivery / repartidor | `src/app/App.tsx:1443` | Si | `src/features/delivery/components/DeliveryPanelPage.tsx` | medio | Incluye tabs, pedidos disponibles, mis viajes, viajes completados, PIN y limite de 3 viajes. |
+| Notificaciones globales | `src/app/App.tsx:1959` | Si | `src/features/notifications/components/NotificationsPage.tsx` | bajo | Se movio la pagina completa y el estado sigue en `App.tsx`. |
+| Formulario legacy de reembolso | `src/app/App.tsx:648` | Si | `src/features/refunds/components/RefundForm.tsx` | medio | No esta conectado a una ruta activa; queda documentado como candidato para decidir en fase 12. |
+| `AdminPanelPage.tsx` interno | `src/features/admin/components/AdminPanelPage.tsx` | No | Pendiente | medio | No se dividio porque la separacion de secciones requiere validar estado compartido y modales. |
+| Modales globales genericos | varias zonas | No | Pendiente | medio | Los modales estan embebidos en features y no se abstrajeron para no cambiar overlays. |
+
+### Archivos creados
+
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `src/features/delivery/index.ts`
+- `src/features/favorites/components/FavoritesPage.tsx`
+- `src/features/favorites/components/index.ts`
+- `src/features/favorites/index.ts`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `src/features/notifications/components/index.ts`
+- `src/features/notifications/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/orders/index.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+- `src/features/admin/components/BannerManagementPage.tsx`
+- `docs/CLEANUP_CANDIDATES.md`
+
+### Archivos modificados
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `src/features/admin/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+### Props principales
+
+`Navbar` recibe:
+
+- `cartCount`, `onNav`, `page`, `searchQuery`, `setSearchQuery`
+- `user`, `onLogout`, `onCategorySelect`
+- `cartItems`, `onUpdateCartQuantity`, `onRemoveFromCart`
+- `hasActiveOrder`, `appNotifs`, `setAppNotifs`
+- `selectedSede`, `onSedeChange`, `products`, `categories`, `brandSynonyms`
+
+`TrackingPage` recibe:
+
+- `onNav`
+- `orderItems`
+- `deliveryMode`
+- `discountPct`
+- `onOrderComplete`
+
+`DeliveryPanel` recibe:
+
+- `onNav`
+- `userSede`
+
+`NotificationsPage` recibe:
+
+- `onNav`
+- `notifs`
+- `setNotifs`
+
+### Estado que quedo en App.tsx
+
+- Pantalla actual (`page`).
+- Sesion/rol (`user`).
+- Carrito, cantidades, pedido activo y cupon aplicado.
+- Producto seleccionado, favoritos y busqueda.
+- Sede visual, sede de checkout, modo de entrega y direccion.
+- Slides de banners.
+- Notificaciones globales compartidas entre navbar y pagina.
+- Navegacion general y callbacks hacia features.
+
+### Estado que se movio con los features
+
+- Estado interno de navbar: dropdowns, carrito rapido, notificaciones rapidas y menu movil.
+- Estado interno de tracking: demo controls, timer, PIN, receta rechazada y reseña.
+- Estado interno de delivery: tabs, sede, PIN, pedidos asignados, filtros de viajes y modales.
+- Estado interno de notificaciones: notificacion seleccionada y detalle.
+- Estado interno de banners standalone: edicion y draft.
+- Estado interno del formulario legacy de reembolso.
+
+### Decisiones
+
+- `App.tsx` quedo como orquestador final y no se introdujo router ni state management externo.
+- `AdminPanelPage.tsx` no se dividio internamente porque aun concentra estado compartido entre tabs, modales y secciones admin.
+- Los modales se mantuvieron dentro de sus features para evitar cambios de overlay o layout.
+- `RefundForm` se extrajo pero no se conecto, porque no estaba renderizado en el flujo activo.
+- Se creo `docs/CLEANUP_CANDIDATES.md` en vez de borrar archivos legacy.
+
+### Verificacion
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- `App.tsx` paso de 2321 lineas a 287 lineas.
+
+### Pendiente recomendado para fase 12
+
+1. Revisar y borrar duplicados confirmados en `src/app/components/*`.
+2. Eliminar helpers inline no usados de `src/app/App.tsx`.
+3. Revisar assets no importados de `src/imports`.
+4. Decidir si `RefundForm` se conserva, se conecta o se elimina.
+5. No borrar `src/app/components/ui/*`, `src/app/data.ts` ni `src/app/types.ts` sin una validacion especifica.

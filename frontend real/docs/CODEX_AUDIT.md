@@ -762,3 +762,67 @@ Recomendacion para la siguiente fase:
 - Modularizar de forma controlada empezando por componentes de bajo riesgo ya alimentados por view models.
 - Mantener `src/app/data.ts` como puente hasta extraer features por pantalla.
 - No sustituir snapshots legacy por datos derivados sin una comparacion visual de las pantallas afectadas.
+
+## Fase 7 - Modularizacion inicial de auth, perfil y formularios
+
+Archivos creados:
+
+- `src/features/auth/components/LoginPage.tsx`
+- `src/features/auth/index.ts`
+- `src/features/profile/components/ProfilePage.tsx`
+- `src/features/profile/index.ts`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/app/types.ts`
+- `docs/CODEX_AUDIT.md`
+
+Secciones extraidas:
+
+- `LoginPage`, incluyendo login, registro, recuperacion de contrasena y flujo OTP mock.
+- `OtpInput` local usado como apoyo dentro del feature auth.
+- `ProfilePage`, incluyendo datos personales, correo, telefono, notificaciones, seguridad, historial, reembolsos y cupones.
+
+Cambios en `App.tsx`:
+
+- `App.tsx` ahora importa `LoginPage` desde `src/features/auth`.
+- `App.tsx` ahora importa `ProfilePage` desde `src/features/profile`.
+- `App.tsx` sigue controlando la pantalla actual, usuario, carrito, checkout, notificaciones compartidas y navegacion.
+- `DEMO_ACCOUNTS`, `DEMO_CONTACT`, `VE_AREAS` y `DOC_TYPES` permanecen en `App.tsx` porque tambien alimentan otros flujos no modularizados.
+- Se pasan props a auth/perfil para conservar exactamente los mismos datos visibles.
+
+Tipos:
+
+- `src/app/types.ts` se alineo con los tipos inline vigentes: `Page` incluye `register`, `Slide` incluye `ctaLink`, y `Product` incluye campos opcionales usados por los view models actuales.
+
+Secciones no extraidas:
+
+- Catalogo, detalle de producto, carrito, delivery select, checkout, pago, tracking.
+- Admin completo, auditoria, inventario, monitor global, delivery completo.
+- Staff/personal operativo, porque sigue acoplado al panel admin.
+- Formularios globales reutilizables, porque los OTP y campos actuales tienen clases/ids especificos por contexto.
+
+Impacto visual esperado:
+
+- Ninguno. La extraccion fue de componentes completos con clases, textos, estructura JSX y handlers preservados.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Riesgos pendientes:
+
+- `ProfilePage` sigue siendo grande internamente; conviene dividirlo por tabs en una fase posterior con verificacion visual.
+- `DEMO_ACCOUNTS` y `DEMO_CONTACT` siguen compartidos desde `App.tsx`.
+- `DOC_TYPES` sigue local por la diferencia `G` vs `RIF`.
+- No existe typecheck estricto; Vite sigue compilando sin `tsconfig.json`.
+
+Recomendacion para la siguiente fase:
+
+- Extraer subcomponentes internos de perfil por tabs (`ProfilePersonalInfoSection`, `ProfileNotificationsSection`, `ProfileSecuritySection`, `ProfileOrderHistorySection`, `ProfileRefundsSection`, `ProfileCouponsSection`) usando el mismo patron de props.
+- Despues modularizar staff/admin de bajo riesgo, sin tocar monitor ni operaciones complejas.
+- Mantener backend/API/Supabase fuera del alcance hasta que el frontend este modularizado.

@@ -392,3 +392,102 @@ Esta fase extrajo pantallas completas del flujo de compra desde `src/app/App.tsx
 2. Modularizar `RefundForm` junto con reembolsos de perfil/admin.
 3. Extraer constantes compartidas de formularios y pago cuando se resuelva `G` vs `RIF`.
 4. Modularizar admin y delivery completo en fases posteriores.
+
+## Fase 10 - Panel administrativo
+
+Esta fase extrajo el bloque administrativo completo desde `src/app/App.tsx` hacia `src/features/admin`. Se movieron funciones completas para conservar tabs, tablas, formularios, modales, estados locales, validaciones visuales y comportamiento mock.
+
+### Estado inicial de la fase
+
+- `git status --short`: limpio antes de editar.
+- `App.tsx`: 4288 lineas aproximadamente al iniciar la fase.
+- El panel admin usaba datos mock/view models legacy y estado local.
+- No se tocaron `frontend` ni `backend`.
+
+### Secciones extraidas
+
+| Seccion | Ubicacion aproximada anterior en `App.tsx` | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---:|---|---|---|---|
+| `AdminPanel` | `src/app/App.tsx:3126` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Contenedor principal con tabs por rol, auditor, auxiliar y superadmin. |
+| Navegacion interna admin | dentro de `AdminPanel` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Se preservaron tabs, labels, iconos y permisos visuales por rol. |
+| Auditoria de recipes | dentro de `AdminPanel` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Tabla, modal, aprobar/rechazar, motivos y acciones de imagen quedaron intactos. |
+| Operaciones admin | dentro de `AdminPanel` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | KPIs, filtros, tabla, modal de pedido, empacado, despacho y PIN demo quedaron intactos. |
+| Reembolsos admin | dentro de `AdminPanel` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Tabla, modal de detalle y confirmar reembolso siguen con estado mock local. |
+| `SuperadminModules` | `src/app/App.tsx:2115` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Contenido, catalogo, personal, monitor, inventario y cupones permanecen juntos para no romper estado interno. |
+| Contenido/banners dentro de superadmin | dentro de `SuperadminModules` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Logo, banners, preview y formulario inline quedaron intactos. |
+| Catalogo admin | dentro de `SuperadminModules` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Tabla, filtros, formulario de producto, nivel de control, estado y descuento quedaron intactos. |
+| Inventario | `src/app/App.tsx:1966` y dentro de admin | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | `InventarioTab` se movio completo con edicion de stock por sede. |
+| Personal operativo | dentro de `SuperadminModules` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Tabla, formulario, roles, sede y habilitar/inhabilitar quedaron intactos. |
+| Cupones admin | dentro de `SuperadminModules` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | Tabla, formulario, filtros y validacion de duplicado vigente quedaron intactos. |
+| Monitor global | dentro de `SuperadminModules` | Si | `src/features/admin/components/AdminPanelPage.tsx` | medio | KPIs, filtros, tabla y totales quedaron intactos. |
+| `BannerManagementPage` standalone | `src/app/App.tsx:1331` | No | Pendiente | bajo | Es una pagina separada (`page === "banners"`), no parte directa del panel admin actual. |
+| Reseñas admin dedicadas | no encontrada como seccion admin separada | No | Pendiente | medio | No existe una seccion dedicada en el bloque actual; las resenas siguen ligadas a tracking/perfil. |
+| Delivery/repartidor completo | `src/app/App.tsx:1448` | No | Pendiente | alto | Fuera de alcance de esta fase. |
+| Notificaciones globales | `src/app/App.tsx:3926` | No | Pendiente | medio | Fuera de alcance. |
+
+### Archivos creados
+
+- `src/features/admin/components/AdminPanelPage.tsx`
+- `src/features/admin/components/index.ts`
+- `src/features/admin/sections/index.ts`
+- `src/features/admin/index.ts`
+
+### Archivos modificados
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+### Props principales
+
+`AdminPanel` recibe:
+
+- `user`
+- `onNav`
+- `products`
+- `setProducts`
+- `slides`
+- `setSlides`
+
+### Estado que quedo en App.tsx
+
+- Pantalla actual (`page`).
+- Usuario y rol de sesion.
+- Navegacion general.
+- Productos y slides como fuentes pasadas al admin.
+- `staffSede`, usado por delivery y calculado en el orquestador.
+
+### Estado que se movio al feature admin
+
+- Tab activo del panel admin.
+- Estado de auditoria de recipes, recipe seleccionado, motivos y comentario de rechazo.
+- Estado de operaciones: pedidos, filtros, orden seleccionado y PIN.
+- Estado de reembolsos admin.
+- Estado de contenido/banners dentro de superadmin.
+- Estado de catalogo admin y formulario de producto.
+- Estado de inventario por sede y modal de stock.
+- Estado de personal operativo y formulario de asignacion.
+- Estado de cupones admin y validacion visual de duplicado vigente.
+- Estado de monitor global y filtros.
+
+### Decisiones
+
+- Se movio el bloque admin completo a un solo archivo grande para conservar la UI y evitar partir tabs/modales interdependientes antes de una validacion visual mas fina.
+- No se crearon secciones separadas todavia porque `SuperadminModules` comparte estado local entre catalogo, inventario, contenido, personal, monitor y cupones.
+- Los getters legacy admin ahora viven dentro del feature admin.
+- `App.tsx` solo importa `AdminPanel` y sigue pasandole datos.
+- No se implemento persistencia real, backend, Supabase, API ni `fetch`.
+
+### Verificacion
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- `App.tsx` paso de 4288 lineas a 2321 lineas.
+
+### Pendiente recomendado
+
+1. Dividir `AdminPanelPage.tsx` por secciones (`AdminAuditSection`, `AdminOperationsSection`, `AdminRefundsSection`, `AdminCatalogSection`, `AdminInventorySection`, `AdminStaffSection`, `AdminCouponsSection`, `AdminMonitorSection`) con comparacion visual.
+2. Extraer `BannerManagementPage` standalone si se decide integrarlo al feature admin o mantenerlo como feature de contenido.
+3. Crear una seccion de resenas admin si el prototipo final la requiere visualmente.
+4. Modularizar delivery/repartidor completo y notificaciones globales en la ultima tanda.

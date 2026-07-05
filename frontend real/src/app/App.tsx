@@ -15,96 +15,17 @@ import { NotificationsPage, INITIAL_NOTIFICATIONS, type AppNotification } from "
 import { TrackingPage } from "../features/orders";
 import { Footer, Navbar } from "../components/layout";
 import {
-  getAppProductViewModels,
-  getBannersLegacy,
-  getCategoriasParaFiltro,
-  getCouponApplyCodeMap,
-  getLegacyOrderHistoryViewModels,
-  getSedesLegacy,
-} from "../services";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const VES_RATE = 40.50;
-const fmtVES = (u: number) =>
-  `Bs.S ${(u * VES_RATE).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fmtUSD = (u: number) => `$${u.toFixed(2)}`;
-const H9: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900 };
-const H7: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 };
-const effectivePrice = (p: Product) => p.discount ? p.priceUSD * (1 - p.discount / 100) : p.priceUSD;
-
-// Brand synonyms for smart search
-const BRAND_SYNONYMS: Record<string, string[]> = {
-  "atamel": ["Paracetamol (Acetaminofén)", "Analgésicos"],
-  "tylenol": ["Paracetamol (Acetaminofén)", "Analgésicos"],
-  "panadol": ["Paracetamol (Acetaminofén)", "Analgésicos"],
-  "calpol": ["Paracetamol (Acetaminofén)", "Analgésicos"],
-  "lipitor": ["Atorvastatina Cálcica", "Cardiovascular"],
-  "sortis": ["Atorvastatina Cálcica", "Cardiovascular"],
-  "glucophage": ["Clorhidrato de Metformina", "Diabetes"],
-  "stagid": ["Clorhidrato de Metformina", "Diabetes"],
-  "omepral": ["Omeprazol", "Gastrointestinal"],
-  "losec": ["Omeprazol", "Gastrointestinal"],
-  "prilosec": ["Omeprazol", "Gastrointestinal"],
-  "cozaar": ["Losartán Potásico", "Cardiovascular"],
-  "hyzaar": ["Losartán Potásico", "Cardiovascular"],
-  "augmentin": ["Amoxicilina Trihidrato", "Antibióticos"],
-  "amoxil": ["Amoxicilina Trihidrato", "Antibióticos"],
-  "rivotril": ["Clonazepam", "Sistema Nervioso"],
-  "cebion": ["Ácido Ascórbico", "Vitaminas"],
-  "redoxon": ["Ácido Ascórbico", "Vitaminas"],
-  "ce-vi-cal": ["Ácido Ascórbico", "Vitaminas"],
-};
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-type Page = "home" | "catalog" | "product" | "cart" | "deliverySelect" | "preCheckout" | "checkout" | "orderComplete" | "tracking" | "favorites" | "login" | "register" | "banners" | "profile" | "delivery" | "admin" | "notifications";
-interface Slide { title: string; subtitle: string; badge: string; from: string; via: string; to: string; img: string; cta: string; ctaLink?: string; }
-type UserRole = "cliente" | "repartidor" | "auxiliar" | "auditor" | "superadmin";
-interface AuthUser { name: string; email: string; role: UserRole; cedula: string; }
-
-// Frequently bought together data
-const FREQUENTLY_BOUGHT_TOGETHER: Record<number, number[]> = {
-  1: [4, 7], // Metformina -> Vitamina C, Paracetamol
-  2: [5, 7], // Losartán -> Atorvastatina, Paracetamol
-  3: [7, 4], // Amoxicilina -> Paracetamol, Vitamina C
-  4: [1, 7], // Vitamina C -> Metformina, Paracetamol
-  5: [2, 6], // Atorvastatina -> Losartán, Omeprazol
-  6: [7, 4], // Omeprazol -> Paracetamol, Vitamina C
-  7: [4, 6], // Paracetamol -> Vitamina C, Omeprazol
-  8: [7, 4], // Clonazepam -> Paracetamol, Vitamina C
-};
-
-// Demo accounts
-const DEMO_ACCOUNTS: (AuthUser & { password: string })[] = [
-  { name: "María González", email: "cliente@fhec.com", password: "123", role: "cliente", cedula: "V-12345678" },
-  { name: "José Ramos", email: "repartidor@fhec.com", password: "123", role: "repartidor", cedula: "V-87654321" },
-  { name: "Ana Torres", email: "auxiliar@fhec.com", password: "123", role: "auxiliar", cedula: "V-11223344" },
-  { name: "Carlos Vega", email: "auditor@fhec.com", password: "123", role: "auditor", cedula: "V-33445566" },
-  { name: "Luis Medina", email: "admin@fhec.com", password: "123", role: "superadmin", cedula: "V-55667788" },
-];
-
-interface Product {
-  id: number; name: string; brand: string; category: string;
-  presentation: string; packSize: string; priceUSD: number;
-  stock: number; needsRecipe: boolean; rating: number; reviews: number;
-  bgColor: string; accentColor: string; imageUrl?: string; description: string;
-  activeIngredient: string; contraindications: string;
-  posology: string;
-  discount?: number;
-  controlledSubstance?: boolean;
-  stockSedes?: { principal: number; clinica: number };
-  concentration?: string;
-  concentrationUnit?: string;
-  enabled?: boolean;
-}
-
-interface CartItem { product: Product; quantity: number; }
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-const PRODUCTS: Product[] = getAppProductViewModels();
-
-const DEFAULT_SLIDES: Slide[] = getBannersLegacy();
-
-const CATS = getCategoriasParaFiltro();
+  BRAND_SYNONYMS,
+  CATS,
+  DEFAULT_SLIDES,
+  DEMO_ACCOUNTS,
+  DEMO_CONTACT,
+  DEMO_ORDERS,
+  DISCOUNT_CODES,
+  PRODUCTS,
+  SEDES,
+} from "./data";
+import type { AuthUser, CartItem, Page, Product, Slide } from "./types";
 
 // ─── Shared form constants ────────────────────────────────────────────────────
 const VE_AREAS = ["0412", "0414", "0416", "0424", "0426"];
@@ -116,22 +37,6 @@ const VE_BANKS = [
   "Bicentenario", "BNC", "Banco Exterior", "Banplus",
   "Venezolano de Crédito", "Del Sur", "Banco Activo", "100% Banco",
 ];
-
-// ─── CheckoutPage — Payment ───────────────────────────────────────────────────
-const SEDES = getSedesLegacy();
-const DISCOUNT_CODES: Record<string,number> = getCouponApplyCodeMap();
-
-// ─── Profile data bridge ─────────────────────────────────────────────────────
-const DEMO_ORDERS = getLegacyOrderHistoryViewModels();
-
-// Per-account demo contact data keyed by email
-const DEMO_CONTACT: Record<string, { phone: string; address: string }> = {
-  "cliente@fhec.com":    { phone: "+58 414-1234567", address: "Av. Las Américas, Edif. Torre Pte., Piso 3, Pto. Ordaz" },
-  "repartidor@fhec.com": { phone: "+58 416-8765432", address: "Urb. Villa Asia, Calle 15, Casa 8, Pto. Ordaz" },
-  "auxiliar@fhec.com":   { phone: "+58 412-1122334", address: "Calle Caroní, Res. La Llovizna, Apto 2B, Pto. Ordaz" },
-  "auditor@fhec.com":    { phone: "+58 414-3344556", address: "Av. Guayana, Centro Cívico, Piso 7, Pto. Ordaz" },
-  "admin@fhec.com":      { phone: "+58 424-5566778", address: "Urb. Chilemex, Calle Principal, Casa 1, Pto. Ordaz" },
-};
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {

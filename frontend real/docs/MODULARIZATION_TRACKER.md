@@ -617,3 +617,51 @@ Esta fase extrajo las ultimas zonas grandes desde `src/app/App.tsx` sin cambiar 
 3. Revisar assets no importados de `src/imports`.
 4. Decidir si `RefundForm` se conserva, se conecta o se elimina.
 5. No borrar `src/app/components/ui/*`, `src/app/data.ts` ni `src/app/types.ts` sin una validacion especifica.
+
+## Fase 12 - Limpieza exhaustiva
+
+- `git status --short`: limpio antes de iniciar la fase.
+- Build inicial: `pnpm build` exitoso.
+- `App.tsx`: 287 lineas al iniciar la fase, 192 lineas al finalizar.
+- `AdminPanelPage.tsx`: 2001 lineas; no se dividio internamente en esta fase.
+- Reporte detallado: `docs/CLEANUP_REPORT.md`.
+
+### Residuos eliminados
+
+| Residuo | Ubicacion | Eliminado | Riesgo | Nota |
+|---|---|---|---|---|
+| Pantallas legacy duplicadas | `src/app/components/*.tsx` | Si | bajo-medio | Las versiones activas viven en `src/features` y `src/components`. |
+| Helper Figma legacy | `src/app/components/figma/ImageWithFallback.tsx` | Si | bajo | Solo sostenia pantallas legacy eliminadas. |
+| Puente legacy | `src/app/shared.ts` | Si | bajo | Solo era usado por componentes legacy eliminados. |
+| Feature de reembolso no conectado | `src/features/refunds/*` | Si | medio | No tenia ruta activa ni imports reales; se elimino el export del barrel. |
+| Assets no referenciados | `src/imports/Captura_de_pantalla_*.png`, `IMG_238*.PNG`, `WhatsApp_Image_*.jpeg`, `image*.png` | Si | medio | Sin imports, rutas ni aparicion en build. |
+| Notas historicas dentro de `src` | `src/imports/pasted_text/*.md` | Movido | bajo | Se movieron a `docs/archive`. |
+| Dependencias no usadas | `package.json`, `pnpm-lock.yaml` | Si | medio | Se quitaron 13 dependencias sin imports activos. |
+| Helpers/tipos/mocks inline | `src/app/App.tsx` | Si | bajo | Se importan desde `src/app/data.ts` y `src/app/types.ts`. |
+
+### Conservado deliberadamente
+
+| Ruta | Motivo |
+|---|---|
+| `src/app/components/ui/*` | UI base shadcn/Radix; no se borra sin decision especifica archivo por archivo. |
+| `src/app/data.ts` | Puente activo para features visuales y getters legacy. |
+| `src/app/types.ts` | Tipos UI legacy activos; no se fusionaron con dominio DB. |
+| `src/domain/*` | Contratos de dominio alineados con DB final. |
+| `src/data/*` | Fuente mock central. |
+| `src/services/*` | Capa mock/API futura. |
+| `src/viewModels/*` | Adaptadores visuales activos. |
+
+### Pendientes posteriores
+
+1. Dividir `src/features/admin/components/AdminPanelPage.tsx` por secciones administrativas.
+2. Dividir `src/components/layout/AppLayout.tsx` en navbar, barra secundaria, menus y footer.
+3. Dividir `src/features/orders/components/TrackingPage.tsx` en timeline, resumen y reseña.
+4. Dividir `src/features/delivery/components/DeliveryPanelPage.tsx` en dashboard, tabs, cards y modales.
+5. Evaluar code splitting por feature para resolver el warning de chunk JS mayor a 500 kB.
+6. Mantener validacion visual antes de cualquier limpieza adicional en componentes UI base.
+
+### Verificacion
+
+- `pnpm build`: exitoso al final de la fase.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- No se modifico `backend`, no se modifico `frontend` de pruebas y no se implemento API real.

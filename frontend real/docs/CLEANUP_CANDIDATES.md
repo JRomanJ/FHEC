@@ -4,6 +4,32 @@ Fecha: 2026-07-05.
 
 Este documento prepara la fase 12 de limpieza exhaustiva. No se borraron archivos de riesgo medio o alto en la fase 11. El build pasa despues de la modularizacion final, por lo que los candidatos listados aqui deben revisarse con comparacion visual y build antes de eliminarse o fusionarse.
 
+## Actualizacion Fase 12
+
+La fase 12 ya proceso una parte importante de este inventario. Ver `docs/CLEANUP_REPORT.md` para la evidencia completa.
+
+Procesado y eliminado:
+
+- Duplicados legacy en `src/app/components/*`, excepto `src/app/components/ui/*`.
+- `src/app/components/figma/ImageWithFallback.tsx`.
+- `src/app/shared.ts`.
+- `src/features/refunds/*`, porque no tenia ruta activa ni imports reales.
+- Assets no referenciados en `src/imports`: capturas, `IMG_238*.PNG`, `WhatsApp_Image_*.jpeg` e `image*.png`.
+- Dependencias no importadas: MUI, Emotion, Popper, canvas-confetti, motion, React DnD, React Popper, React Masonry, React Router y React Slick.
+
+Procesado y movido:
+
+- `src/imports/pasted_text/*.md` hacia `docs/archive`.
+
+Conservado por riesgo o valor arquitectonico:
+
+- `src/app/components/ui/*`.
+- `src/app/data.ts`.
+- `src/app/types.ts`.
+- `src/domain`, `src/data`, `src/services` y `src/viewModels`.
+- `src/features/admin/components/AdminPanelPage.tsx`, pendiente de division interna.
+- `src/components/layout/AppLayout.tsx`, pendiente de division interna.
+
 ## Criterios
 
 | Riesgo | Significado | Accion recomendada |

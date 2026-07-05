@@ -1132,3 +1132,109 @@ Recomendacion para la fase 12:
 - Empezar por borrar duplicados confirmados de bajo riesgo y helpers inline sin uso.
 - Revisar manualmente `src/app/components/*` y assets no importados antes de eliminarlos.
 - Mantener `src/app/components/ui/*`, `src/app/data.ts` y `src/app/types.ts` hasta completar una migracion controlada de tipos/helpers.
+
+## Fase 12 - Limpieza exhaustiva
+
+Reporte principal:
+
+- `docs/CLEANUP_REPORT.md`
+
+Resumen de limpieza:
+
+- Se eliminaron duplicados legacy de `src/app/components/*` que ya estaban reemplazados por features activos.
+- Se conservaron los componentes UI base en `src/app/components/ui/*`.
+- Se elimino `src/app/shared.ts`, usado solo por componentes legacy.
+- Se elimino `src/features/refunds/*`, porque no tenia ruta activa ni imports reales.
+- Se movieron notas historicas desde `src/imports/pasted_text` hacia `docs/archive`.
+- Se eliminaron assets no referenciados en `src/imports`: capturas, imagenes `IMG_238*.PNG`, `WhatsApp_Image_*.jpeg` e `image*.png`.
+- Se limpiaron helpers, tipos y mocks duplicados en `src/app/App.tsx`; ahora el orquestador importa desde `src/app/data.ts` y `src/app/types.ts`.
+- Se eliminaron dependencias sin imports activos y se sincronizo `pnpm-lock.yaml`.
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `package.json`
+- `pnpm-lock.yaml`
+- `docs/CLEANUP_REPORT.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Archivos eliminados principales:
+
+- `src/app/components/AdminPanelPage.tsx`
+- `src/app/components/BannerManagementPage.tsx`
+- `src/app/components/CartPage.tsx`
+- `src/app/components/CatalogPage.tsx`
+- `src/app/components/CheckoutPages.tsx`
+- `src/app/components/DeliveryPages.tsx`
+- `src/app/components/DeliveryPanel.tsx`
+- `src/app/components/DeliveryPanelPage.tsx`
+- `src/app/components/FavoritesPage.tsx`
+- `src/app/components/Footer.tsx`
+- `src/app/components/HomePage.tsx`
+- `src/app/components/LoginPageComponent.tsx`
+- `src/app/components/Navbar.tsx`
+- `src/app/components/NotificationsPage.tsx`
+- `src/app/components/ProductCard.tsx`
+- `src/app/components/ProductDetailPage.tsx`
+- `src/app/components/ProfilePage.tsx`
+- `src/app/components/SmartSearch.tsx`
+- `src/app/components/TrackingPage.tsx`
+- `src/app/components/figma/ImageWithFallback.tsx`
+- `src/app/shared.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+
+Dependencias eliminadas:
+
+- `@emotion/react`
+- `@emotion/styled`
+- `@mui/icons-material`
+- `@mui/material`
+- `@popperjs/core`
+- `canvas-confetti`
+- `motion`
+- `react-dnd`
+- `react-dnd-html5-backend`
+- `react-popper`
+- `react-responsive-masonry`
+- `react-router`
+- `react-slick`
+
+Estado de archivos principales:
+
+- `App.tsx`: 192 lineas; sigue como orquestador principal.
+- `AdminPanelPage.tsx`: 2001 lineas; se conserva pendiente de division interna.
+- `src/app/data.ts`: se conserva como puente activo.
+- `src/app/types.ts`: se conserva para tipos UI legacy.
+- `src/domain`, `src/data`, `src/services` y `src/viewModels`: se conservan como arquitectura preparada para backend/API futura.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Bundle final JS: `546.06 kB`, gzip `130.97 kB`.
+- CSS final: `125.27 kB`, gzip `20.00 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- Verificacion local: `pnpm dev --host 127.0.0.1` requirio permiso elevado por `listen EPERM`; Vite respondio `HTTP/1.1 200 OK` en `http://127.0.0.1:5174/` y luego se detuvo.
+
+Notas de entorno:
+
+- Tras limpiar dependencias, `pnpm build` requirio resincronizar `node_modules`.
+- El intento dentro del sandbox fallo por DNS hacia `registry.npmjs.org`; se repitio `pnpm install --ignore-scripts --config.confirmModulesPurge=false` con permiso de red y finalizo correctamente.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, estilos, layout, textos visibles, navegacion, cards, tablas, modales, formularios ni flujos visuales.
+- No se implemento backend, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+
+Pendientes recomendados:
+
+- Dividir internamente `AdminPanelPage.tsx` por secciones administrativas.
+- Dividir `AppLayout.tsx` en navbar, barra secundaria, menus y footer.
+- Dividir `TrackingPage.tsx` y `DeliveryPanelPage.tsx` en subcomponentes internos.
+- Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB.
+- Mantener validacion visual antes de cualquier limpieza adicional de `src/app/components/ui/*`.

@@ -109,3 +109,139 @@ Este tracker registra la primera modularizacion real del frontend. El criterio d
 3. Modularizar `DEMO_CONTACT` junto con perfil y checkout/delivery select.
 4. Extraer subcomponentes internos de `ProfilePage` solo cuando se pueda validar visualmente cada tab.
 5. Dejar catalogo, carrito, checkout, admin y delivery completo para fases posteriores.
+
+## Fase 8 - Catalogo, busqueda y detalle de producto
+
+Esta fase extrajo componentes completos de producto, catalogo, busqueda y detalle desde `src/app/App.tsx`. La estrategia fue mover JSX existente sin cambiar clases, textos, condiciones, callbacks ni estado visual.
+
+### Estado inicial de la fase
+
+- `git status --short`: limpio antes de editar.
+- `App.tsx`: 6385 lineas aproximadamente al iniciar la fase.
+- `App.tsx` ya usaba datos consistentes para productos mediante `getAppProductViewModels()`.
+- No se tocaron `frontend` ni `backend`.
+
+### Secciones extraidas
+
+| Seccion | Ubicacion aproximada anterior en `App.tsx` | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---:|---|---|---|---|
+| `ProductBox` | `src/app/App.tsx:131` | Si | `src/components/product/ProductDisplay.tsx` | bajo | Se mantiene como componente reusable porque carrito, favoritos y admin todavia lo usan. |
+| `ProductCard` | `src/app/App.tsx:184` | Si | `src/components/product/ProductDisplay.tsx` | medio | Se preservo el estado del modal de recipe, cantidad en carrito, favorito, badges y stock por sede. |
+| `Stars` | `src/app/App.tsx:120` | Si | `src/components/product/ProductDisplay.tsx` | bajo | Se movio junto con los componentes de producto aunque no sea parte central de esta fase. |
+| `SmartSearch` | `src/app/App.tsx:368` | Si | `src/features/search/components/SmartSearch.tsx` | medio | Ahora recibe `products`, `categories` y `brandSynonyms` como props desde `Navbar`. |
+| `HomePage` | `src/app/App.tsx:1050` | Si | `src/features/catalog/components/HomePage.tsx` | bajo | Se preservo carrusel, productos destacados y filtro por stock de sede. |
+| `CatalogPage` | `src/app/App.tsx:1156` | Si | `src/features/catalog/components/CatalogPage.tsx` | medio | Se preservaron filtros, ordenamiento, contador, grid y estado local de filtros dentro del componente. |
+| `ProductDetailPage` | `src/app/App.tsx:1323` | Si | `src/features/product-detail/components/ProductDetailPage.tsx` | medio | Se preservaron layout, modal de recipe, aviso controlado, CTA, favoritos y similares por principio activo. |
+| Product cards en carrito/favoritos/admin | varias secciones | No | Pendiente | medio | Siguen en `App.tsx`, pero usan `ProductBox`/`ProductCard` importados desde `src/components/product`. |
+| Carrito completo | `src/app/App.tsx:1555+` | No | Pendiente | alto | Fuera de alcance para evitar tocar checkout y flujo de compra. |
+| Checkout/pago/tracking | varias secciones | No | Pendiente | alto | Fuera de alcance de esta fase. |
+| Admin/delivery completos | varias secciones | No | Pendiente | alto | Se modularizaran en fases posteriores. |
+
+### Archivos creados
+
+- `src/components/product/ProductDisplay.tsx`
+- `src/components/product/index.ts`
+- `src/features/catalog/components/HomePage.tsx`
+- `src/features/catalog/components/CatalogPage.tsx`
+- `src/features/catalog/index.ts`
+- `src/features/search/components/SmartSearch.tsx`
+- `src/features/search/index.ts`
+- `src/features/product-detail/components/ProductDetailPage.tsx`
+- `src/features/product-detail/index.ts`
+
+### Archivos modificados
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+### Props principales
+
+`HomePage` recibe:
+
+- `products`
+- `onProductClick`
+- `onAddToCart`
+- `onNav`
+- `cartItems`
+- `onUpdateQuantity`
+- `favoriteIds`
+- `onToggleFavorite`
+- `slides`
+- `selectedSede`
+
+`CatalogPage` recibe:
+
+- `products`
+- `searchQuery`
+- `onProductClick`
+- `onAddToCart`
+- `cartItems`
+- `onUpdateQuantity`
+- `favoriteIds`
+- `onToggleFavorite`
+- `preselectedCategory`
+
+`ProductDetailPage` recibe:
+
+- `product`
+- `products`
+- `onAddToCart`
+- `onBack`
+- `onProductClick`
+- `onNav`
+- `favoriteIds`
+- `onToggleFavorite`
+- `cartItems`
+- `onUpdateQuantity`
+- `selectedSede`
+
+`SmartSearch` recibe:
+
+- `searchQuery`
+- `setSearchQuery`
+- `onNav`
+- `products`
+- `categories`
+- `brandSynonyms`
+
+### Estado que quedo en App.tsx
+
+- Pantalla actual (`page`).
+- Producto seleccionado (`selectedProductId`).
+- Busqueda global (`searchQuery`).
+- Carrito y favoritos.
+- Sede visible (`displaySede`).
+- Banners/slides.
+- Categoria preseleccionada.
+- Checkout, tracking, admin, delivery y notificaciones.
+
+### Estado que se movio con los componentes
+
+- Estado del carrusel de inicio.
+- Estado local de filtros del catalogo (`selCats`, `selBrands`, `selPres`, `sortBy`, `showFilters`).
+- Estado del dropdown de busqueda y historial local de busqueda.
+- Estado del modal de recipe en tarjetas.
+- Estado del modal de recipe en detalle de producto.
+
+### Decisiones
+
+- `ProductBox` y `ProductCard` se ubicaron en `src/components/product` porque aun son compartidos por pantallas pendientes de modularizar.
+- `HomePage` se ubico dentro de `src/features/catalog` porque su bloque principal de negocio en esta fase son productos destacados.
+- `SmartSearch` no importa datos directamente: recibe las mismas fuentes que ya existian en `App.tsx` para preservar el resultado visual.
+- No se movio el estado principal de navegacion ni se introdujo React Router.
+- No se agregaron dependencias.
+
+### Verificacion
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- `App.tsx` quedo en 5469 lineas.
+
+### Pendiente recomendado
+
+1. Modularizar carrito y resumen de carrito, usando `ProductBox`/`ProductCard` ya extraidos.
+2. Modularizar delivery select, pre-checkout, checkout, pago y tracking en una fase separada.
+3. Extraer admin catalogo/inventario solo despues de aislar formularios y tablas de bajo riesgo.
+4. Mantener `ProductCard` sin unificacion adicional hasta validar todas sus apariciones visuales.

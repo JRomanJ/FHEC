@@ -826,3 +826,74 @@ Recomendacion para la siguiente fase:
 - Extraer subcomponentes internos de perfil por tabs (`ProfilePersonalInfoSection`, `ProfileNotificationsSection`, `ProfileSecuritySection`, `ProfileOrderHistorySection`, `ProfileRefundsSection`, `ProfileCouponsSection`) usando el mismo patron de props.
 - Despues modularizar staff/admin de bajo riesgo, sin tocar monitor ni operaciones complejas.
 - Mantener backend/API/Supabase fuera del alcance hasta que el frontend este modularizado.
+
+## Fase 8 - Modularizacion de catalogo, busqueda y detalle de producto
+
+Archivos creados:
+
+- `src/components/product/ProductDisplay.tsx`
+- `src/components/product/index.ts`
+- `src/features/catalog/components/HomePage.tsx`
+- `src/features/catalog/components/CatalogPage.tsx`
+- `src/features/catalog/index.ts`
+- `src/features/search/components/SmartSearch.tsx`
+- `src/features/search/index.ts`
+- `src/features/product-detail/components/ProductDetailPage.tsx`
+- `src/features/product-detail/index.ts`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Secciones extraidas:
+
+- `ProductBox`, `ProductCard` y `Stars` hacia `src/components/product`.
+- `SmartSearch` hacia `src/features/search`.
+- `HomePage` y `CatalogPage` hacia `src/features/catalog`.
+- `ProductDetailPage` hacia `src/features/product-detail`.
+
+Cambios en `App.tsx`:
+
+- `App.tsx` importa `HomePage`, `CatalogPage`, `SmartSearch`, `ProductDetailPage`, `ProductBox` y `ProductCard`.
+- `Navbar` ahora pasa a `SmartSearch` las mismas fuentes existentes: `PRODUCTS`, `CATS` y `BRAND_SYNONYMS`.
+- `App.tsx` mantiene la pantalla actual, producto seleccionado, carrito, favoritos, busqueda, sede, checkout, admin, delivery y notificaciones.
+- Las secciones de carrito/favoritos/admin que todavia usan producto siguen consumiendo `ProductBox`/`ProductCard` importados.
+
+Secciones no extraidas:
+
+- Carrito completo, delivery select, pre-checkout, checkout, pago y tracking.
+- Admin completo, inventario admin, auditoria admin, reembolsos admin y monitor global.
+- Delivery completo.
+- Navegacion principal completa.
+
+Reduccion aproximada:
+
+- `App.tsx` paso de 6385 lineas a 5469 lineas.
+- Se movieron 965 lineas aproximadamente a componentes de catalogo, busqueda, detalle y producto reusable.
+
+Impacto visual esperado:
+
+- Ninguno. La extraccion fue mecanica y con JSX, clases, textos, badges, imagenes, condiciones, callbacks y estilos preservados.
+- No se agrego React Router, state management externo, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Riesgos pendientes:
+
+- `ProductCard` ahora es reusable y alimenta pantallas todavia no modularizadas; cualquier cambio futuro debe validarse contra catalogo, inicio, detalle, favoritos, carrito y admin.
+- El catalogo mantiene filtros locales dentro de `CatalogPage`; extraerlos a hooks o servicios debe esperar a una fase posterior.
+- El detalle de producto mantiene logica visual de recipe y similares dentro del feature; no conviene conectarlo a flujos de checkout hasta modularizar carrito.
+- Busqueda sigue usando historial en `localStorage` como antes; no se conecto a API ni persistencia real.
+
+Recomendacion para la siguiente fase:
+
+- Modularizar carrito y componentes de resumen usando `ProductBox`/`ProductCard` ya extraidos.
+- Despues separar checkout/pago/tracking con el mismo patron de props, sin cambiar persistencia mock.
+- Mantener admin y delivery completo fuera del alcance hasta que el flujo de compra este aislado.

@@ -1238,3 +1238,112 @@ Pendientes recomendados:
 - Dividir `TrackingPage.tsx` y `DeliveryPanelPage.tsx` en subcomponentes internos.
 - Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB.
 - Mantener validacion visual antes de cualquier limpieza adicional de `src/app/components/ui/*`.
+
+## Fase 13 - Division interna de modulos grandes
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Dividir internamente los modulos grandes restantes sin cambiar la UI ni el comportamiento visual.
+- Mantener `App.tsx` como orquestador principal.
+- No introducir backend, Supabase, API real, `fetch`, router, state management ni librerias nuevas.
+
+Baseline:
+
+- `git status --short`: limpio antes de iniciar la fase.
+- Build inicial: `pnpm build` exitoso.
+- Advertencia existente: chunk JS mayor a 500 kB; no bloqueante.
+- `AdminPanelPage.tsx`: 2001 lineas al inicio.
+- `AppLayout.tsx`: 638 lineas al inicio.
+- `TrackingPage.tsx`: 532 lineas al inicio.
+- `DeliveryPanelPage.tsx`: 522 lineas al inicio.
+- `App.tsx`: 192 lineas al inicio.
+
+Archivos creados:
+
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/components/layout/CategoryDropdown.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/components/layout/MobileUserMenu.tsx`
+- `src/components/layout/SedeSelector.tsx`
+- `src/components/layout/layoutShared.ts`
+- `src/features/orders/components/OrderItemsSummary.tsx`
+- `src/features/orders/components/OrderPinCard.tsx`
+- `src/features/orders/components/OrderReviewForm.tsx`
+- `src/features/orders/components/OrderTrackingTimeline.tsx`
+- `src/features/orders/components/TrackingFeedbackModals.tsx`
+- `src/features/orders/components/trackingShared.ts`
+- `src/features/delivery/components/DeliveryAssignedOrders.tsx`
+- `src/features/delivery/components/DeliveryAvailableOrders.tsx`
+- `src/features/delivery/components/DeliveryCompletedTrips.tsx`
+- `src/features/delivery/components/DeliveryHeader.tsx`
+- `src/features/delivery/components/DeliveryMaxTripsModal.tsx`
+- `src/features/delivery/components/DeliveryPinModal.tsx`
+- `src/features/delivery/components/DeliveryTabs.tsx`
+- `src/features/delivery/components/deliveryShared.ts`
+
+Archivos modificados:
+
+- `src/features/admin/components/AdminPanelPage.tsx`
+- `src/features/admin/sections/index.ts`
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/CODEX_AUDIT.md`
+
+Lineas aproximadas antes/despues:
+
+| Archivo | Antes | Despues | Nota |
+|---|---:|---:|---|
+| `AdminPanelPage.tsx` | 2001 | 831 | Se extrajo el bloque `SuperadminModules`; las secciones internas quedan agrupadas para limpieza posterior. |
+| `AppLayout.tsx` | 638 | 285 | Se extrajeron dropdown de categorias, selector de sede, menu movil, footer y helpers visuales. |
+| `TrackingPage.tsx` | 532 | 354 | Se extrajeron PIN, resumen de items, timeline, resena y modales de feedback. |
+| `DeliveryPanelPage.tsx` | 522 | 126 | Se extrajeron modales, header, tabs, pedidos disponibles, viajes completados y viajes asignados. |
+| `App.tsx` | 192 | 192 | No se modifico en esta fase. |
+
+Builds ejecutados:
+
+- Build inicial: exitoso.
+- Build despues de dividir admin: exitoso.
+- Build despues de dividir layout: exitoso.
+- Build despues de dividir tracking: exitoso.
+- Build despues de dividir delivery/final: exitoso.
+
+Resultado final de build:
+
+- `pnpm build`: exitoso.
+- Modulos transformados: 1724.
+- CSS final: `125.24 kB`, gzip `19.99 kB`.
+- JS final: `547.73 kB`, gzip `131.68 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` dentro del sandbox fallo con `listen EPERM`.
+- Con permiso para abrir puerto local, Vite arranco en `http://127.0.0.1:5174/` porque el puerto 5173 estaba ocupado.
+- `curl -I http://127.0.0.1:5174/`: `HTTP/1.1 200 OK`.
+- El servidor local fue detenido despues de la verificacion.
+
+Decisiones:
+
+- Se mantuvo el estado compartido en los componentes padres.
+- La division fue mecanica, por props, sin cambiar clases, textos, condiciones, callbacks ni datos mock.
+- No se dividio aun `SuperadminModules.tsx` porque sigue concentrando tabs, modales y estado administrativo compartido; queda como candidato de fase 14.
+- No se introdujo code splitting dinamico, router ni estado global.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, columnas, imagenes ni flujos visuales.
+
+Pendientes para fase 14:
+
+1. Revisar si conviene dividir `SuperadminModules.tsx` por secciones administrativas mas pequenas.
+2. Revisar props redundantes generadas por la division mecanica.
+3. Evaluar imports/exports internos que puedan quedar sin uso despues de validacion visual.
+4. Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB, solo si se aprueba en una fase posterior.

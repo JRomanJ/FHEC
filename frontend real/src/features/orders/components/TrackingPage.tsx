@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from "react";
 import {
-  AlertTriangle, ArrowLeft, Bike, Check, CheckCircle, Clock, CreditCard, FileText, Lock,
-  Package, Star, Store, Truck, Upload, X,
+  AlertTriangle, Bike, CheckCircle, Clock, CreditCard, FileText,
+  Package, Store, Truck, Upload,
 } from "lucide-react";
-import { ProductBox } from "../../../components/product";
 import { getAppProductViewModels } from "../../../services";
 import type { CartItem, Page, Product } from "../../../app/types";
+import { OrderItemsSummary } from "./OrderItemsSummary";
+import { OrderPinCard } from "./OrderPinCard";
+import { OrderReviewForm } from "./OrderReviewForm";
+import { OrderTrackingTimeline, type TrackingStep } from "./OrderTrackingTimeline";
+import { H7, H9, effectivePrice } from "./trackingShared";
+import { OrderCancelledScreen, ThanksPopup, TrackingHeader } from "./TrackingFeedbackModals";
 
-const VES_RATE = 40.50;
-const fmtVES = (u: number) => "Bs.S " + (u * VES_RATE).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtUSD = (u: number) => "$" + u.toFixed(2);
-const H9: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900 };
-const H7: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 };
-const effectivePrice = (p: Product) => p.discount ? p.priceUSD * (1 - p.discount / 100) : p.priceUSD;
 const PRODUCTS: Product[] = getAppProductViewModels();
 
 // ─── TrackingPage ─────────────────────────────────────────────────────────────
@@ -36,8 +35,7 @@ export function TrackingPage({
   const [orderCancelled, setOrderCancelled] = useState(false);
 
   // ── Steps computed from demo options ──
-  type Step = { id: string; icon: React.ReactNode; label: string; desc: string };
-  const steps: Step[] = [
+  const steps: TrackingStep[] = [
     ...(demoHasRecipe ? [{
       id: "medical",
       icon: <FileText size={18} />,
@@ -149,75 +147,23 @@ export function TrackingPage({
 
       {/* ── Order cancelled screen ── */}
       {orderCancelled && (
-        <div className="max-w-md mx-auto px-4 py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
-            <X size={38} className="text-red-500" />
-          </div>
-          <h2 className="text-3xl uppercase text-foreground mb-2" style={H9}>Pedido Cancelado</h2>
-          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-            Tu pedido fue cancelado. El reembolso será procesado en los próximos días hábiles.
-          </p>
-          <button onClick={() => onNav("home")} className="w-full bg-[#179150] text-white py-3.5 rounded-xl uppercase hover:bg-green-700 transition-colors" style={H7}>
-            Volver al Inicio
-          </button>
-        </div>
+        <OrderCancelledScreen onNav={onNav} />
       )}
 
       {!orderCancelled && <>
       {/* ── Thanks popup ── */}
       {showThanksPopup && (
-        <div className="fixed inset-0 min-h-screen bg-black/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-10 shadow-2xl text-center">
-            <div className="w-20 h-20 rounded-full bg-[#179150] flex items-center justify-center mx-auto mb-5">
-              <CheckCircle size={40} className="text-white" />
-            </div>
-            <h2 className="text-3xl uppercase text-foreground mb-2" style={H9}>¡Gracias por tu valoración!</h2>
-            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-              Compartiste <strong>{rating} estrella{rating !== 1 ? "s" : ""}</strong>. ¡Ya puedes hacer un nuevo pedido!
-            </p>
-            <div className="flex gap-1.5 justify-center mb-6">
-              {[1,2,3,4,5].map(s => (
-                <Star key={s} size={28} className={s <= rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} />
-              ))}
-            </div>
-            <button onClick={() => setShowThanksPopup(false)}
-              className="w-full bg-[#179150] text-white py-3.5 rounded-xl font-black uppercase hover:bg-green-700 transition-colors"
-              style={H7}>
-              Cerrar
-            </button>
-          </div>
-        </div>
+        <ThanksPopup rating={rating} onClose={() => setShowThanksPopup(false)} />
       )}
 
       {/* ── Header ── */}
-      <div className="bg-[#006064] text-white px-4 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="text-white/50 text-[10px] uppercase tracking-widest font-semibold mb-0.5">Mi Pedido</div>
-            <div className="text-2xl uppercase leading-none" style={H9}>#FHEC-20241204-8471</div>
-            <div className="text-white/50 text-xs mt-1">
-              Carlos A. Rodríguez · 4 dic. 2024 · {demoDeliveryMode === "delivery" ? "Delivery" : "Pickup"} · Ciudad Guayana
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => document.getElementById("tracking-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase cursor-pointer hover:opacity-90 transition-opacity
-                ${safeStatus === lastIndex ? "bg-[#179150] text-white" : "bg-[#50e9f8] text-[#006064]"}`}
-              style={H9}
-            >
-              <span className="relative flex w-1.5 h-1.5">
-                {safeStatus < lastIndex && <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "currentColor" }} />}
-                <span className="relative inline-flex rounded-full w-1.5 h-1.5" style={{ backgroundColor: "currentColor" }} />
-              </span>
-              {steps[safeStatus]?.label}
-            </button>
-            <button onClick={() => onNav("home")} className="text-white/60 hover:text-white text-xs flex items-center gap-1 transition-colors">
-              <ArrowLeft size={13} /> Inicio
-            </button>
-          </div>
-        </div>
-      </div>
+      <TrackingHeader
+        deliveryMode={demoDeliveryMode}
+        label={steps[safeStatus]?.label ?? ""}
+        lastIndex={lastIndex}
+        onNav={onNav}
+        safeStatus={safeStatus}
+      />
 
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
         <div className="grid lg:grid-cols-3 gap-6">
@@ -225,27 +171,7 @@ export function TrackingPage({
           {/* ── LEFT COLUMN ── */}
           <div className="lg:col-span-1 flex flex-col gap-4">
 
-            {/* PIN Card — only after "En Preparación" (client has paid) */}
-            {pinVisible ? (
-              <div className="bg-gradient-to-br from-[#006064] to-[#1a3a5c] rounded-2xl p-5 text-center border-2 border-[#50e9f8] shadow-lg">
-                <div className="text-[#50e9f8] text-[10px] font-black uppercase tracking-widest mb-0.5" style={H9}>
-                  PIN de {demoDeliveryMode === "pickup" ? "Retiro" : "Recepción"}
-                </div>
-                <div className="text-white tracking-[0.4em]" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 60 }}>
-                  {orderPin}
-                </div>
-                <p className="text-white/50 text-[10px] leading-relaxed mt-1">
-                  {demoDeliveryMode === "pickup" ? "Preséntalo con tu cédula en farmacia" : "Entrégalo al motorizado al recibir"}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-muted rounded-2xl p-4 text-center border-2 border-dashed border-border">
-                <Lock size={20} className="text-muted-foreground mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  El PIN de {demoDeliveryMode === "pickup" ? "retiro" : "recepción"} se mostrará una vez que tu pedido esté en preparación.
-                </p>
-              </div>
-            )}
+            <OrderPinCard deliveryMode={demoDeliveryMode} orderPin={orderPin} pinVisible={pinVisible} />
 
             {/* Contextual alerts */}
             {safeStatus === medicalIdx && medicalIdx >= 0 && !recipeRejected && (
@@ -285,49 +211,15 @@ export function TrackingPage({
               </div>
             )}
 
-            {/* Products + financial summary */}
-            <div className="bg-white rounded-2xl border border-border shadow-sm p-4">
-              <div className="text-base font-black uppercase text-foreground mb-3" style={H9}>Productos del Pedido</div>
-              <div className="space-y-2.5 mb-3">
-                {demoItems.map(({ product: p, quantity }) => (
-                  <div key={p.id} className="flex items-center gap-2.5">
-                    <div className="w-9 h-11 rounded-lg overflow-hidden flex-shrink-0">
-                      <ProductBox product={p} size="sm" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-black uppercase truncate" style={H9}>{p.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{p.brand} · ×{quantity}</div>
-                    </div>
-                    <div className="text-xs font-semibold text-[#179150] flex-shrink-0">{fmtUSD(effectivePrice(p) * quantity)}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Financial breakdown */}
-              <div className="border-t border-border pt-3 space-y-1.5">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Subtotal</span><span>{fmtUSD(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>IVA (16%)</span><span>{fmtUSD(ivaAmt)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Costo de envío</span>
-                  <span>{deliveryFee > 0 ? fmtUSD(deliveryFee) : <span className="text-[#179150] font-semibold">Gratis</span>}</span>
-                </div>
-                {discountAmt > 0 && (
-                  <div className="flex justify-between text-xs text-[#179150]">
-                    <span>Descuento ({discountPct}%)</span><span>−{fmtUSD(discountAmt)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-black text-foreground pt-1.5 border-t border-border" style={H9}>
-                  <span>Total</span>
-                  <div className="text-right">
-                    <div className="text-[#179150]">{fmtUSD(total)}</div>
-                    <div className="text-[10px] font-normal text-muted-foreground">{fmtVES(total)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <OrderItemsSummary
+              deliveryFee={deliveryFee}
+              discountAmt={discountAmt}
+              discountPct={discountPct}
+              items={demoItems}
+              ivaAmt={ivaAmt}
+              subtotal={subtotal}
+              total={total}
+            />
 
             {/* "Nuevo Pedido" — only after review is submitted */}
             {safeStatus === lastIndex && reviewSubmitted && (
@@ -383,87 +275,17 @@ export function TrackingPage({
               </div>
             )}
 
-            {/* Timeline */}
-            <div className="bg-white rounded-2xl border border-border shadow-sm p-6" id="tracking-timeline">
-              <h3 className="text-2xl uppercase text-foreground mb-6" style={H9}>Línea de Tiempo</h3>
-              {/* Mobile: vertical */}
-              <div className="flex flex-col gap-0 sm:hidden">
-                {steps.map((s, i) => {
-                  const done = i < safeStatus;
-                  const current = i === safeStatus;
-                  return (
-                    <div key={s.id} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all shadow-sm
-                          ${done ? "bg-[#179150] text-white" : current ? "bg-[#50e9f8] text-[#006064] ring-4 ring-[#50e9f8]/20" : "bg-[#e0f5eb] text-[#179150]/40"}`}>
-                          {done ? <Check size={18} /> : s.icon}
-                        </div>
-                        {i < steps.length - 1 && (
-                          <div className={`w-px flex-1 my-1 ${done ? "bg-[#179150]" : "border-l-2 border-dashed border-border"}`} style={{ minHeight: 32 }} />
-                        )}
-                      </div>
-                      <div className="pb-6 pt-2 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={`text-xs uppercase font-black ${current ? "text-[#006064]" : done ? "text-[#179150]" : "text-muted-foreground"}`} style={H9}>{i + 1}. {s.label}</span>
-                          {current && <span className="w-2 h-2 bg-[#50e9f8] rounded-full animate-pulse flex-shrink-0" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Desktop: horizontal */}
-              <div className="hidden sm:flex items-start">
-                {steps.map((s, i) => {
-                  const done = i < safeStatus;
-                  const current = i === safeStatus;
-                  return (
-                    <React.Fragment key={s.id}>
-                      <div className="flex flex-col items-center text-center flex-1 min-w-0">
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-3 transition-all shadow-sm
-                          ${done ? "bg-[#179150] text-white" : current ? "bg-[#50e9f8] text-[#006064] ring-4 ring-[#50e9f8]/20" : "bg-[#e0f5eb] text-[#179150]/50"}`}>
-                          {done ? <Check size={22} /> : s.icon}
-                        </div>
-                        <div className={`text-xs uppercase font-black mb-1 leading-tight ${current ? "text-[#006064]" : done ? "text-[#179150]" : "text-muted-foreground/50"}`} style={H9}>
-                          {i + 1}. {s.label}
-                        </div>
-                        <p className={`text-[11px] leading-relaxed px-1 ${current || done ? "text-muted-foreground" : "text-muted-foreground/40"}`}>{s.desc}</p>
-                        {current && <span className="mt-1.5 text-[10px] text-[#179150] font-semibold flex items-center gap-1"><span className="w-1.5 h-1.5 bg-[#50e9f8] rounded-full animate-pulse" />En curso</span>}
-                      </div>
-                      {i < steps.length - 1 && (
-                        <div className={`flex-shrink-0 w-8 mt-7 border-t-2 border-dashed ${done ? "border-[#179150]" : "border-border"}`} />
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
+            <OrderTrackingTimeline safeStatus={safeStatus} steps={steps} />
 
             {/* Rating — only when delivered and not yet reviewed */}
             {safeStatus === lastIndex && !reviewSubmitted && (
-              <div className="bg-white border border-border rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#179150]/10 flex items-center justify-center flex-shrink-0">
-                    <Star size={20} className="text-[#179150]" />
-                  </div>
-                  <div>
-                    <h3 className="text-base uppercase text-foreground" style={H9}>¿Cómo fue tu experiencia?</h3>
-                    <p className="text-xs text-muted-foreground">Tu valoración habilita el botón de nuevo pedido</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 mb-4">
-                  {[1,2,3,4,5].map(star => (
-                    <button key={star} onClick={() => setRating(star)} className="transition-all hover:scale-110">
-                      <Star size={34} className={`transition-colors ${star <= rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-300 hover:text-amber-300"}`} />
-                    </button>
-                  ))}
-                </div>
-                <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Cuéntanos sobre tu experiencia..." className="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] transition-all resize-none mb-3" rows={3} />
-                <button onClick={handleSubmitReview} disabled={rating === 0} className={`w-full py-2.5 rounded-xl font-black uppercase transition-all flex items-center justify-center gap-2 text-sm ${rating > 0 ? "bg-[#179150] text-white hover:bg-green-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`} style={H7}>
-                  <CheckCircle size={15} /> Enviar Valoración
-                </button>
-              </div>
+              <OrderReviewForm
+                onSubmit={handleSubmitReview}
+                rating={rating}
+                reviewText={reviewText}
+                setRating={setRating}
+                setReviewText={setReviewText}
+              />
             )}
 
             {/* Demo controls */}

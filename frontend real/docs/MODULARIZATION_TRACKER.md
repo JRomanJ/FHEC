@@ -665,3 +665,99 @@ Esta fase extrajo las ultimas zonas grandes desde `src/app/App.tsx` sin cambiar 
 - `pnpm build`: exitoso al final de la fase.
 - Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
 - No se modifico `backend`, no se modifico `frontend` de pruebas y no se implemento API real.
+
+## Fase 13 - Division interna de modulos grandes
+
+Esta fase dividio archivos grandes restantes mediante extraccion mecanica de JSX, sin cambiar UI ni comportamiento visual.
+
+### Baseline
+
+- `git status --short`: limpio antes de editar.
+- Build inicial: `pnpm build` exitoso.
+- `App.tsx`: 192 lineas; no se modifico.
+- `AdminPanelPage.tsx`: 2001 lineas.
+- `AppLayout.tsx`: 638 lineas.
+- `TrackingPage.tsx`: 532 lineas.
+- `DeliveryPanelPage.tsx`: 522 lineas.
+
+### Secciones divididas
+
+| Seccion | Ubicacion anterior | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---|---|---|---|---|
+| Modulos superadmin | `src/features/admin/components/AdminPanelPage.tsx` | Si | `src/features/admin/sections/SuperadminModules.tsx` | medio | Se movio el bloque administrativo grande sin cambiar tabs ni estado compartido. |
+| Inventario admin | `AdminPanelPage.tsx` | Si | `src/features/admin/sections/SuperadminModules.tsx` | medio | Sigue agrupado dentro del modulo superadmin para evitar dividir estado antes de validacion visual. |
+| Footer global | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/Footer.tsx` | bajo | Se preservaron columnas, categorias, redes y metodos de pago. |
+| Selector de sede | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/SedeSelector.tsx` | bajo | Mantiene las mismas opciones y callbacks. |
+| Dropdown de categorias | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/CategoryDropdown.tsx` | bajo | Mantiene el mismo `CatNavButton` y comportamiento visual. |
+| Menu movil de usuario | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/MobileUserMenu.tsx` | medio | Se preservaron accesos, badges y callbacks. |
+| Helpers visuales de layout | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/layoutShared.ts` | bajo | Solo mueve constantes y calculos usados por layout. |
+| PIN de tracking | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderPinCard.tsx` | bajo | Sin cambios de PIN ni condicion visual. |
+| Resumen de items | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderItemsSummary.tsx` | bajo | Mantiene productos, totales, descuento, delivery y formato. |
+| Timeline de pedido | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderTrackingTimeline.tsx` | medio | Mantiene mobile/desktop timeline y estados. |
+| Formulario de resena | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderReviewForm.tsx` | bajo | Mantiene rating, textarea y botones. |
+| Modales/feedback de tracking | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/TrackingFeedbackModals.tsx` | bajo | Mantiene pedido cancelado, header y popup de gracias. |
+| Modales delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryPinModal.tsx`, `DeliveryMaxTripsModal.tsx` | bajo | Mantiene overlay, PIN demo y modal de limite de 3 pedidos. |
+| Header/tabs delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryHeader.tsx`, `DeliveryTabs.tsx` | bajo | Mantiene secciones y navegacion interna. |
+| Pedidos disponibles delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryAvailableOrders.tsx` | medio | Mantiene filtro por sede, expansion, mapa y asignacion visual. |
+| Viajes completados delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryCompletedTrips.tsx` | bajo | Mantiene filtros, tabla y total acumulado. |
+| Viajes asignados delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryAssignedOrders.tsx` | medio | Mantiene cards, llamada, WhatsApp, mapa y confirmacion por PIN. |
+
+### Estado que quedo en padres
+
+- `AdminPanelPage.tsx`: estado administrativo compartido, tab activa, modales y callbacks.
+- `AppLayout.tsx`: estado de dropdowns/navbar, props globales desde `App.tsx` y callbacks de navegacion.
+- `TrackingPage.tsx`: estado de demo, timer, PIN visible, receta rechazada, rating, comentario y popup.
+- `DeliveryPanelPage.tsx`: tabs, sede seleccionada, PIN, pedido seleccionado, viajes asignados, orden expandida y filtros de viajes completados.
+
+### Estado movido
+
+- No se movio estado compartido relevante.
+- Solo se movieron constantes/helper visuales de bajo riesgo hacia `layoutShared.ts`, `trackingShared.ts` y `deliveryShared.ts`.
+
+### Archivos creados
+
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/components/layout/CategoryDropdown.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/components/layout/MobileUserMenu.tsx`
+- `src/components/layout/SedeSelector.tsx`
+- `src/components/layout/layoutShared.ts`
+- `src/features/orders/components/OrderItemsSummary.tsx`
+- `src/features/orders/components/OrderPinCard.tsx`
+- `src/features/orders/components/OrderReviewForm.tsx`
+- `src/features/orders/components/OrderTrackingTimeline.tsx`
+- `src/features/orders/components/TrackingFeedbackModals.tsx`
+- `src/features/orders/components/trackingShared.ts`
+- `src/features/delivery/components/DeliveryAssignedOrders.tsx`
+- `src/features/delivery/components/DeliveryAvailableOrders.tsx`
+- `src/features/delivery/components/DeliveryCompletedTrips.tsx`
+- `src/features/delivery/components/DeliveryHeader.tsx`
+- `src/features/delivery/components/DeliveryMaxTripsModal.tsx`
+- `src/features/delivery/components/DeliveryPinModal.tsx`
+- `src/features/delivery/components/DeliveryTabs.tsx`
+- `src/features/delivery/components/deliveryShared.ts`
+
+### Lineas despues de la fase
+
+- `AdminPanelPage.tsx`: 831 lineas.
+- `SuperadminModules.tsx`: 1193 lineas.
+- `AppLayout.tsx`: 285 lineas.
+- `TrackingPage.tsx`: 354 lineas.
+- `DeliveryPanelPage.tsx`: 126 lineas.
+- `App.tsx`: 192 lineas, sin cambios.
+
+### Verificacion
+
+- Build inicial: exitoso.
+- Build intermedio despues de admin: exitoso.
+- Build intermedio despues de layout: exitoso.
+- Build intermedio despues de tracking: exitoso.
+- Build final despues de delivery: exitoso.
+- `pnpm dev --host 127.0.0.1`: el sandbox bloqueo el puerto con `listen EPERM`; con permiso local Vite respondio `HTTP/1.1 200 OK` en `http://127.0.0.1:5174/`.
+
+### Pendiente recomendado para fase 14
+
+1. Revisar `src/features/admin/sections/SuperadminModules.tsx`, que sigue siendo grande.
+2. Revisar props redundantes generadas por la division mecanica.
+3. Revisar exports internos que no se necesiten fuera de cada feature.
+4. Evaluar code splitting por feature en una fase especifica, porque el warning de chunk JS mayor a 500 kB persiste.

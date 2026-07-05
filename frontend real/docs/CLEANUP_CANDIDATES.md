@@ -135,3 +135,22 @@ Conservado por riesgo o valor arquitectonico:
 5. Revisar assets no importados con inspeccion visual antes de eliminarlos.
 6. Mantener `src/app/data.ts` y `src/app/types.ts` hasta que los features usen una capa UI/domain mas estable.
 7. Dividir internamente `AdminPanelPage.tsx`, `AppLayout.tsx`, `TrackingPage.tsx` y `DeliveryPanelPage.tsx` solo despues de validar que la UI se conserva.
+
+## Candidatos posteriores a fase 13
+
+La fase 13 dividio mecanicamente modulos grandes y no hizo limpieza exhaustiva. Los siguientes puntos quedan para fase 14 o una revision especifica con build y validacion visual.
+
+| Ruta | Tipo de residuo/candidato | Evidencia | Riesgo | Recomendacion |
+|---|---|---|---|---|
+| `src/features/admin/sections/SuperadminModules.tsx` | archivo grande posterior a division | Tiene 1193 lineas y agrupa varias secciones administrativas. | medio | Dividir por secciones admin solo si se valida estado compartido y modales. |
+| `src/features/admin/sections/SuperadminModules.tsx` | posibles props redundantes | Fue extraido mecanicamente desde `AdminPanelPage.tsx`. | medio | Revisar props y handlers despues de comparacion visual. |
+| `src/components/layout/layoutShared.ts` | helper visual interno | Se creo para no duplicar `H7`, `H9`, `fmtUSD` y calculos de precio. | bajo | Mantener si `AppLayout`/subcomponentes lo usan; revisar si conviene renombrar en fase 14. |
+| `src/features/orders/components/trackingShared.ts` | helper visual interno | Se creo para no duplicar constantes en tracking. | bajo | Mantener mientras lo usen los subcomponentes; revisar exports internos. |
+| `src/features/delivery/components/deliveryShared.ts` | helper visual interno | Se creo para estilos, tipos y WhatsApp link usados por delivery. | bajo | Mantener mientras lo usen los subcomponentes; revisar si algun tipo puede moverse a view models. |
+| `src/components/layout/index.ts` | barrel ampliado | Exporta componentes internos de layout creados en fase 13. | bajo | Revisar si esos exports deben quedar publicos o solo internos. |
+| `src/features/orders/components/index.ts` | barrel ampliado | Exporta subcomponentes de tracking creados en fase 13. | bajo | Revisar si conviene exportar solo `TrackingPage` publicamente. |
+| `src/features/delivery/components/index.ts` | barrel ampliado | Exporta subcomponentes internos de delivery creados en fase 13. | bajo | Revisar si conviene exportar solo `DeliveryPanelPage` publicamente. |
+| `src/features/orders/components/TrackingPage.tsx` | posible import residual | Tras la division puede conservar imports usados solo por subcomponentes anteriormente. | bajo | Ejecutar busqueda de usos/imports en fase 14; no borrar sin build. |
+| `src/features/delivery/components/DeliveryPanelPage.tsx` | posible props/handlers residuales | Quedo como orquestador de 126 lineas; la limpieza fina no se hizo en fase 13. | bajo | Revisar handlers y nombres despues de validacion visual. |
+| `src/features/admin/components/AdminPanelPage.tsx` | archivo padre reducido | Bajo a 831 lineas, pero sigue coordinando estado administrativo compartido. | medio | Mantener como orquestador; dividir solo bloques claramente independientes. |
+| Chunk JS de build | optimizacion pendiente | Build final: JS `547.73 kB`; warning no bloqueante persiste. | medio | Evaluar code splitting/manualChunks en fase separada; no mezclar con limpieza visual. |

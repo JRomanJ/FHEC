@@ -589,3 +589,98 @@ Recomendacion para la siguiente fase:
 - Crear adapters visuales exactos para productos y cupones antes de reemplazar esos arrays en `App.tsx`.
 - Migrar formularios de pago/reembolso por constantes compartidas, cuidando `G` vs `RIF`.
 - Dejar admin, delivery y recipes para una fase de modularizacion con pruebas de flujo.
+
+## Fase 5 - Adaptadores visuales para productos y cupones
+
+Archivos creados:
+
+- `src/viewModels/productViewModels.ts`
+- `src/viewModels/couponViewModels.ts`
+- `src/viewModels/index.ts`
+- `docs/VISUAL_ADAPTERS.md`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/app/data.ts`
+- `src/services/productService.ts`
+- `src/services/couponService.ts`
+- `docs/APP_DATA_REFERENCES.md`
+- `docs/CODEX_AUDIT.md`
+
+View models y adaptadores de productos:
+
+- `ProductCardViewModel`
+- `ProductDetailViewModel`
+- `ProductSearchViewModel`
+- `ProductSimilarViewModel`
+- `ProductCartItemViewModel`
+- `ProductAdminCatalogViewModel`
+- `ProductAdminInventoryViewModel`
+- `ProductRecipeAuditViewModel`
+- `toProductCardViewModel`
+- `toProductDetailViewModel`
+- `toProductSearchViewModel`
+- `toProductSimilarViewModel`
+- `toProductCartItemViewModel`
+- `toProductAdminCatalogViewModel`
+- `toProductAdminInventoryViewModel`
+- `toProductRecipeAuditViewModel`
+- `getAppProductViewModels`
+
+View models y adaptadores de cupones:
+
+- `CouponAdminViewModel`
+- `CouponProfileViewModel`
+- `CouponApplyViewModel`
+- `CouponBadgeViewModel`
+- `toCouponAdminViewModel`
+- `toCouponProfileViewModel`
+- `toCouponApplyViewModel`
+- `toCouponBadgeViewModel`
+- `getCouponVisualStatus`
+- `formatCouponDiscount`
+- `formatCouponDateRange`
+- `getCouponApplyCodeMap`
+- `getLegacyAdminCouponViewModels`
+- `getLegacyProfileCouponViewModels`
+
+Cambios en `App.tsx`:
+
+- `PRODUCTS` ahora se obtiene desde `getAppProductViewModels()`.
+- `DISCOUNT_CODES` ahora se obtiene desde `getCouponApplyCodeMap()`.
+- El estado inicial de cupones admin ahora usa `getLegacyAdminCouponViewModels()`.
+- `USER_COUPONS` ahora usa `getLegacyProfileCouponViewModels()`.
+
+Compatibilidad preservada:
+
+- Se mantuvieron los nombres locales `PRODUCTS`, `DISCOUNT_CODES` y `USER_COUPONS`.
+- Se preservo `packSize` como `"30"`, `"28"`, etc.; no se reintrodujo `"x 30"`.
+- Se preservaron precios, descuentos, stock global, stock por sede, badges de control, colores, rating, reviews, textos medicos y datos visibles de cupones.
+- `src/app/data.ts` exporta ahora productos y cupones aplicables desde los adaptadores exactos.
+
+Que no se toco:
+
+- No se cambio layout, color, responsive, cards, tablas, modales, navegacion ni textos visibles.
+- No se modularizo `App.tsx`.
+- No se tocaron `backend` ni `frontend`.
+- No se implemento API real, Supabase ni `fetch`.
+- No se migraron `DEMO_RECIPES`, `DEMO_ADMIN_ORDERS`, delivery, reembolsos ni notificaciones.
+
+Verificacion:
+
+- Build completo con `pnpm build`: exitoso.
+- Se mantiene la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- Verificacion puntual SSR de view models: productos y cupones devuelven los valores visuales esperados. El sandbox reporto un aviso no bloqueante de WebSocket de Vite, pero la carga SSR devolvio los datos correctamente.
+
+Riesgos pendientes:
+
+- `BRAND_SYNONYMS` y `FREQUENTLY_BOUGHT_TOGETHER` siguen locales en `App.tsx`.
+- `DOC_TYPES` sigue local por la diferencia entre `G` y `RIF`.
+- Admin operativo, delivery, auditoria, reembolsos y notificaciones todavia necesitan adapters visuales exactos antes de migrarse.
+
+Recomendacion para la siguiente fase:
+
+- Crear adapters para recipes/admin/delivery/reembolsos antes de tocar esos flujos.
+- Migrar constantes de formularios de bajo riesgo (`VE_AREAS`, `VE_BANKS`) manteniendo `DOC_TYPES` pendiente.
+- Empezar una modularizacion controlada solo cuando los view models principales esten estables.

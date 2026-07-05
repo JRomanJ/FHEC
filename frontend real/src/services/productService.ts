@@ -1,7 +1,6 @@
 import {
   BRAND_SYNONYMS,
   FREQUENTLY_BOUGHT_TOGETHER,
-  PRODUCTS,
   getCategoriaById,
   getFormasFarmaceuticas as selectFormasFarmaceuticas,
   getProductoById as selectProductoById,
@@ -9,10 +8,21 @@ import {
   getProductosDisponiblesPorSede as selectProductosDisponiblesPorSede,
   getProductosHabilitados as selectProductosHabilitados,
   getProductosSimilares as selectProductosSimilares,
-  toLegacyProduct,
 } from "../data";
 import { esProductoHabilitado } from "../domain";
 import type { Producto } from "../domain";
+import {
+  getAppProductViewModels,
+  getProductCardViewModels,
+  toProductAdminCatalogViewModel,
+  toProductAdminInventoryViewModel,
+  toProductCardViewModel as toVisualProductCardViewModel,
+  toProductCartItemViewModel,
+  toProductDetailViewModel,
+  toProductRecipeAuditViewModel,
+  toProductSearchViewModel,
+  toProductSimilarViewModel,
+} from "../viewModels";
 import { getStockDisponible } from "./inventoryService";
 
 export interface ProductSearchFilters {
@@ -140,13 +150,25 @@ export function getProductoDetalle(id_producto: number, id_sede: number) {
 }
 
 export function getProductosLegacy() {
-  return PRODUCTS;
+  return getAppProductViewModels();
 }
 
 export function getProductoLegacyById(id_producto: number) {
-  return PRODUCTS.find((producto) => producto.id === id_producto) ?? null;
+  return getAppProductViewModels().find((producto) => producto.id === id_producto) ?? null;
 }
 
 export function toProductCardViewModel(producto: Producto) {
-  return toLegacyProduct(producto);
+  return toVisualProductCardViewModel(producto);
 }
+
+export {
+  getAppProductViewModels,
+  getProductCardViewModels,
+  toProductAdminCatalogViewModel,
+  toProductAdminInventoryViewModel,
+  toProductCartItemViewModel,
+  toProductDetailViewModel,
+  toProductRecipeAuditViewModel,
+  toProductSearchViewModel,
+  toProductSimilarViewModel,
+};

@@ -8,14 +8,13 @@ import {
   DEMO_CONTACT,
   DEMO_GLOBAL_ORDERS,
   DEMO_ORDERS,
-  DISCOUNT_CODES,
   FREQUENTLY_BOUGHT_TOGETHER,
   NOTIF_DATA,
-  PRODUCTS as CENTRAL_PRODUCTS,
   SEDES,
   SEDES_LIST,
   STATUS_COLORS,
 } from "../data";
+import { getAppProductViewModels, getCouponApplyCodeMap } from "../viewModels";
 
 // Temporary compatibility bridge for Figma Make generated modules.
 // The mounted App.tsx still owns its inline visual data until the next phase.
@@ -27,8 +26,9 @@ export const H9: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-s
 export const H7: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 };
 export const effectivePrice = (p: Product) => p.discount ? p.priceUSD * (1 - p.discount / 100) : p.priceUSD;
 
-export { BRAND_SYNONYMS, CATS, DEMO_CONTACT, DEMO_GLOBAL_ORDERS, DEMO_ORDERS, DISCOUNT_CODES, FREQUENTLY_BOUGHT_TOGETHER, NOTIF_DATA, SEDES, SEDES_LIST, STATUS_COLORS };
+export { BRAND_SYNONYMS, CATS, DEMO_CONTACT, DEMO_GLOBAL_ORDERS, DEMO_ORDERS, FREQUENTLY_BOUGHT_TOGETHER, NOTIF_DATA, SEDES, SEDES_LIST, STATUS_COLORS };
 
 export const DEMO_ACCOUNTS: (import("./types").AuthUser & { password: string })[] = CENTRAL_DEMO_ACCOUNTS;
-export const PRODUCTS: Product[] = CENTRAL_PRODUCTS;
+export const PRODUCTS: Product[] = getAppProductViewModels();
 export const DEFAULT_SLIDES: Slide[] = CENTRAL_DEFAULT_SLIDES;
+export const DISCOUNT_CODES: Record<string, number> = getCouponApplyCodeMap();

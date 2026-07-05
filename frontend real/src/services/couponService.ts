@@ -5,6 +5,21 @@ import {
   cuponEstaVigente as domainCuponEstaVigente,
 } from "../domain";
 import type { Cupon } from "../domain";
+import {
+  formatCouponDateRange,
+  formatCouponDiscount,
+  getCouponAdminViewModels,
+  getCouponApplyCodeMap,
+  getCouponApplyViewModels,
+  getCouponProfileViewModels,
+  getCouponVisualStatus,
+  getLegacyAdminCouponViewModels,
+  getLegacyProfileCouponViewModels,
+  toCouponAdminViewModel,
+  toCouponApplyViewModel,
+  toCouponBadgeViewModel,
+  toCouponProfileViewModel,
+} from "../viewModels";
 
 export interface CuponValidationResult {
   valido: boolean;
@@ -67,3 +82,19 @@ export function getEstadoVisualCupon(cupon: Cupon, id_usuario?: number) {
   if (id_usuario != null && cupon.id_usuario !== id_usuario) return "exclusivo_otro_usuario";
   return "usuario";
 }
+
+export {
+  formatCouponDateRange,
+  formatCouponDiscount,
+  getCouponAdminViewModels,
+  getCouponApplyCodeMap,
+  getCouponApplyViewModels,
+  getCouponProfileViewModels,
+  getCouponVisualStatus,
+  getLegacyAdminCouponViewModels,
+  getLegacyProfileCouponViewModels,
+  toCouponAdminViewModel,
+  toCouponApplyViewModel,
+  toCouponBadgeViewModel,
+  toCouponProfileViewModel,
+};

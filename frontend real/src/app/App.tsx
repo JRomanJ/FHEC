@@ -15,8 +15,12 @@ import recipeJose from "../imports/recipe-Jose.jpg";
 import recipeAna from "../imports/recipe-Ana.jpg";
 import codigoQrUsuario from "../imports/codigoqr-usuario.jpg";
 import {
+  getAppProductViewModels,
   getBannersLegacy,
   getCategoriasParaFiltro,
+  getCouponApplyCodeMap,
+  getLegacyAdminCouponViewModels,
+  getLegacyProfileCouponViewModels,
   getSedesLegacy,
   getSedesListLegacy,
 } from "../services";
@@ -98,25 +102,7 @@ interface Product {
 interface CartItem { product: Product; quantity: number; }
 
 // ─── Data ────────────────────────────────────────────────────────────────────
-const PRODUCTS: Product[] = [
-  { id: 1, name: "Metformina 500mg",  brand: "Roemmers",      category: "Diabetes",       presentation: "Tabletas",                packSize: "30", concentration: "500",  concentrationUnit: "mg", priceUSD: 8.50,  discount: 10, stock: 24, needsRecipe: false, rating: 4.8, reviews: 128, bgColor: "#e8f5e9", accentColor: "#179150", description: "Antidiabético oral biguanida. Reduce la glucosa en sangre en pacientes con diabetes mellitus tipo 2. No produce hipoglucemia. Primera línea de tratamiento según guías internacionales.", activeIngredient: "Clorhidrato de Metformina", contraindications: "Insuficiencia renal o hepática, uso de contraste yodado, alcoholismo.", posology: "500–1000 mg 2–3 veces/día con las comidas. Dosis máx. 2550 mg/día. Iniciar con dosis bajas para reducir intolerancia GI.", stockSedes: { principal: 15, clinica: 9 } },
-  { id: 2, name: "Losartán 50mg",     brand: "Farma-Plus",    category: "Cardiovascular",  presentation: "Comprimidos",             packSize: "28", concentration: "50",   concentrationUnit: "mg", priceUSD: 12.00,            stock: 18, needsRecipe: true,  rating: 4.6, reviews: 94,  bgColor: "#e3f2fd", accentColor: "#1565c0", description: "Antagonista selectivo AT-1 de angiotensina II. Indicado en hipertensión arterial esencial e insuficiencia cardíaca congestiva. Protección renal en diabéticos.", activeIngredient: "Losartán Potásico", contraindications: "Hipersensibilidad al losartán, embarazo, lactancia, estenosis bilateral de arterias renales.", posology: "50 mg 1 vez/día. Rango: 25–100 mg/día según respuesta. En insuficiencia hepática iniciar con 25 mg/día. Administrar con o sin alimentos.", stockSedes: { principal: 10, clinica: 8 } },
-  { id: 3, name: "Amoxicilina 500mg", brand: "IVAX Venezuela", category: "Antibióticos",   presentation: "Cápsulas",               packSize: "21", concentration: "500",  concentrationUnit: "mg", priceUSD: 15.75,            stock: 0,  needsRecipe: true,  rating: 4.7, reviews: 213, bgColor: "#fff3e0", accentColor: "#e65100", description: "Antibiótico beta-lactámico de amplio espectro. Activo frente a bacterias grampositivas y gramnegativas. Indicado en infecciones de vías respiratorias, urinarias y cutáneas.", activeIngredient: "Amoxicilina Trihidrato", contraindications: "Alergia a penicilinas o cefalosporinas. Contraindicado en mononucleosis infecciosa.", posology: "500 mg cada 8 h (infecciones moderadas) o 875 mg cada 12 h (infecciones graves). Duración habitual: 7–10 días. Completar siempre el ciclo.", stockSedes: { principal: 0, clinica: 0 } },
-  { id: 4, name: "Vitamina C 1000mg", brand: "Naturecal",      category: "Vitaminas",       presentation: "Comprimidos efervescentes", packSize: "20", concentration: "1000", concentrationUnit: "mg", priceUSD: 6.25,  discount: 5,  stock: 52, needsRecipe: false, rating: 4.9, reviews: 307, bgColor: "#fffde7", accentColor: "#f9a825", description: "Suplemento vitamínico antioxidante potente. Refuerza el sistema inmunológico, favorece la síntesis de colágeno y mejora la absorción del hierro no hémico.", activeIngredient: "Ácido Ascórbico", contraindications: "Cálculos renales oxálicos previos. Precaución en hemochromatosis y talasemia.", posology: "1 comprimido efervescente disuelto en 200 ml de agua, 1 vez/día. Preferiblemente por la mañana con el desayuno. No masticar ni tragar directamente.", stockSedes: { principal: 30, clinica: 22 } },
-  { id: 5, name: "Atorvastatina 20mg",brand: "Pfizer",         category: "Cardiovascular",  presentation: "Tabletas",                packSize: "30", concentration: "20",   concentrationUnit: "mg", priceUSD: 18.90,            stock: 11, needsRecipe: true,  rating: 4.5, reviews: 156, bgColor: "#f3e5f5", accentColor: "#6a1b9a", description: "Inhibidor selectivo de la HMG-CoA reductasa. Reduce niveles de colesterol LDL y triglicéridos. Prevención cardiovascular primaria y secundaria en pacientes de alto riesgo.", activeIngredient: "Atorvastatina Cálcica", contraindications: "Hepatopatía activa, embarazo, lactancia, uso concomitante de inhibidores potentes de CYP3A4.", posology: "10–80 mg 1 vez/día, a cualquier hora del día con o sin alimentos. Inicio habitual: 20 mg/día. Ajustar según perfil lipídico a las 4 semanas.", stockSedes: { principal: 7, clinica: 4 } },
-  { id: 6, name: "Omeprazol 20mg",    brand: "Genoma Lab",     category: "Gastrointestinal",presentation: "Cápsulas",               packSize: "14", concentration: "20",   concentrationUnit: "mg", priceUSD: 9.30,  discount: 5,  stock: 38, needsRecipe: false, rating: 4.7, reviews: 189, bgColor: "#e0f7fa", accentColor: "#006064", description: "Inhibidor irreversible de la bomba de protones gástrica. Suprime eficazmente la secreción ácida. Indicado en úlcera péptica, esofagitis y enfermedad por reflujo gastroesofágico.", activeIngredient: "Omeprazol", contraindications: "Hipersensibilidad al omeprazol o benzimidazoles. Interacción significativa con clopidogrel.", posology: "20 mg 1 vez/día, 30–60 min antes del desayuno. En úlcera duodenal: 4 semanas. En esofagitis erosiva: 4–8 semanas. No triturar ni masticar la cápsula.", stockSedes: { principal: 22, clinica: 16 } },
-  { id: 7, name: "Paracetamol 500mg", brand: "Bayer Venezuela", category: "Analgésicos",    presentation: "Tabletas",                packSize: "20", concentration: "500",  concentrationUnit: "mg", priceUSD: 4.50,  discount: 10, stock: 87, needsRecipe: false, rating: 4.9, reviews: 521, bgColor: "#fce4ec", accentColor: "#c62828", description: "Analgésico y antipirético de acción central. Indicado en dolor leve a moderado, fiebre, cefalea y estados gripales. Amplio margen de seguridad en dosis terapéuticas.", activeIngredient: "Paracetamol (Acetaminofén)", contraindications: "Insuficiencia hepática grave, alcoholismo crónico. No superar 4g/día en adultos.", posology: "500–1000 mg cada 4–6 h según necesidad. Dosis máx. 4000 mg/día (adultos). Intervalo mínimo entre dosis: 4 horas. No combinar con otros analgésicos que contengan paracetamol.", stockSedes: { principal: 50, clinica: 37 } },
-  { id: 8, name: "Clonazepam 0.5mg", brand: "Roche", category: "Sistema Nervioso", presentation: "Comprimidos", packSize: "30", concentration: "0.5", concentrationUnit: "mg", priceUSD: 22.00, stock: 7, needsRecipe: true, rating: 4.4, reviews: 63, bgColor: "#e8eaf6", accentColor: "#283593", description: "Benzodiazepina con acción antiepiléptica, ansiolítica y miorrelajante. Indicada en epilepsia, trastorno de pánico y ansiedad generalizada refractaria.", activeIngredient: "Clonazepam", contraindications: "Miastenia gravis, glaucoma de ángulo cerrado, insuficiencia hepática grave, síndrome de apnea del sueño.", posology: "Inicio: 0.25–0.5 mg 2–3 veces/día. Mantenimiento: individualizar según respuesta (máx. 20 mg/día en epilepsia). No suspender bruscamente; reducir gradualmente.", controlledSubstance: true, stockSedes: { principal: 5, clinica: 2 } },
-  // Mock duplicates for "Productos similares" testing — same activeIngredient, different brand/presentation
-  { id: 9,  name: "Metformina 850mg", brand: "Liomont", category: "Diabetes", presentation: "Tabletas", packSize: "30", priceUSD: 10.20, stock: 18, needsRecipe: false, rating: 4.6, reviews: 54, bgColor: "#e8f5e9", accentColor: "#179150", description: "Antidiabético oral biguanida en dosis de 850 mg. Reduce la glucosa en sangre en pacientes con diabetes mellitus tipo 2.", activeIngredient: "Clorhidrato de Metformina", contraindications: "Insuficiencia renal o hepática.", posology: "850 mg 2 veces/día con las comidas.", concentration: "850", concentrationUnit: "mg", stockSedes: { principal: 10, clinica: 8 } },
-  { id: 10, name: "Losartán 100mg", brand: "MK", category: "Cardiovascular", presentation: "Comprimidos", packSize: "28", priceUSD: 15.00, stock: 12, needsRecipe: true, rating: 4.5, reviews: 47, bgColor: "#e3f2fd", accentColor: "#1565c0", description: "Antagonista AT-1 de angiotensina II en dosis de 100 mg para hipertensión de difícil control.", activeIngredient: "Losartán Potásico", contraindications: "Embarazo, lactancia.", posology: "100 mg 1 vez/día.", concentration: "100", concentrationUnit: "mg", stockSedes: { principal: 7, clinica: 5 } },
-  { id: 11, name: "Amoxicilina 250mg", brand: "Pharmos", category: "Antibióticos", presentation: "Cápsulas", packSize: "24", priceUSD: 8.90, stock: 22, needsRecipe: true, rating: 4.5, reviews: 39, bgColor: "#fff3e0", accentColor: "#e65100", description: "Antibiótico beta-lactámico en dosis pediátrica de 250 mg.", activeIngredient: "Amoxicilina Trihidrato", contraindications: "Alergia a penicilinas.", posology: "250 mg cada 8 h.", concentration: "250", concentrationUnit: "mg", stockSedes: { principal: 14, clinica: 8 } },
-  { id: 12, name: "Vitamina C 500mg", brand: "Helia", category: "Vitaminas", presentation: "Comprimidos", packSize: "30", priceUSD: 4.80, stock: 45, needsRecipe: false, rating: 4.7, reviews: 88, bgColor: "#fffde7", accentColor: "#f9a825", description: "Suplemento vitamínico antioxidante en dosis de 500 mg.", activeIngredient: "Ácido Ascórbico", contraindications: "Cálculos renales oxálicos.", posology: "1 comprimido/día.", concentration: "500", concentrationUnit: "mg", stockSedes: { principal: 28, clinica: 17 } },
-  { id: 13, name: "Atorvastatina 40mg", brand: "Bioequivalente", category: "Cardiovascular", presentation: "Tabletas", packSize: "30", priceUSD: 14.50, stock: 9, needsRecipe: true, rating: 4.4, reviews: 31, bgColor: "#f3e5f5", accentColor: "#6a1b9a", description: "Inhibidor de HMG-CoA reductasa en dosis de 40 mg para dislipidemia moderada-severa.", activeIngredient: "Atorvastatina Cálcica", contraindications: "Hepatopatía activa, embarazo.", posology: "40 mg 1 vez/día.", concentration: "40", concentrationUnit: "mg", stockSedes: { principal: 5, clinica: 4 } },
-  { id: 14, name: "Omeprazol 40mg", brand: "Laboratorio Chile", category: "Gastrointestinal", presentation: "Cápsulas", packSize: "14", priceUSD: 12.00, stock: 20, needsRecipe: false, rating: 4.6, reviews: 62, bgColor: "#e0f7fa", accentColor: "#006064", description: "Inhibidor de bomba de protones en dosis de 40 mg para casos de esofagitis erosiva severa.", activeIngredient: "Omeprazol", contraindications: "Hipersensibilidad al omeprazol.", posology: "40 mg 1 vez/día antes del desayuno.", concentration: "40", concentrationUnit: "mg", stockSedes: { principal: 12, clinica: 8 } },
-  { id: 15, name: "Paracetamol 1000mg", brand: "Farma-Plus", category: "Analgésicos", presentation: "Comprimidos", packSize: "10", priceUSD: 5.00, stock: 55, needsRecipe: false, rating: 4.8, reviews: 104, bgColor: "#fce4ec", accentColor: "#c62828", description: "Analgésico y antipirético de 1000 mg para dolor moderado a intenso en adultos.", activeIngredient: "Paracetamol (Acetaminofén)", contraindications: "No superar 4g/día en adultos.", posology: "1000 mg cada 6–8 h según necesidad.", concentration: "1000", concentrationUnit: "mg", stockSedes: { principal: 35, clinica: 20 } },
-  { id: 16, name: "Clonazepam 2mg", brand: "Genfar", category: "Sistema Nervioso", presentation: "Comprimidos", packSize: "20", priceUSD: 28.00, stock: 4, needsRecipe: true, rating: 4.3, reviews: 22, bgColor: "#e8eaf6", accentColor: "#283593", description: "Benzodiazepina de alta potencia en dosis de 2 mg para epilepsia y trastorno de pánico.", activeIngredient: "Clonazepam", contraindications: "Miastenia gravis, apnea del sueño.", posology: "2 mg 1–2 veces/día según indicación médica.", controlledSubstance: true, concentration: "2", concentrationUnit: "mg", stockSedes: { principal: 2, clinica: 2 } },
-];
+const PRODUCTS: Product[] = getAppProductViewModels();
 
 const DEFAULT_SLIDES: Slide[] = getBannersLegacy();
 
@@ -2427,7 +2413,7 @@ function RefundForm({ amountUSD, onSubmit }: { amountUSD: number; onSubmit: () =
 
 // ─── CheckoutPage — Payment ───────────────────────────────────────────────────
 const SEDES = getSedesLegacy();
-const DISCOUNT_CODES: Record<string,number> = { FHEC10:10, SALUD15:15, BIENVENIDO:5, FHEC2024:20 };
+const DISCOUNT_CODES: Record<string,number> = getCouponApplyCodeMap();
 
 function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMode = "delivery", selectedSede = "principal", onClearCart = () => {}, user = null }: {
   cartItems: CartItem[]; onNav: (p: Page) => void;
@@ -4975,12 +4961,7 @@ function SuperadminModules({ onNav, products, setProducts, slides, setSlides, fo
 
   // ── Cupones state ──
   interface Coupon { id: number; code: string; discount: number; startDate: string; endDate: string; userEmail?: string; }
-  const [coupons, setCoupons] = useState<Coupon[]>([
-    { id: 1, code: "FARMA10",       discount: 10, startDate: "2024-06-01", endDate: "2024-06-30" },
-    { id: 2, code: "BIENVENIDA20",  discount: 20, startDate: "2024-06-01", endDate: "2026-12-31" },
-    { id: 3, code: "VERANO5",       discount: 5,  startDate: "2024-07-01", endDate: "2024-08-31" },
-    { id: 4, code: "VIP2024",       discount: 15, startDate: "2024-01-01", endDate: "2026-12-31", userEmail: "cliente@fhec.com" },
-  ]);
+  const [coupons, setCoupons] = useState<Coupon[]>(getLegacyAdminCouponViewModels());
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [editCouponId, setEditCouponId] = useState<number | null>(null);
   const [couponForm, setCouponForm] = useState({ code: "", discount: 0, startDate: "", endDate: "", userEmail: "" });
@@ -6846,12 +6827,7 @@ function ProfilePage({ user, onNav, onLogout }: { user: AuthUser; onNav: (p: Pag
   const [profileTab, setProfileTab] = useState<"info" | "notifications" | "security" | "orders" | "refunds" | "coupons">("info");
 
   // Datos mock de cupones del cliente (solo lectura)
-  const USER_COUPONS = [
-    { code: "BIENVENIDA20", discount: 20, createdAt: "2024-06-01", expiresAt: "2026-12-31", usedOnOrder: null,           status: "vigente" as const },
-    { code: "VIP2024",      discount: 15, createdAt: "2024-01-01", expiresAt: "2026-12-31", usedOnOrder: null,           status: "vigente" as const },
-    { code: "FARMA10",      discount: 10, createdAt: "2024-01-15", expiresAt: "2024-06-30", usedOnOrder: "ORD-2024-003", status: "usado"   as const },
-    { code: "VERANO5",      discount: 5,  createdAt: "2024-07-01", expiresAt: "2024-08-31", usedOnOrder: null,           status: "vencido" as const },
-  ];
+  const USER_COUPONS = getLegacyProfileCouponViewModels();
 
   // ── Refund requests ──
   const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([

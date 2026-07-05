@@ -223,3 +223,149 @@ No tocar todavia:
 Foco futuro confirmado:
 
 - Todas las fases futuras de limpieza y preparacion deben centrarse en `frontend real`.
+
+## 9. Fase 2 - Base tecnica de dominio
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Crear una base TypeScript de dominio alineada con la base de datos final y el DFD.
+- Mantener intacto el prototipo visual generado por Figma Make.
+- Preparar la fase siguiente de centralizacion de datos mock.
+
+Archivos creados:
+
+- `src/domain/types.ts`
+- `src/domain/enums.ts`
+- `src/domain/constants.ts`
+- `src/domain/helpers.ts`
+- `src/domain/index.ts`
+- `docs/DOMAIN_MODEL.md`
+
+Tipos principales creados:
+
+- `Usuario`
+- `CodigoVerificacion`
+- `Producto`
+- `Categoria`
+- `Sede`
+- `Transaccion`
+- `Cupon`
+- `InteraccionUsuario`
+- `Favorito`
+- `PersonalOperativo`
+- `SolicitudReembolso`
+- `InventarioSede`
+- `Carrito`
+- `Pedido`
+- `PedidoPreparado`
+- `EntregaPickup`
+- `EntregaDelivery`
+- `DetallePedido`
+- `Recipe`
+- `AuditoriaRecipe`
+- `Notificacion`
+- `Banner`
+
+Enums/valores cerrados creados:
+
+- `PropositoCodigoVerificacion`
+- `EstadoCodigoVerificacion`
+- `NivelControlProducto`
+- `EstadoProducto`
+- `EstadoSede`
+- `MetodoPago`
+- `MetodoEntrega`
+- `RolPersonalOperativo`
+- `EstadoPersonalOperativo`
+- `EstadoPedido`
+- `EstadoRecipe`
+- `ResultadoAuditoriaRecipe`
+- `EstadoSolicitudReembolso`
+- `TipoInteraccionUsuario`
+- `TipoNotificacion`
+
+Constantes creadas:
+
+- `IVA_PORCENTAJE`
+- `METODOS_PAGO_DISPONIBLES`
+- `METODOS_ENTREGA_DISPONIBLES`
+- `TIPOS_DOCUMENTO_IDENTIDAD`
+- `CODIGOS_PAIS_MOCK`
+- `CODIGOS_AREA_VENEZUELA_MOCK`
+- `BANCOS_MOCK`
+- `FORMAS_FARMACEUTICAS_BASE`
+- `UNIDADES_CONCENTRACION_BASE`
+- `ESTADOS_PEDIDO_ACTIVOS`
+- `ESTADOS_PEDIDO_TERMINALES`
+
+Helpers puros creados:
+
+- `esProductoHabilitado`
+- `esSedeHabilitada`
+- `esPersonalHabilitado`
+- `requiereRecipeDigital`
+- `requiereRecipeFisico`
+- `esPickupObligatorio`
+- `calcularPrecioConDescuento`
+- `calcularDescuentoUnitario`
+- `cuponEstaVigente`
+- `cuponEsGeneral`
+- `cuponEsDeUsuario`
+- `pedidoEstaActivo`
+- `pedidoEstaEntregado`
+- `recipeEstaPendiente`
+- `recipeEstaAprobado`
+- `recipeEstaRechazado`
+
+Decisiones tomadas:
+
+- Los IDs de entidades de base de datos usan `number`.
+- Los timestamps usan `string` para representar ISO strings provenientes de API.
+- Los decimales usan `number` por ahora.
+- Los campos nullable de base de datos se modelan como `T | null`.
+- Los valores cerrados se implementaron como objetos `as const` con type alias, manteniendo valores legibles para uso futuro en UI.
+- `src/app/App.tsx` no fue refactorizado ni conectado a la capa nueva.
+- `src/app/types.ts`, `src/app/data.ts` y `src/app/shared.ts` se mantienen por compatibilidad temporal con el prototipo.
+
+Que no se toco:
+
+- No se modifico `src/app/App.tsx`.
+- No se cambiaron estilos, colores, layout, textos visibles, rutas ni navegacion.
+- No se borraron componentes, mocks, assets ni archivos generados por Figma.
+- No se modifico `backend`.
+- No se modifico `frontend` de pruebas.
+- No se instalaron librerias nuevas.
+
+Verificacion:
+
+- `pnpm exec tsc -v` no esta disponible porque el proyecto no expone un binario local de TypeScript.
+- Se valido sintaxis de `src/domain/index.ts` con Vite en modo SSR:
+
+```bash
+pnpm exec vite build --ssr src/domain/index.ts --outDir /private/tmp/fhec-domain-check --emptyOutDir false
+```
+
+Resultado:
+
+- Validacion SSR exitosa.
+- 5 modulos transformados.
+
+Build completo:
+
+```bash
+pnpm build
+```
+
+Resultado:
+
+- Build exitoso.
+- 1608 modulos transformados.
+- Se mantiene la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Recomendacion para la fase siguiente:
+
+- Centralizar datos mock de productos, categorias, sedes, cupones, usuarios demo, pedidos, recetas, notificaciones e inventario.
+- Mapear primero los datos mock hacia los tipos de `src/domain`.
+- Mantener `App.tsx` como fuente visual hasta tener paridad clara, y migrar por pantallas o flujos pequenos con build despues de cada paso.

@@ -6,12 +6,10 @@ import {
   mockRecipes,
   mockSedes,
   mockUsuarios,
+  RECIPE_IDS,
 } from "../data";
 import { EstadoRecipe } from "../domain";
 import type { AuditoriaRecipe, DetallePedido, Pedido, Producto, Recipe } from "../domain";
-import recipeAna from "../imports/recipe-Ana.jpg";
-import recipeJose from "../imports/recipe-Jose.jpg";
-import recipeMaria from "../imports/recipe-Maria.jpg";
 
 export type RecipeVisualStatus = "pending" | "approved" | "rejected";
 
@@ -46,6 +44,10 @@ export interface RecipeDetailModalViewModel extends RecipeAuditViewModel {
   rejectionComment?: string;
   sede?: string;
 }
+
+const recipeMaria = mockRecipes.find((recipe) => recipe.id_recipe === RECIPE_IDS.LosartanPendiente)?.archivo_recipe ?? "";
+const recipeJose = mockRecipes.find((recipe) => recipe.id_recipe === RECIPE_IDS.ClonazepamAprobado)?.archivo_recipe ?? "";
+const recipeAna = mockRecipes.find((recipe) => recipe.id_recipe === RECIPE_IDS.AmoxicilinaRechazado)?.archivo_recipe ?? "";
 
 const LEGACY_RECIPE_AUDIT: RecipeAuditViewModel[] = [
   {

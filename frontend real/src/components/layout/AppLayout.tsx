@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Bell, Bike, Check, ChevronDown, Heart, Instagram, Facebook, LogOut, MapPin, Minus, Package,
-  Shield, ShoppingCart, Truck, User, X, Plus,
+  Bell, Heart, LogOut, Minus, ShoppingCart, User, X, Plus,
 } from "lucide-react";
 import logoFarmahumana from "../../imports/logo-farmahumana.png";
 import { CatNavButton } from "./CategoryDropdown";

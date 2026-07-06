@@ -154,3 +154,53 @@ La fase 13 dividio mecanicamente modulos grandes y no hizo limpieza exhaustiva. 
 | `src/features/delivery/components/DeliveryPanelPage.tsx` | posible props/handlers residuales | Quedo como orquestador de 126 lineas; la limpieza fina no se hizo en fase 13. | bajo | Revisar handlers y nombres despues de validacion visual. |
 | `src/features/admin/components/AdminPanelPage.tsx` | archivo padre reducido | Bajo a 831 lineas, pero sigue coordinando estado administrativo compartido. | medio | Mantener como orquestador; dividir solo bloques claramente independientes. |
 | Chunk JS de build | optimizacion pendiente | Build final: JS `547.73 kB`; warning no bloqueante persiste. | medio | Evaluar code splitting/manualChunks en fase separada; no mezclar con limpieza visual. |
+
+## Actualizacion Fase 14
+
+La fase 14 proceso candidatos posteriores a la division interna y limpio residuos sin cambios visuales. Ver `docs/CLEANUP_REPORT.md` para detalle completo.
+
+Procesado y eliminado:
+
+- `src/.DS_Store`.
+- `src/app/.DS_Store`.
+- `src/features/index.ts`, porque no tenia consumidores.
+- Exports internos no usados en:
+  - `src/components/layout/index.ts`
+  - `src/features/delivery/components/index.ts`
+  - `src/features/orders/components/index.ts`
+- Exports legacy no referenciados en `src/app/data.ts`:
+  - `NOTIF_DATA`
+  - `DEMO_PROFILE_REFUNDS`
+  - `DEMO_DELIVERY_ORDERS`
+  - `DEMO_COMPLETED_TRIPS`
+- Adaptador duplicado `toLegacyNotification` y export `NOTIF_DATA` en `src/data/adapters.ts`.
+- Tipo `LegacyNotification` en `src/data/viewModels.ts`.
+- Resolver Figma `figmaAssetResolver` en `vite.config.ts`, porque no hay imports `figma:asset/*`.
+
+Procesado y movido/dividido:
+
+- `InventarioTab` se movio desde `src/features/admin/sections/SuperadminModules.tsx` hacia `src/features/admin/sections/AdminInventorySection.tsx`.
+
+Procesado y conservado:
+
+- `src/app/components/ui/*`: se conserva como UI base.
+- `src/app/data.ts`: se conserva como puente activo, ya reducido.
+- `src/app/types.ts`: se conserva por uso activo en features.
+- `src/domain/*`: se conserva por contrato de DB final.
+- `src/data/*`: se conserva como mock central.
+- `src/services/*`: se conserva como capa mock/API futura.
+- `src/viewModels/*`: se conserva por uso activo o bridge visual.
+- Assets restantes en `src/imports`: todos aparecen referenciados en codigo activo o en build.
+- Dependencias restantes: se conservan por imports activos, UI base o build.
+
+### Candidatos posteriores a fase 14
+
+| Ruta | Tipo de candidato | Evidencia | Riesgo | Recomendacion |
+|---|---|---|---|---|
+| Chunk JS de build | optimizacion pendiente | Build final fase 14: JS `545.84 kB`; warning mayor a 500 kB persiste. | medio | Evaluar code splitting por feature o `manualChunks` en una fase dedicada. |
+| `src/features/admin/sections/SuperadminModules.tsx` | archivo grande restante | Bajo a 1044 lineas tras extraer inventario, pero mantiene tabs, formularios y modales compartidos. | medio | Dividir solo secciones aislables con estado propio y validacion visual. |
+| `src/app/data.ts` | puente legacy activo | Todavia exporta helpers y datos legacy consumidos por features. | alto | Reducir gradualmente cuando features importen servicios/view models directos. |
+| `src/app/types.ts` | tipos UI legacy | Sigue usado por `App.tsx`, features y componentes visuales. | alto | Mantener hasta crear una capa de tipos UI final. |
+| `src/app/components/ui/*` | UI base | Varias dependencias se usan desde estos archivos; no todo entra al flujo actual. | alto | No borrar sin revision archivo por archivo y validacion visual. |
+| `src/data/viewModels.ts` vs `src/viewModels/*` | contratos legacy vs adaptadores visuales | Se limpio `LegacyNotification`, pero otros tipos legacy siguen alimentando puente/data. | medio | Revisar cuando se migre `src/app/data.ts` a servicios directos. |
+| Dependencias Radix/shadcn | dependencias de UI base | Muchas aparecen en `src/app/components/ui/*`; no todas se renderizan hoy. | medio-alto | Conservar mientras exista la carpeta UI base. |

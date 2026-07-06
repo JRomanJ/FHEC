@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Bike,
   Check,
   CheckCircle,
@@ -10,19 +9,14 @@ import {
   Copy,
   CreditCard,
   Eye,
-  EyeOff,
   FileText,
   MapPin,
   Package,
-  Plus,
   Search,
-  Settings,
   Shield,
   SlidersHorizontal,
   Store,
-  Trash2,
   Truck,
-  Upload,
   User,
   X,
   Clock,
@@ -828,4 +822,3 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
     </div>
   );
 }
-

@@ -1347,3 +1347,103 @@ Pendientes para fase 14:
 2. Revisar props redundantes generadas por la division mecanica.
 3. Evaluar imports/exports internos que puedan quedar sin uso despues de validacion visual.
 4. Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB, solo si se aprueba en una fase posterior.
+
+## Fase 14 - Limpieza final y optimizacion interna
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Limpiar codigo muerto y residuos posteriores a la modularizacion sin cambiar UI ni comportamiento visual.
+- Revisar `src/features`, `src/components`, `src/services`, `src/viewModels`, `src/data`, `src/domain`, `src/app`, `src/imports`, `src/styles`, `package.json` y barrels.
+- Mantener sin cambios backend, API real, Supabase, `fetch`, router, state management y code splitting dinamico.
+
+Resumen:
+
+- Se extrajo `InventarioTab` desde `src/features/admin/sections/SuperadminModules.tsx` a `src/features/admin/sections/AdminInventorySection.tsx`.
+- Se limpiaron imports de iconos no usados en `AdminPanelPage.tsx` y `AppLayout.tsx`.
+- Se redujeron barrels internos para exportar solo superficies publicas necesarias.
+- Se elimino el barrel raiz `src/features/index.ts` porque no tenia consumidores.
+- Se redujo `src/app/data.ts` retirando exports legacy sin referencias activas.
+- Se retiro el adaptador legacy duplicado de notificaciones en `src/data/adapters.ts`.
+- Se elimino el tipo `LegacyNotification` de `src/data/viewModels.ts`.
+- Se deduplicaron imports de imagenes de recipes en `src/viewModels/recipeViewModels.ts`.
+- Se elimino el resolver Figma `figma:asset` de `vite.config.ts`, sin referencias reales en el codigo actual.
+- Se eliminaron `.DS_Store` residuales.
+
+Archivos creados:
+
+- `src/features/admin/sections/AdminInventorySection.tsx`
+
+Archivos eliminados:
+
+- `src/.DS_Store`
+- `src/app/.DS_Store`
+- `src/features/index.ts`
+
+Archivos principales modificados:
+
+- `src/app/data.ts`
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/data/adapters.ts`
+- `src/data/viewModels.ts`
+- `src/features/admin/components/AdminPanelPage.tsx`
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/features/admin/sections/index.ts`
+- `src/features/delivery/components/index.ts`
+- `src/features/orders/components/index.ts`
+- `src/viewModels/recipeViewModels.ts`
+- `vite.config.ts`
+- `docs/CLEANUP_REPORT.md`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/CODEX_AUDIT.md`
+
+Estado final de archivos grandes:
+
+| Archivo | Estado final aproximado | Nota |
+|---|---:|---|
+| `src/app/App.tsx` | 192 lineas | Orquestador principal, sin cambios funcionales. |
+| `src/features/admin/components/AdminPanelPage.tsx` | 824 lineas | Orquestador admin; se limpiaron imports. |
+| `src/features/admin/sections/SuperadminModules.tsx` | 1044 lineas | Se extrajo inventario; quedan tabs/secciones compartidas. |
+| `src/features/admin/sections/AdminInventorySection.tsx` | 153 lineas | Nuevo modulo extraido sin cambios visuales. |
+| `src/components/layout/AppLayout.tsx` | 284 lineas | Se limpiaron imports. |
+| `src/features/orders/components/TrackingPage.tsx` | 354 lineas | Sin cambios en esta fase. |
+| `src/features/delivery/components/DeliveryPanelPage.tsx` | 126 lineas | Sin cambios en esta fase. |
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Build final: 1725 modulos transformados.
+- JS final: `545.84 kB`, gzip `131.25 kB`.
+- CSS final: `125.24 kB`, gzip `19.99 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fallo dentro del sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.
+
+Notas:
+
+- `pnpm exec tsc --version` fallo porque `tsc` no esta instalado localmente; no se instalaron dependencias nuevas.
+- No se eliminaron dependencias en esta fase porque las dependencias restantes tienen imports activos, sostienen UI base o pertenecen al build.
+- No se eliminaron assets aprobados: todos aparecen referenciados en codigo activo o en build.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, imagenes ni flujos visuales.
+
+Proximos pasos:
+
+1. Evaluar code splitting por feature en una fase separada para resolver el warning de chunk mayor a 500 kB.
+2. Mantener `src/app/data.ts` como puente hasta reemplazar gradualmente imports legacy por servicios/view models directos.
+3. Mantener `src/app/types.ts` hasta definir tipos UI finales separados del modelo DB.
+4. Dividir mas `SuperadminModules.tsx` solo si se puede aislar estado por seccion administrativa sin riesgo visual.
+
+Reporte detallado:
+
+- Ver `docs/CLEANUP_REPORT.md`.

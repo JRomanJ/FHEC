@@ -761,3 +761,60 @@ Esta fase dividio archivos grandes restantes mediante extraccion mecanica de JSX
 2. Revisar props redundantes generadas por la division mecanica.
 3. Revisar exports internos que no se necesiten fuera de cada feature.
 4. Evaluar code splitting por feature en una fase especifica, porque el warning de chunk JS mayor a 500 kB persiste.
+
+## Fase 14 - Limpieza final de modulos extraidos
+
+Esta fase limpio residuos posteriores a la modularizacion y dividio un bloque adicional de admin sin modificar UI ni comportamiento visual.
+
+### Secciones y residuos procesados
+
+| Seccion / residuo | Ubicacion anterior | Accion | Nuevo destino / estado | Riesgo | Nota |
+|---|---|---|---|---|---|
+| Inventario admin | `src/features/admin/sections/SuperadminModules.tsx` | Extraido | `src/features/admin/sections/AdminInventorySection.tsx` | bajo-medio | Corte mecanico; mantiene estado local, clases, textos, tabla y modal de stock. |
+| Exports internos de layout | `src/components/layout/index.ts` | Limpiado | Solo exporta `AppLayout` y `Footer` | bajo | `CategoryDropdown`, `SedeSelector` y `MobileUserMenu` quedan como internos de `AppLayout`. |
+| Exports internos de delivery | `src/features/delivery/components/index.ts` | Limpiado | Solo exporta `DeliveryPanelPage` | bajo | Subcomponentes se importan de forma relativa dentro del modulo. |
+| Exports internos de orders | `src/features/orders/components/index.ts` | Limpiado | Solo exporta `TrackingPage` | bajo | Subcomponentes se importan de forma relativa dentro del modulo. |
+| Barrel raiz de features | `src/features/index.ts` | Eliminado | Sin reemplazo | bajo | No tenia consumidores; `App.tsx` importa por feature especifico. |
+| Puente app legacy | `src/app/data.ts` | Reducido | Conservado | bajo | Se retiraron exports sin referencias: `NOTIF_DATA`, `DEMO_PROFILE_REFUNDS`, `DEMO_DELIVERY_ORDERS`, `DEMO_COMPLETED_TRIPS`. |
+| Adaptador legacy de notificaciones | `src/data/adapters.ts` | Eliminado parcialmente | Contrato activo vive en `src/viewModels/notificationViewModels.ts` | bajo | Se elimino `toLegacyNotification` y `NOTIF_DATA` duplicado. |
+| Tipo legacy de notificaciones | `src/data/viewModels.ts` | Eliminado | Sin reemplazo necesario | bajo | `LegacyNotification` no tenia consumidores reales. |
+| Resolver Figma | `vite.config.ts` | Eliminado | Sin reemplazo | bajo | No hay imports `figma:asset/*` ni carpeta `src/assets`. |
+| `.DS_Store` | `src/.DS_Store`, `src/app/.DS_Store` | Eliminado | Sin reemplazo | bajo | Archivos del sistema operativo, no fuente. |
+
+### Estado que quedo en padres
+
+- `AdminPanelPage.tsx`: mantiene orquestacion administrativa, tabs, modales y estado compartido.
+- `SuperadminModules.tsx`: mantiene secciones administrativas con estado compartido; solo se extrajo inventario porque era un bloque aislado.
+- `App.tsx`: sigue como orquestador principal sin cambios funcionales.
+
+### Estado movido
+
+- `InventarioTab` mantiene su propio estado local (`sede`, `search`, `editingId`, `editStock`) dentro del nuevo archivo.
+- No se movio estado compartido entre secciones administrativas.
+
+### Lineas aproximadas despues de la fase
+
+- `App.tsx`: 192 lineas.
+- `AdminPanelPage.tsx`: 824 lineas.
+- `SuperadminModules.tsx`: 1044 lineas.
+- `AdminInventorySection.tsx`: 153 lineas.
+- `AppLayout.tsx`: 284 lineas.
+- `TrackingPage.tsx`: 354 lineas.
+- `DeliveryPanelPage.tsx`: 126 lineas.
+
+### Verificacion
+
+- Build inicial de fase 14: exitoso.
+- Build despues de limpiar `src/features`, barrels y `.DS_Store`: exitoso.
+- Build despues de extraer `AdminInventorySection.tsx`: exitoso.
+- Build despues de limpiar `src/app/data.ts`, adaptadores de notificaciones y resolver Vite: exitoso.
+- Build final documentado: exitoso.
+- Warning persistente: chunk JS mayor a 500 kB.
+
+### Pendientes reales
+
+1. Evaluar code splitting por feature en una fase dedicada; no se implemento en esta fase por restriccion.
+2. Mantener `src/app/data.ts` hasta que features consuman directamente servicios/view models.
+3. Mantener `src/app/types.ts` hasta definir tipos UI finales.
+4. Revisar `src/app/components/ui/*` solo con decision especifica, archivo por archivo.
+5. Dividir mas `SuperadminModules.tsx` solo si se puede aislar una seccion sin estado compartido ni riesgo visual.

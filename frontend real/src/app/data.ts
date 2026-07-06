@@ -17,11 +17,7 @@ import {
   getLegacyAdminMonitorOrderViewModels,
   getLegacyAdminOrderViewModels,
   getLegacyAdminRefundViewModels,
-  getLegacyDeliveryAvailableOrderViewModels,
-  getLegacyDeliveryCompletedTripViewModels,
-  getLegacyNotificationViewModels,
   getLegacyOrderHistoryViewModels,
-  getLegacyProfileRefundViewModels,
   getLegacyRecipeAuditViewModels,
 } from "../viewModels";
 
@@ -43,10 +39,6 @@ export const DEFAULT_SLIDES: Slide[] = CENTRAL_DEFAULT_SLIDES;
 export const DISCOUNT_CODES: Record<string, number> = getCouponApplyCodeMap();
 export const DEMO_GLOBAL_ORDERS = getLegacyAdminMonitorOrderViewModels();
 export const DEMO_ORDERS = getLegacyOrderHistoryViewModels();
-export const NOTIF_DATA = getLegacyNotificationViewModels();
 export const DEMO_RECIPES = getLegacyRecipeAuditViewModels();
 export const DEMO_ADMIN_ORDERS = getLegacyAdminOrderViewModels();
 export const DEMO_REFUNDS = getLegacyAdminRefundViewModels();
-export const DEMO_PROFILE_REFUNDS = getLegacyProfileRefundViewModels();
-export const DEMO_DELIVERY_ORDERS = getLegacyDeliveryAvailableOrderViewModels();
-export const DEMO_COMPLETED_TRIPS = getLegacyDeliveryCompletedTripViewModels();

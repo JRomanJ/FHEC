@@ -1513,3 +1513,31 @@ Impacto visual esperado:
 Reporte detallado:
 
 - Ver `docs/PERFORMANCE_REPORT.md`.
+
+## Fase 16 - README general del proyecto
+
+Fecha de actualizacion: 2026-07-06.
+
+Resumen:
+
+- Se actualizo el `README.md` general en la raiz del repositorio.
+- El README quedo organizado en cuatro secciones principales:
+  - `DESCRIPCIÓN GENERAL DEL PROYECTO`.
+  - `ESTRUCTURA GENERAL DEL REPO`.
+  - `FRONTEND`.
+  - `BACKEND`.
+- La seccion `FRONTEND` documenta estado actual, tecnologias, instalacion, comandos, estructura interna, features, docs tecnicos, performance, continuidad de integracion y reglas de negocio.
+- La seccion `BACKEND` conserva la esencia del README anterior: `cd backend`, `npm install`, configuracion privada de `.env` y ejecucion con `npx tsx src/server.ts`.
+
+Cambios funcionales:
+
+- Ninguno. Solo se modifico documentacion.
+- No se renombraron carpetas.
+- No se elimino `frontend`.
+- No se modifico `backend`.
+- No se implemento API, Supabase, `fetch` ni persistencia real.
+
+Proximos pasos:
+
+- Backend/API y validaciones reales deben implementarse en fases posteriores.
+- El frontend debe continuar integrandose mediante `src/services`, `src/viewModels` y `src/domain`, conservando la UI aprobada.

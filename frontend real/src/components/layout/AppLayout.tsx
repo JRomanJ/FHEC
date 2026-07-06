@@ -10,7 +10,7 @@ import { CATS, H9, effectivePrice, fmtUSD } from "./layoutShared";
 import { SmartSearch } from "../../features/search";
 import { ProductBox } from "../product";
 import type { AuthUser, CartItem, Page, Product } from "../../app/types";
-import type { AppNotification } from "../../features/notifications";
+import type { NotificationViewModel as AppNotification } from "../../viewModels/notificationViewModels";
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, user, onLogout, onCategorySelect,

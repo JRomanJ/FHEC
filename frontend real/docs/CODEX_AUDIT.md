@@ -1447,3 +1447,69 @@ Proximos pasos:
 Reporte detallado:
 
 - Ver `docs/CLEANUP_REPORT.md`.
+
+## Fase 15 - Code splitting por feature
+
+Fecha de actualizacion: 2026-07-06.
+
+Objetivo:
+
+- Reducir el bundle inicial de Vite usando `React.lazy` y `Suspense`.
+- Mantener exactamente la misma UI, navegacion, props, callbacks y estado principal.
+- No introducir React Router, state management, backend, API real, Supabase, `fetch`, librerias nuevas ni `manualChunks`.
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/components/layout/AppLayout.tsx`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `docs/PERFORMANCE_REPORT.md`
+- `docs/CODEX_AUDIT.md`
+- `docs/CLEANUP_REPORT.md`
+
+Features lazy-loaded:
+
+- Auth: `LoginPage`.
+- Perfil: `ProfilePage`.
+- Catalogo: `HomePage`, `CatalogPage`.
+- Detalle: `ProductDetailPage`.
+- Carrito: `CartPage`.
+- Checkout/entrega: `DeliverySelectPage`.
+- Pago: `CheckoutPage`.
+- Recipes: `PreCheckoutMedicalPage`.
+- Admin: `AdminPanel`, `BannerManagementPage`.
+- Delivery: `DeliveryPanel`.
+- Favoritos: `FavoritesPage`.
+- Notificaciones: `NotificationsPage`.
+- Tracking/pedido activo: `TrackingPage`.
+
+Decisiones:
+
+- `Navbar`, `Footer` y layout global quedaron estaticos.
+- `SmartSearch` quedo estatico porque vive dentro del navbar aprobado.
+- Se uso `Suspense fallback={null}` para no introducir loader visual nuevo.
+- `INITIAL_NOTIFICATIONS` ya no se importa desde `NotificationsPage`; el estado inicial sale de `src/viewModels/notificationViewModels.ts`.
+- No se uso `manualChunks` porque `React.lazy` elimino el warning.
+
+Resultado de build:
+
+- Baseline antes: JS principal `545.84 kB`, gzip `131.25 kB`.
+- Despues: JS principal `278.39 kB`, gzip `81.60 kB`.
+- Reduccion aproximada: `267.45 kB`.
+- Warning de chunk JS mayor a 500 kB: eliminado.
+- `pnpm build`: exitoso.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fallo dentro del sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, imagenes ni flujos visuales.
+
+Reporte detallado:
+
+- Ver `docs/PERFORMANCE_REPORT.md`.

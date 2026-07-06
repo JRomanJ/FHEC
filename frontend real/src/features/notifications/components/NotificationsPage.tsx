@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Check, X } from "lucide-react";
-import { getLegacyNotificationViewModels } from "../../../services";
 import type { Page } from "../../../app/types";
-
-export type AppNotification = ReturnType<typeof getLegacyNotificationViewModels>[number];
-export const INITIAL_NOTIFICATIONS: AppNotification[] = getLegacyNotificationViewModels();
+import type { NotificationViewModel as AppNotification } from "../../../viewModels/notificationViewModels";
 
 const H9: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900 };
 

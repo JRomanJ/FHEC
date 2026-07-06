@@ -344,3 +344,26 @@ El servidor Vite temporal fue detenido despues de la verificacion.
 3. Mantener `src/app/data.ts` hasta que todos los features consuman servicios/view models directamente.
 4. Mantener `src/app/types.ts` hasta separar definitivamente tipos UI de tipos de dominio DB.
 5. Si se divide mas `SuperadminModules.tsx`, hacerlo por seccion administrativa y con validacion visual.
+
+## Nota Fase 15 - Code splitting por feature
+
+Fecha de actualizacion: 2026-07-06.
+
+Esta fase no fue una limpieza estructural ni una eliminacion de archivos.
+
+Cambios realizados:
+
+- Se aplico `React.lazy` y `Suspense` en `src/app/App.tsx` para diferir pantallas/features grandes.
+- Se movio el estado inicial/tipo de notificaciones fuera de `NotificationsPage` para permitir lazy loading real de esa pantalla.
+- No se borraron assets, dependencias, servicios, datos mock, view models ni componentes UI base.
+- No se uso `manualChunks`.
+
+Resultado:
+
+- Bundle JS principal antes: `545.84 kB`, gzip `131.25 kB`.
+- Bundle JS principal despues: `278.39 kB`, gzip `81.60 kB`.
+- Warning de chunk mayor a 500 kB: eliminado.
+
+Detalle completo:
+
+- Ver `docs/PERFORMANCE_REPORT.md`.

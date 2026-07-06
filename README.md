@@ -1,6 +1,14 @@
 ## DESCRIPCIÓN GENERAL DEL PROYECTO
 
-> Pendiente por completar.
+Farmahumana E-Commerce (FHEC) es una plataforma web desarrollada para digitalizar y optimizar el proceso de venta de productos farmacéuticos de Farmahumana, permitiendo que los clientes consulten productos, verifiquen disponibilidad por sede, gestionen favoritos y carrito de compras, formalicen pedidos, apliquen cupones, registren pagos y seleccionen modalidades de entrega como retiro en mostrador o despacho a domicilio.
+
+El proyecto surge como respuesta a la necesidad de modernizar el modelo comercial tradicional de la farmacia, el cual depende principalmente de la atención presencial en sede física. Esta limitación reduce el alcance comercial de la empresa, dificulta la captación de nuevos clientes, impide aprovechar información sobre preferencias e intenciones de compra, y restringe la implementación de servicios logísticos y administrativos propios de un entorno digital.
+
+La solución busca ofrecer un canal de venta más accesible, organizado y seguro, manteniendo la lógica propia del negocio farmacéutico. Por ello, el sistema contempla la gestión de productos, categorías, inventario por sede, precios, descuentos, cupones, usuarios, personal operativo, notificaciones, pagos, solicitudes de reembolso, preparación de pedidos y entregas. Además, incorpora reglas específicas para productos con control médico, como la carga y auditoría de récipes digitales, la validación de récipes físicos cuando corresponda y la restricción de modalidades de entrega según el tipo de producto.
+
+Desde el punto de vista del cliente, FHEC permite explorar el catálogo disponible, consultar productos relacionados por principio activo, recibir sugerencias comerciales, registrar interacciones, construir un carrito de compra, concretar pedidos y hacer seguimiento del proceso hasta su entrega. Desde el punto de vista de la farmacia, la plataforma facilita la administración del catálogo, el control de inventario, la gestión del personal operativo, la preparación de pedidos, la validación farmacéutica, la asignación de entregas y la consulta de reseñas del servicio.
+
+El objetivo principal del proyecto es construir una base funcional para un ecosistema de comercio electrónico farmacéutico que permita ampliar el alcance de Farmahumana, mejorar la experiencia de compra del cliente, reducir la dependencia exclusiva del mostrador físico y organizar digitalmente los procesos comerciales, operativos y administrativos asociados a la venta de productos farmacéuticos.
 
 ## ESTRUCTURA GENERAL DEL REPO
 
@@ -358,5 +366,3 @@ npx tsx src/server.ts
 ```
 
 Para pruebas de integracion, el backend y el frontend deben ejecutarse de forma simultanea en terminales separadas.
-
-> Esta seccion puede ampliarse posteriormente por el equipo encargado del backend.

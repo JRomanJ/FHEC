@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Building2, Check, CheckCircle, Clock, Copy, M
 import type { AuthUser, CartItem, Page } from "../../../app/types";
 import { effectivePrice, fmtUSD, fmtVES, H7, H9, VES_RATE } from "../../../app/data";
 import { ProductBox } from "../../../components/product";
+import { firstError, validatePaymentForm } from "../../../validation";
 
 export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMode = "delivery", selectedSede = "principal", onClearCart = () => {}, user = null, veAreas, docTypes, veBanks }: {
   cartItems: CartItem[]; onNav: (p: Page) => void;
@@ -54,18 +55,32 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
 
   const handleConfirm = () => {
     setConfirmError("");
-    if (!payBank) { setConfirmError("El banco emisor es obligatorio."); return; }
-    if (!payAmt)  { setConfirmError("Ingresa el monto transferido."); return; }
-    if (!payRef)  { setConfirmError("Ingresa el número de referencia."); return; }
-
     const paidBs  = parseFloat(payAmt.replace(/,/g, ".")) || 0;
     const paidUSD = +(paidBs / VES_RATE).toFixed(2);
     const diff    = Math.abs(+(paidUSD - total).toFixed(2));
     const THRESH  = 0.10;
+    const validation = validatePaymentForm({
+      method: payMethod,
+      bank: payBank,
+      amountBs: payAmt,
+      reference: payRef,
+      totalUsd: total,
+      rate: VES_RATE,
+      phoneArea: payPhoneArea,
+      phone: payPhone,
+      billingName: billName,
+      billingDocument: billCedula,
+      billingPhoneArea,
+      billingPhone,
+      billingAddress,
+    });
 
-    if (paidUSD <= 0) { setConfirmError("Monto inválido."); return; }
-    if (diff > THRESH) {
-      setConfirmError(`El monto reportado (${fmtUSD(paidUSD)}) no coincide con el total del pedido (${fmtUSD(total)}). Debes transferir el monto exacto.`);
+    if (!validation.valid) {
+      if (validation.errors.amount && paidUSD > 0 && diff > THRESH) {
+        setConfirmError(`El monto reportado (${fmtUSD(paidUSD)}) no coincide con el total del pedido (${fmtUSD(total)}). Debes transferir el monto exacto.`);
+      } else {
+        setConfirmError(firstError(validation));
+      }
       return;
     }
     onClearCart();
@@ -312,4 +327,3 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
     </div>
   );
 }
-

@@ -1541,3 +1541,75 @@ Proximos pasos:
 
 - Backend/API y validaciones reales deben implementarse en fases posteriores.
 - El frontend debe continuar integrandose mediante `src/services`, `src/viewModels` y `src/domain`, conservando la UI aprobada.
+
+## Fase 17 - Validaciones frontend ligeras
+
+Fecha de actualizacion: 2026-07-06.
+
+Resumen:
+
+- Se agrego `src/validation/` con validadores puros de TypeScript, reutilizables y sin dependencias de React.
+- Se aplicaron validaciones ligeras en formularios principales sin cambiar el diseno visual aprobado.
+- Las validaciones son de apoyo visual; la validacion definitiva queda para backend/API.
+
+Archivos creados:
+
+- `src/validation/commonValidators.ts`
+- `src/validation/authValidators.ts`
+- `src/validation/profileValidators.ts`
+- `src/validation/cartValidators.ts`
+- `src/validation/checkoutValidators.ts`
+- `src/validation/paymentValidators.ts`
+- `src/validation/recipeValidators.ts`
+- `src/validation/couponValidators.ts`
+- `src/validation/adminValidators.ts`
+- `src/validation/refundValidators.ts`
+- `src/validation/index.ts`
+- `docs/FRONTEND_VALIDATIONS.md`
+
+Archivos modificados:
+
+- `src/features/auth/components/LoginPage.tsx`
+- `src/features/profile/components/ProfilePage.tsx`
+- `src/features/cart/components/CartPage.tsx`
+- `src/features/checkout/components/DeliverySelectPage.tsx`
+- `src/features/payment/components/CheckoutPage.tsx`
+- `src/features/recipes/components/PreCheckoutMedicalPage.tsx`
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/features/admin/sections/AdminInventorySection.tsx`
+- `docs/CODEX_AUDIT.md`
+
+Validaciones agregadas:
+
+- Auth: correo, contrasena, registro, recuperacion y codigo OTP/PIN.
+- Perfil: datos personales, correo, telefono, contrasena existente y solicitud de reembolso.
+- Carrito: carrito vacio, cantidades, stock por sede y cupon no vacio/vigente.
+- Checkout: metodo de entrega, pickup obligatorio, direccion, receptor y telefono.
+- Pago: banco, referencia, telefono emisor, facturacion y monto exacto del pedido.
+- Recipes: archivo visual requerido para productos con recipe digital o fisico.
+- Admin: productos, inventario, personal operativo y cupones.
+
+Restricciones respetadas:
+
+- No hubo backend real.
+- No hubo API real.
+- No se uso Supabase.
+- No se agrego `fetch`.
+- No se agrego persistencia real.
+- No se instalaron librerias nuevas.
+- Impacto visual esperado: minimo o ninguno; se reutilizaron errores inline, botones deshabilitados y `toast` ya existentes.
+
+Resultado de build:
+
+- Build baseline antes de cambios: exitoso.
+- Build intermedio despues de conectar validaciones: exitoso.
+- Build final: exitoso con `pnpm build`.
+- JS principal final: `278.49 kB`, gzip `81.62 kB`.
+- Warning de chunk JS mayor a 500 kB: no aparecio.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fue bloqueado por el sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.

@@ -1,20 +1,27 @@
 import React, { useState } from "react";
-import { Search, Settings, X } from "lucide-react";
+import { AlertTriangle, Search, Settings, X } from "lucide-react";
 import type { Product } from "../../../app/types";
 import { H7, H9 } from "../../../app/data";
+import { firstError, validateInventoryStock } from "../../../validation";
 
 export function InventarioTab({ products, setCatalogProducts }: { products: Product[]; setCatalogProducts: React.Dispatch<React.SetStateAction<Product[]>> }) {
   const [sede, setSede] = useState<"principal" | "clinica">("principal");
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editStock, setEditStock] = useState(0);
+  const [stockError, setStockError] = useState("");
 
   const getStock = (p: Product) => (sede === "principal" ? p.stockSedes?.principal : p.stockSedes?.clinica) ?? p.stock;
 
-  const startEdit = (p: Product) => { setEditingId(p.id); setEditStock(getStock(p)); };
-  const cancelEdit = () => setEditingId(null);
+  const startEdit = (p: Product) => { setEditingId(p.id); setEditStock(getStock(p)); setStockError(""); };
+  const cancelEdit = () => { setEditingId(null); setStockError(""); };
 
   const saveEdit = (id: number) => {
+    const validation = validateInventoryStock(editStock);
+    if (!validation.valid) {
+      setStockError(firstError(validation));
+      return;
+    }
     setCatalogProducts(prev => prev.map(p => p.id === id ? {
       ...p,
       stock: editStock,
@@ -64,8 +71,13 @@ export function InventarioTab({ products, setCatalogProducts }: { products: Prod
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Stock disponible</label>
                 <input type="number" min={0} className={inp} value={editStock}
-                  onChange={e => setEditStock(parseInt(e.target.value) || 0)} />
+                  onChange={e => { setEditStock(parseInt(e.target.value) || 0); setStockError(""); }} />
               </div>
+              {stockError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2 text-sm">
+                  <AlertTriangle size={14} />{stockError}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">

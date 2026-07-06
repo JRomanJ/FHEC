@@ -20,6 +20,13 @@ import type { Page, Product, Slide } from "../../../app/types";
 import { CATS, DEMO_ACCOUNTS, PRODUCTS, fmtUSD, H7, H9 } from "../../../app/data";
 import { getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels } from "../../../services";
 import { InventarioTab } from "./AdminInventorySection";
+import {
+  firstError,
+  normalizeCouponCode,
+  validateAdminCouponForm,
+  validateAdminProductForm,
+  validateStaffForm,
+} from "../../../validation";
 
 // ─── SuperadminModules ────────────────────────────────────────────────────────
 export type SuperTab = "contenido" | "catalogo" | "personal" | "monitor" | "inventario" | "cupones";
@@ -75,6 +82,7 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   const [editProd, setEditProd] = useState<Product | null>(null);
   const [showProdForm, setShowProdForm] = useState(false);
   const [prodForm, setProdForm] = useState<Partial<Product>>({});
+  const [prodFormError, setProdFormError] = useState("");
   const isProdEnabled = (p: Product) => p.enabled !== false;
 
   // ── Gestor Personal state ──
@@ -137,21 +145,28 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
     setShowCouponForm(true);
   };
   const saveCoupon = () => {
-    if (!couponForm.code.trim()) return;
     const today = new Date().toISOString().split("T")[0];
     const duplicateVigente = coupons.some(c =>
       c.code.toUpperCase() === couponForm.code.trim().toUpperCase() &&
       c.id !== editCouponId &&
       (!c.endDate || c.endDate >= today)
     );
-    if (duplicateVigente) {
-      setCouponError("Ya existe un cupón vigente con este código.");
+    const validation = validateAdminCouponForm({
+      code: couponForm.code,
+      discount: couponForm.discount,
+      startDate: couponForm.startDate,
+      endDate: couponForm.endDate,
+      userEmail: couponForm.userEmail.trim(),
+      duplicateActive: duplicateVigente,
+    });
+    if (!validation.valid) {
+      setCouponError(firstError(validation));
       return;
     }
     setCouponError("");
     const payload: Coupon = {
       id: editCouponId ?? Math.max(...coupons.map(c => c.id), 0) + 1,
-      code: couponForm.code.trim(),
+      code: normalizeCouponCode(couponForm.code),
       discount: couponForm.discount,
       startDate: couponForm.startDate,
       endDate: couponForm.endDate,
@@ -195,17 +210,33 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   const openEditProd = (p: Product) => {
     setEditProd(p);
     setProdForm({ ...p });
+    setProdFormError("");
     setShowProdForm(true);
   };
 
   const openNewProd = () => {
     setEditProd(null);
     setProdForm({ name: "", brand: "", category: "Diabetes", presentation: "", packSize: "", priceUSD: 0, stock: 0, discount: 0, needsRecipe: false, rating: 5, reviews: 0, bgColor: "#e8f5e9", accentColor: "#179150", description: "", activeIngredient: "", contraindications: "", posology: "", concentration: "", concentrationUnit: "mg" });
+    setProdFormError("");
     setShowProdForm(true);
   };
 
   const saveProd = () => {
-    if (!prodForm.name?.trim() || !prodForm.brand?.trim()) return;
+    const validation = validateAdminProductForm({
+      name: prodForm.name,
+      activeIngredient: prodForm.activeIngredient,
+      brand: prodForm.brand,
+      presentation: prodForm.presentation,
+      price: prodForm.priceUSD,
+      discount: prodForm.discount,
+      concentration: prodForm.concentration,
+      units: prodForm.packSize,
+    });
+    if (!validation.valid) {
+      setProdFormError(firstError(validation));
+      return;
+    }
+    setProdFormError("");
     if (editProd) {
       setCatalogProducts(prev => prev.map(p => p.id === editProd.id ? { ...p, ...prodForm } as Product : p));
     } else {
@@ -225,8 +256,13 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
 
   const saveStaff = () => {
     setStaffFormError("");
-    if (!staffForm.email.trim()) {
-      setStaffFormError("El correo electrónico es obligatorio.");
+    const staffValidation = validateStaffForm({
+      email: staffForm.email,
+      role: staffForm.role,
+      duplicate: editStaffId === null && staff.some(s => s.email.toLowerCase() === staffForm.email.trim().toLowerCase()),
+    });
+    if (!staffValidation.valid) {
+      setStaffFormError(firstError(staffValidation));
       return;
     }
     // Look up user data from existing accounts (demo)
@@ -621,6 +657,11 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                     <input className={inp} type="number" min={1} max={5} step={0.1} value={prodForm.rating ?? 5} onChange={e => setProdForm(f => ({ ...f, rating: parseFloat(e.target.value) || 5 }))} />
                   </div>
                 </div>
+                {prodFormError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2 text-sm mt-4">
+                    <AlertTriangle size={14} />{prodFormError}
+                  </div>
+                )}
                 <div className="flex gap-3 mt-6">
                   <button onClick={saveProd} className="flex-1 py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors" style={H7}>
                     {editProd ? "Guardar cambios" : "Crear producto"}

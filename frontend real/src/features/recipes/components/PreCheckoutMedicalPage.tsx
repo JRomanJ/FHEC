@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, Bell, Check, CheckCircle, Clock, CreditCard, FileText, Shield, Upload } from "lucide-react";
 import type { CartItem, Page } from "../../../app/types";
 import { H7, H9 } from "../../../app/data";
+import { validateRecipeUploads } from "../../../validation";
 
 // ─── PreCheckoutMedicalPage ───────────────────────────────────────────────────
 // Step 2A (conditional): recipe upload + 3-min validation timer
@@ -23,7 +24,10 @@ export function PreCheckoutMedicalPage({ cartItems, onNav }: { cartItems: CartIt
     return () => clearInterval(t);
   }, [submitted, approved]);
 
-  const allUploaded = regulatedItems.every(i => i.product.controlledSubstance || files[i.product.id]);
+  const allUploaded = validateRecipeUploads({
+    requiredProducts: regulatedItems.map(item => item.product),
+    files,
+  }).valid;
   const fmt = (s: number) => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 
   // Submitted state: timer screen
@@ -161,4 +165,3 @@ export function PreCheckoutMedicalPage({ cartItems, onNav }: { cartItems: CartIt
     </div>
   );
 }
-

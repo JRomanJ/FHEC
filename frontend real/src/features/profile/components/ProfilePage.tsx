@@ -6,6 +6,8 @@ import {
   Bell,
   Check,
   CheckCircle,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   CreditCard,

@@ -10,6 +10,7 @@ import {
   Package,
   Plus,
   Search,
+  Settings,
   SlidersHorizontal,
   Trash2,
   Upload,

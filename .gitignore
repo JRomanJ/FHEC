@@ -17,3 +17,4 @@ yarn-error.log*
 .cache/
 tmp/
 temp/
+.DS_Store

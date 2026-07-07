@@ -1,17 +1,15 @@
 import {
   EstadoPedido,
-  TipoNotificacion,
   calcularPrecioConDescuento,
   requiereRecipeDigital,
   requiereRecipeFisico,
 } from "../domain";
-import type { Banner, Notificacion, Pedido, Producto, Usuario } from "../domain";
+import type { Banner, Pedido, Producto, Usuario } from "../domain";
 import { mockBanners } from "./mockBanners";
 import { mockCategoriaVisual, mockCategorias } from "./mockCategorias";
 import { mockCupones } from "./mockCupones";
 import { mockDetallePedidos } from "./mockDetallePedidos";
 import { mockInventarioSedes } from "./mockInventarioSedes";
-import { mockNotificaciones } from "./mockNotificaciones";
 import { mockPedidos } from "./mockPedidos";
 import { mockProductoVisual, mockProductos } from "./mockProductos";
 import { mockSedeVisual, mockSedes, SEDE_IDS, SEDE_SLUGS } from "./mockSedes";
@@ -21,7 +19,6 @@ import type {
   LegacyCategory,
   LegacyDemoOrder,
   LegacyGlobalOrder,
-  LegacyNotification,
   LegacyProduct,
   LegacySede,
   LegacySedeListItem,
@@ -221,30 +218,6 @@ export function toLegacySlide(banner: Banner): LegacySlide {
   };
 }
 
-export function toLegacyNotification(notificacion: Notificacion): LegacyNotification {
-  const metaByType: Record<TipoNotificacion, { type: string; icon: string; time: string }> = {
-    [TipoNotificacion.Promocional]: { type: "promo", icon: "💊", time: "Hace 3 hrs" },
-    [TipoNotificacion.PedidoPorPagar]: { type: "order", icon: "💳", time: "Hace 30 min" },
-    [TipoNotificacion.PedidoPorRetirar]: { type: "order", icon: "📦", time: "Hace 5 min" },
-    [TipoNotificacion.PedidoEnCamino]: { type: "order", icon: "🏍️", time: "Hace 10 min" },
-    [TipoNotificacion.PedidoEntregado]: { type: "order", icon: "🏠", time: "Ayer" },
-    [TipoNotificacion.Reembolso]: { type: "refund", icon: "💸", time: "Hace 2 días" },
-    [TipoNotificacion.SolicitudReembolso]: { type: "refund", icon: "🧾", time: "Hace 4 días" },
-    [TipoNotificacion.Recipe]: { type: "recipe", icon: "✅", time: "Hace 1 hr" },
-  };
-  const meta = metaByType[notificacion.tipo_notificacion];
-
-  return {
-    id: notificacion.id_notificacion,
-    type: meta.type,
-    icon: meta.icon,
-    title: notificacion.titulo,
-    body: notificacion.mensaje,
-    time: meta.time,
-    read: notificacion.leida,
-  };
-}
-
 export const PRODUCTS: LegacyProduct[] = mockProductos.map(toLegacyProduct);
 export const CATS: LegacyCategory[] = mockCategorias.map((categoria) =>
   toLegacyCategory(categoria.id_categoria),
@@ -257,7 +230,6 @@ export const DEMO_ACCOUNTS: LegacyAuthUser[] = mockUsuarios.map(toLegacyAuthUser
 export const DEFAULT_SLIDES: LegacySlide[] = mockBanners.map(toLegacySlide);
 export const DEMO_ORDERS: LegacyDemoOrder[] = mockPedidos.map(toLegacyDemoOrder);
 export const DEMO_GLOBAL_ORDERS: LegacyGlobalOrder[] = mockPedidos.map(toLegacyGlobalOrder);
-export const NOTIF_DATA: LegacyNotification[] = mockNotificaciones.map(toLegacyNotification);
 
 export const DEMO_CONTACT: Record<string, { phone: string; address: string }> = Object.fromEntries(
   mockUsuarios

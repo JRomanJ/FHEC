@@ -4,6 +4,13 @@ import { AlertTriangle, Check, ChevronRight, Minus, Package, Plus, Shield, Shopp
 import type { AuthUser, CartItem, Page, Product } from "../../../app/types";
 import { effectivePrice, fmtUSD, fmtVES, H7, H9 } from "../../../app/data";
 import { ProductBox } from "../../../components/product";
+import {
+  firstError,
+  normalizeCouponCode,
+  validateCartCanContinue,
+  validateCartItemQuantity,
+  validateCouponCodeInput,
+} from "../../../validation";
 
 // ─── CartPage ─────────────────────────────────────────────────────────────────
 export function CartPage({ cartItems, setCartItems, onNav, discountApplied, discountCode, setDiscountApplied, setDiscountCode, user, hasActiveOrder = false, selectedSede = "principal", products, discountCodes }: {
@@ -33,24 +40,42 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
   };
 
   const applyDiscount = () => {
-    const pct = discountCodes[discountInput.trim().toUpperCase()];
+    const codeValidation = validateCouponCodeInput(discountInput);
+    if (!codeValidation.valid) {
+      setDiscountError(firstError(codeValidation));
+      setDiscountSuccess("");
+      setDiscountApplied(0);
+      return;
+    }
+    const normalizedCode = normalizeCouponCode(discountInput);
+    const pct = discountCodes[normalizedCode];
     if (pct) {
       setDiscountApplied(pct);
-      setDiscountCode(discountInput.trim().toUpperCase());
+      setDiscountCode(normalizedCode);
       setDiscountSuccess(`¡Código aplicado! ${pct}% de descuento`);
       setDiscountError("");
     } else {
-      setDiscountError("Código no válido o expirado.");
+      setDiscountError("El cupón no existe o no está vigente.");
       setDiscountSuccess("");
       setDiscountApplied(0);
     }
   };
 
   const handleProcesar = () => {
+    const cartValidation = validateCartCanContinue({ itemCount: cartItems.length });
+    if (!cartValidation.valid) {
+      toast.error(firstError(cartValidation));
+      return;
+    }
     if (hasActiveOrder) { onNav("tracking"); return; }
     if (!user) { setShowLoginModal(true); return; }
     for (const item of cartItems) {
       const avail = getSedeStock(item.product);
+      const itemValidation = validateCartItemQuantity({ quantity: item.quantity, stock: avail });
+      if (!itemValidation.valid && item.quantity <= 0) {
+        toast.error(firstError(itemValidation));
+        return;
+      }
       if (item.quantity > avail) {
         const similar = products.filter(p =>
           p.category === item.product.category && p.id !== item.product.id && getSedeStock(p) > 0
@@ -371,4 +396,3 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
     </div>
   );
 }
-

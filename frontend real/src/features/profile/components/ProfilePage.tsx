@@ -6,6 +6,8 @@ import {
   Bell,
   Check,
   CheckCircle,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   CreditCard,
@@ -31,6 +33,14 @@ import {
   getLegacyProfileCouponViewModels,
   getLegacyProfileRefundViewModels,
 } from "../../../services";
+import {
+  firstError,
+  validateProfileEmail,
+  validateProfileInfo,
+  validateProfilePhone,
+  validateRefundDestinationStep,
+  validateRefundTransactionStep,
+} from "../../../validation";
 
 export interface RefundRequest {
   id: string; method: string; bank: string; reference: string; amount: string; status: "Pendiente" | "En revisión" | "Aprobado" | "Rechazado";
@@ -58,6 +68,11 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   const [savedMsg,   setSavedMsg]   = useState(false);
 
   const handleSaveInfo = () => {
+    const validation = validateProfileInfo({ name, document: cedula });
+    if (!validation.valid) {
+      toast.error(firstError(validation));
+      return;
+    }
     setEditingInfo(false);
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2500);
@@ -71,7 +86,15 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   const [emailOtpValue,  setEmailOtpValue]  = useState("");
   const [emailOtpError,  setEmailOtpError]  = useState("");
 
-  const handleSendEmailOtp = () => { setEmailOtpSent(true); setEmailOtpValue(""); setEmailOtpError(""); };
+  const handleSendEmailOtp = () => {
+    const validation = validateProfileEmail(newEmail);
+    if (!validation.valid) {
+      setEmailOtpError(firstError(validation));
+      toast.error(firstError(validation));
+      return;
+    }
+    setEmailOtpSent(true); setEmailOtpValue(""); setEmailOtpError("");
+  };
   const handleVerifyEmailOtp = () => {
     if (emailOtpValue.replace(/ /g,"") !== "123456") { setEmailOtpError("Código incorrecto. Prueba: 123456"); return; }
     setCurrentEmail(newEmail);
@@ -88,7 +111,15 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   const [phoneOtpValue,  setPhoneOtpValue]  = useState("");
   const [phoneOtpError,  setPhoneOtpError]  = useState("");
 
-  const handleSendPhoneOtp = () => { setPhoneOtpSent(true); setPhoneOtpValue(""); setPhoneOtpError(""); };
+  const handleSendPhoneOtp = () => {
+    const validation = validateProfilePhone({ areaCode: newPhoneArea, phone: newPhoneNum });
+    if (!validation.valid) {
+      setPhoneOtpError(firstError(validation));
+      toast.error(firstError(validation));
+      return;
+    }
+    setPhoneOtpSent(true); setPhoneOtpValue(""); setPhoneOtpError("");
+  };
   const handleVerifyPhoneOtp = () => {
     if (phoneOtpValue.replace(/ /g,"") !== "123456") { setPhoneOtpError("Código incorrecto. Prueba: 123456"); return; }
     setCurrentPhone(`${newPhoneArea}-${newPhoneNum}`);
@@ -181,6 +212,19 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   ];
 
   const handleSubmitRefund = () => {
+    const validation = validateRefundDestinationStep({
+      method: rbMethod,
+      bank: rbBank,
+      phoneArea: rbAreaCode,
+      phone: rbPhone,
+      document: rbDoc,
+      holder: rbHolder,
+      account: rbAccount,
+    });
+    if (!validation.valid) {
+      toast.error(firstError(validation));
+      return;
+    }
     const newReq: RefundRequest = {
       id: `REM-${String(refundRequests.length + 1).padStart(3, "0")}`,
       method: rfMethod, bank: rfBank, reference: rfRef,
@@ -789,8 +833,26 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
         const fld = "w-full px-3 py-2.5 border border-[#50e9f8] bg-white rounded-xl text-sm focus:outline-none focus:border-[#179150]";
         const fld2 = "w-full px-3 py-2.5 border border-[#90caf9] bg-white rounded-xl text-sm focus:outline-none focus:border-[#006064]";
         const lbl = "text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block";
-        const step1Valid = rfBank && rfRef && rfAmount;
-        const step2Valid = rbBank && (rbMethod === "Pago Móvil" ? rbPhone && rbDoc : rbAccount && rbDoc);
+        const step1Validation = validateRefundTransactionStep({
+          method: rfMethod,
+          bank: rfBank,
+          phoneArea: rfAreaCode,
+          phone: rfPhone,
+          reference: rfRef,
+          amount: rfAmount,
+          date: rfDate,
+        });
+        const step2Validation = validateRefundDestinationStep({
+          method: rbMethod,
+          bank: rbBank,
+          phoneArea: rbAreaCode,
+          phone: rbPhone,
+          document: rbDoc,
+          holder: rbHolder,
+          account: rbAccount,
+        });
+        const step1Valid = step1Validation.valid;
+        const step2Valid = step2Validation.valid;
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4" onClick={closeRefundModal}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -1021,4 +1083,3 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
     </div>
   );
 }
-

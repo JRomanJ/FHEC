@@ -1042,3 +1042,574 @@ Recomendacion para la siguiente fase:
 
 - Modularizar delivery/repartidor completo y notificaciones globales.
 - Luego dividir `AdminPanelPage.tsx` en secciones internas mas pequenas si el panel ya fue validado visualmente.
+
+## Fase 11 - Modularizacion final y preparacion de limpieza
+
+Archivos creados:
+
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `src/features/delivery/index.ts`
+- `src/features/favorites/components/FavoritesPage.tsx`
+- `src/features/favorites/components/index.ts`
+- `src/features/favorites/index.ts`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `src/features/notifications/components/index.ts`
+- `src/features/notifications/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/orders/index.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+- `src/features/admin/components/BannerManagementPage.tsx`
+- `docs/CLEANUP_CANDIDATES.md`
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `src/features/admin/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Secciones extraidas:
+
+- Layout global y navegacion: `NavDropdown`, `CatNavButton`, `SedeSelector`, `MobileUserMenu`, `Navbar`, `MenuBtn` y `Footer`.
+- Pedido activo/tracking/reseña: `TrackingPage`.
+- Delivery/repartidor: `DeliveryPanel`.
+- Notificaciones globales: `NotificationsPage` e `INITIAL_NOTIFICATIONS`.
+- Favoritos: `FavoritesPage`.
+- Gestion de banners standalone: `BannerManagementPage`.
+- Reembolso cliente legacy: `RefundForm`, extraido pero no conectado porque no estaba renderizado.
+
+Cambios en `App.tsx`:
+
+- `App.tsx` importa `Navbar` y `Footer` desde `src/components/layout`.
+- `App.tsx` importa `TrackingPage`, `DeliveryPanel`, `NotificationsPage`, `FavoritesPage` y `BannerManagementPage` desde sus features.
+- `App.tsx` mantiene solo el estado orquestador: pantalla, sesion, carrito, producto seleccionado, favoritos, busqueda, sede, checkout, pedido activo, slides y notificaciones.
+- No se cambio navegacion, textos, clases, badges, formularios ni comportamiento visual.
+
+Secciones no extraidas:
+
+- `AdminPanelPage.tsx` no se dividio internamente; sigue en `src/features/admin/components/AdminPanelPage.tsx` porque partirlo requiere manejar estado compartido entre tabs, modales y secciones.
+- No se crearon modales globales reutilizables; los modales siguen dentro de sus features para no cambiar overlays.
+- No se hizo limpieza profunda de `src/app/components/*`, assets ni puentes legacy.
+
+Reduccion aproximada:
+
+- `App.tsx` paso de 2321 lineas a 287 lineas.
+- `AdminPanelPage.tsx` se mantuvo en 2001 lineas.
+
+Impacto visual esperado:
+
+- Ninguno. La extraccion fue mecanica y preservo JSX, clases, textos visibles, iconos, badges, tablas, formularios, modales, condiciones y callbacks.
+- No se agrego React Router, state management externo, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Inventario de limpieza:
+
+- Se creo `docs/CLEANUP_CANDIDATES.md`.
+- El inventario lista candidatos en `src/app/components/*`, `src/app/shared.ts`, helpers inline de `App.tsx`, assets posiblemente residuales en `src/imports`, puentes legacy y duplicados entre `src/app/data.ts`, `src/data`, `src/services`, `src/viewModels`, `src/app/types.ts` y `src/domain/types.ts`.
+- No se borraron archivos de riesgo medio o alto.
+
+Riesgos pendientes:
+
+- `src/app/components/ui/*` no debe borrarse sin confirmacion archivo por archivo.
+- `src/app/data.ts` y `src/app/types.ts` siguen siendo puentes activos para features visuales.
+- `src/features/refunds/components/RefundForm.tsx` requiere decision: conectar, conservar como referencia o eliminar.
+- `AdminPanelPage.tsx`, `AppLayout.tsx`, `TrackingPage.tsx` y `DeliveryPanelPage.tsx` todavia pueden dividirse internamente en fases futuras.
+
+Recomendacion para la fase 12:
+
+- Empezar por borrar duplicados confirmados de bajo riesgo y helpers inline sin uso.
+- Revisar manualmente `src/app/components/*` y assets no importados antes de eliminarlos.
+- Mantener `src/app/components/ui/*`, `src/app/data.ts` y `src/app/types.ts` hasta completar una migracion controlada de tipos/helpers.
+
+## Fase 12 - Limpieza exhaustiva
+
+Reporte principal:
+
+- `docs/CLEANUP_REPORT.md`
+
+Resumen de limpieza:
+
+- Se eliminaron duplicados legacy de `src/app/components/*` que ya estaban reemplazados por features activos.
+- Se conservaron los componentes UI base en `src/app/components/ui/*`.
+- Se elimino `src/app/shared.ts`, usado solo por componentes legacy.
+- Se elimino `src/features/refunds/*`, porque no tenia ruta activa ni imports reales.
+- Se movieron notas historicas desde `src/imports/pasted_text` hacia `docs/archive`.
+- Se eliminaron assets no referenciados en `src/imports`: capturas, imagenes `IMG_238*.PNG`, `WhatsApp_Image_*.jpeg` e `image*.png`.
+- Se limpiaron helpers, tipos y mocks duplicados en `src/app/App.tsx`; ahora el orquestador importa desde `src/app/data.ts` y `src/app/types.ts`.
+- Se eliminaron dependencias sin imports activos y se sincronizo `pnpm-lock.yaml`.
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `package.json`
+- `pnpm-lock.yaml`
+- `docs/CLEANUP_REPORT.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+Archivos eliminados principales:
+
+- `src/app/components/AdminPanelPage.tsx`
+- `src/app/components/BannerManagementPage.tsx`
+- `src/app/components/CartPage.tsx`
+- `src/app/components/CatalogPage.tsx`
+- `src/app/components/CheckoutPages.tsx`
+- `src/app/components/DeliveryPages.tsx`
+- `src/app/components/DeliveryPanel.tsx`
+- `src/app/components/DeliveryPanelPage.tsx`
+- `src/app/components/FavoritesPage.tsx`
+- `src/app/components/Footer.tsx`
+- `src/app/components/HomePage.tsx`
+- `src/app/components/LoginPageComponent.tsx`
+- `src/app/components/Navbar.tsx`
+- `src/app/components/NotificationsPage.tsx`
+- `src/app/components/ProductCard.tsx`
+- `src/app/components/ProductDetailPage.tsx`
+- `src/app/components/ProfilePage.tsx`
+- `src/app/components/SmartSearch.tsx`
+- `src/app/components/TrackingPage.tsx`
+- `src/app/components/figma/ImageWithFallback.tsx`
+- `src/app/shared.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+
+Dependencias eliminadas:
+
+- `@emotion/react`
+- `@emotion/styled`
+- `@mui/icons-material`
+- `@mui/material`
+- `@popperjs/core`
+- `canvas-confetti`
+- `motion`
+- `react-dnd`
+- `react-dnd-html5-backend`
+- `react-popper`
+- `react-responsive-masonry`
+- `react-router`
+- `react-slick`
+
+Estado de archivos principales:
+
+- `App.tsx`: 192 lineas; sigue como orquestador principal.
+- `AdminPanelPage.tsx`: 2001 lineas; se conserva pendiente de division interna.
+- `src/app/data.ts`: se conserva como puente activo.
+- `src/app/types.ts`: se conserva para tipos UI legacy.
+- `src/domain`, `src/data`, `src/services` y `src/viewModels`: se conservan como arquitectura preparada para backend/API futura.
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Bundle final JS: `546.06 kB`, gzip `130.97 kB`.
+- CSS final: `125.27 kB`, gzip `20.00 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- Verificacion local: `pnpm dev --host 127.0.0.1` requirio permiso elevado por `listen EPERM`; Vite respondio `HTTP/1.1 200 OK` en `http://127.0.0.1:5174/` y luego se detuvo.
+
+Notas de entorno:
+
+- Tras limpiar dependencias, `pnpm build` requirio resincronizar `node_modules`.
+- El intento dentro del sandbox fallo por DNS hacia `registry.npmjs.org`; se repitio `pnpm install --ignore-scripts --config.confirmModulesPurge=false` con permiso de red y finalizo correctamente.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, estilos, layout, textos visibles, navegacion, cards, tablas, modales, formularios ni flujos visuales.
+- No se implemento backend, API real, Supabase ni `fetch`.
+- No se tocaron `frontend` ni `backend`.
+
+Pendientes recomendados:
+
+- Dividir internamente `AdminPanelPage.tsx` por secciones administrativas.
+- Dividir `AppLayout.tsx` en navbar, barra secundaria, menus y footer.
+- Dividir `TrackingPage.tsx` y `DeliveryPanelPage.tsx` en subcomponentes internos.
+- Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB.
+- Mantener validacion visual antes de cualquier limpieza adicional de `src/app/components/ui/*`.
+
+## Fase 13 - Division interna de modulos grandes
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Dividir internamente los modulos grandes restantes sin cambiar la UI ni el comportamiento visual.
+- Mantener `App.tsx` como orquestador principal.
+- No introducir backend, Supabase, API real, `fetch`, router, state management ni librerias nuevas.
+
+Baseline:
+
+- `git status --short`: limpio antes de iniciar la fase.
+- Build inicial: `pnpm build` exitoso.
+- Advertencia existente: chunk JS mayor a 500 kB; no bloqueante.
+- `AdminPanelPage.tsx`: 2001 lineas al inicio.
+- `AppLayout.tsx`: 638 lineas al inicio.
+- `TrackingPage.tsx`: 532 lineas al inicio.
+- `DeliveryPanelPage.tsx`: 522 lineas al inicio.
+- `App.tsx`: 192 lineas al inicio.
+
+Archivos creados:
+
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/components/layout/CategoryDropdown.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/components/layout/MobileUserMenu.tsx`
+- `src/components/layout/SedeSelector.tsx`
+- `src/components/layout/layoutShared.ts`
+- `src/features/orders/components/OrderItemsSummary.tsx`
+- `src/features/orders/components/OrderPinCard.tsx`
+- `src/features/orders/components/OrderReviewForm.tsx`
+- `src/features/orders/components/OrderTrackingTimeline.tsx`
+- `src/features/orders/components/TrackingFeedbackModals.tsx`
+- `src/features/orders/components/trackingShared.ts`
+- `src/features/delivery/components/DeliveryAssignedOrders.tsx`
+- `src/features/delivery/components/DeliveryAvailableOrders.tsx`
+- `src/features/delivery/components/DeliveryCompletedTrips.tsx`
+- `src/features/delivery/components/DeliveryHeader.tsx`
+- `src/features/delivery/components/DeliveryMaxTripsModal.tsx`
+- `src/features/delivery/components/DeliveryPinModal.tsx`
+- `src/features/delivery/components/DeliveryTabs.tsx`
+- `src/features/delivery/components/deliveryShared.ts`
+
+Archivos modificados:
+
+- `src/features/admin/components/AdminPanelPage.tsx`
+- `src/features/admin/sections/index.ts`
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/CODEX_AUDIT.md`
+
+Lineas aproximadas antes/despues:
+
+| Archivo | Antes | Despues | Nota |
+|---|---:|---:|---|
+| `AdminPanelPage.tsx` | 2001 | 831 | Se extrajo el bloque `SuperadminModules`; las secciones internas quedan agrupadas para limpieza posterior. |
+| `AppLayout.tsx` | 638 | 285 | Se extrajeron dropdown de categorias, selector de sede, menu movil, footer y helpers visuales. |
+| `TrackingPage.tsx` | 532 | 354 | Se extrajeron PIN, resumen de items, timeline, resena y modales de feedback. |
+| `DeliveryPanelPage.tsx` | 522 | 126 | Se extrajeron modales, header, tabs, pedidos disponibles, viajes completados y viajes asignados. |
+| `App.tsx` | 192 | 192 | No se modifico en esta fase. |
+
+Builds ejecutados:
+
+- Build inicial: exitoso.
+- Build despues de dividir admin: exitoso.
+- Build despues de dividir layout: exitoso.
+- Build despues de dividir tracking: exitoso.
+- Build despues de dividir delivery/final: exitoso.
+
+Resultado final de build:
+
+- `pnpm build`: exitoso.
+- Modulos transformados: 1724.
+- CSS final: `125.24 kB`, gzip `19.99 kB`.
+- JS final: `547.73 kB`, gzip `131.68 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` dentro del sandbox fallo con `listen EPERM`.
+- Con permiso para abrir puerto local, Vite arranco en `http://127.0.0.1:5174/` porque el puerto 5173 estaba ocupado.
+- `curl -I http://127.0.0.1:5174/`: `HTTP/1.1 200 OK`.
+- El servidor local fue detenido despues de la verificacion.
+
+Decisiones:
+
+- Se mantuvo el estado compartido en los componentes padres.
+- La division fue mecanica, por props, sin cambiar clases, textos, condiciones, callbacks ni datos mock.
+- No se dividio aun `SuperadminModules.tsx` porque sigue concentrando tabs, modales y estado administrativo compartido; queda como candidato de fase 14.
+- No se introdujo code splitting dinamico, router ni estado global.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, columnas, imagenes ni flujos visuales.
+
+Pendientes para fase 14:
+
+1. Revisar si conviene dividir `SuperadminModules.tsx` por secciones administrativas mas pequenas.
+2. Revisar props redundantes generadas por la division mecanica.
+3. Evaluar imports/exports internos que puedan quedar sin uso despues de validacion visual.
+4. Evaluar code splitting por feature para resolver el warning de chunk mayor a 500 kB, solo si se aprueba en una fase posterior.
+
+## Fase 14 - Limpieza final y optimizacion interna
+
+Fecha de actualizacion: 2026-07-05.
+
+Objetivo:
+
+- Limpiar codigo muerto y residuos posteriores a la modularizacion sin cambiar UI ni comportamiento visual.
+- Revisar `src/features`, `src/components`, `src/services`, `src/viewModels`, `src/data`, `src/domain`, `src/app`, `src/imports`, `src/styles`, `package.json` y barrels.
+- Mantener sin cambios backend, API real, Supabase, `fetch`, router, state management y code splitting dinamico.
+
+Resumen:
+
+- Se extrajo `InventarioTab` desde `src/features/admin/sections/SuperadminModules.tsx` a `src/features/admin/sections/AdminInventorySection.tsx`.
+- Se limpiaron imports de iconos no usados en `AdminPanelPage.tsx` y `AppLayout.tsx`.
+- Se redujeron barrels internos para exportar solo superficies publicas necesarias.
+- Se elimino el barrel raiz `src/features/index.ts` porque no tenia consumidores.
+- Se redujo `src/app/data.ts` retirando exports legacy sin referencias activas.
+- Se retiro el adaptador legacy duplicado de notificaciones en `src/data/adapters.ts`.
+- Se elimino el tipo `LegacyNotification` de `src/data/viewModels.ts`.
+- Se deduplicaron imports de imagenes de recipes en `src/viewModels/recipeViewModels.ts`.
+- Se elimino el resolver Figma `figma:asset` de `vite.config.ts`, sin referencias reales en el codigo actual.
+- Se eliminaron `.DS_Store` residuales.
+
+Archivos creados:
+
+- `src/features/admin/sections/AdminInventorySection.tsx`
+
+Archivos eliminados:
+
+- `src/.DS_Store`
+- `src/app/.DS_Store`
+- `src/features/index.ts`
+
+Archivos principales modificados:
+
+- `src/app/data.ts`
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/data/adapters.ts`
+- `src/data/viewModels.ts`
+- `src/features/admin/components/AdminPanelPage.tsx`
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/features/admin/sections/index.ts`
+- `src/features/delivery/components/index.ts`
+- `src/features/orders/components/index.ts`
+- `src/viewModels/recipeViewModels.ts`
+- `vite.config.ts`
+- `docs/CLEANUP_REPORT.md`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CLEANUP_CANDIDATES.md`
+- `docs/CODEX_AUDIT.md`
+
+Estado final de archivos grandes:
+
+| Archivo | Estado final aproximado | Nota |
+|---|---:|---|
+| `src/app/App.tsx` | 192 lineas | Orquestador principal, sin cambios funcionales. |
+| `src/features/admin/components/AdminPanelPage.tsx` | 824 lineas | Orquestador admin; se limpiaron imports. |
+| `src/features/admin/sections/SuperadminModules.tsx` | 1044 lineas | Se extrajo inventario; quedan tabs/secciones compartidas. |
+| `src/features/admin/sections/AdminInventorySection.tsx` | 153 lineas | Nuevo modulo extraido sin cambios visuales. |
+| `src/components/layout/AppLayout.tsx` | 284 lineas | Se limpiaron imports. |
+| `src/features/orders/components/TrackingPage.tsx` | 354 lineas | Sin cambios en esta fase. |
+| `src/features/delivery/components/DeliveryPanelPage.tsx` | 126 lineas | Sin cambios en esta fase. |
+
+Resultado de build:
+
+- `pnpm build`: exitoso.
+- Build final: 1725 modulos transformados.
+- JS final: `545.84 kB`, gzip `131.25 kB`.
+- CSS final: `125.24 kB`, gzip `19.99 kB`.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fallo dentro del sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.
+
+Notas:
+
+- `pnpm exec tsc --version` fallo porque `tsc` no esta instalado localmente; no se instalaron dependencias nuevas.
+- No se eliminaron dependencias en esta fase porque las dependencias restantes tienen imports activos, sostienen UI base o pertenecen al build.
+- No se eliminaron assets aprobados: todos aparecen referenciados en codigo activo o en build.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, imagenes ni flujos visuales.
+
+Proximos pasos:
+
+1. Evaluar code splitting por feature en una fase separada para resolver el warning de chunk mayor a 500 kB.
+2. Mantener `src/app/data.ts` como puente hasta reemplazar gradualmente imports legacy por servicios/view models directos.
+3. Mantener `src/app/types.ts` hasta definir tipos UI finales separados del modelo DB.
+4. Dividir mas `SuperadminModules.tsx` solo si se puede aislar estado por seccion administrativa sin riesgo visual.
+
+Reporte detallado:
+
+- Ver `docs/CLEANUP_REPORT.md`.
+
+## Fase 15 - Code splitting por feature
+
+Fecha de actualizacion: 2026-07-06.
+
+Objetivo:
+
+- Reducir el bundle inicial de Vite usando `React.lazy` y `Suspense`.
+- Mantener exactamente la misma UI, navegacion, props, callbacks y estado principal.
+- No introducir React Router, state management, backend, API real, Supabase, `fetch`, librerias nuevas ni `manualChunks`.
+
+Archivos modificados:
+
+- `src/app/App.tsx`
+- `src/components/layout/AppLayout.tsx`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `docs/PERFORMANCE_REPORT.md`
+- `docs/CODEX_AUDIT.md`
+- `docs/CLEANUP_REPORT.md`
+
+Features lazy-loaded:
+
+- Auth: `LoginPage`.
+- Perfil: `ProfilePage`.
+- Catalogo: `HomePage`, `CatalogPage`.
+- Detalle: `ProductDetailPage`.
+- Carrito: `CartPage`.
+- Checkout/entrega: `DeliverySelectPage`.
+- Pago: `CheckoutPage`.
+- Recipes: `PreCheckoutMedicalPage`.
+- Admin: `AdminPanel`, `BannerManagementPage`.
+- Delivery: `DeliveryPanel`.
+- Favoritos: `FavoritesPage`.
+- Notificaciones: `NotificationsPage`.
+- Tracking/pedido activo: `TrackingPage`.
+
+Decisiones:
+
+- `Navbar`, `Footer` y layout global quedaron estaticos.
+- `SmartSearch` quedo estatico porque vive dentro del navbar aprobado.
+- Se uso `Suspense fallback={null}` para no introducir loader visual nuevo.
+- `INITIAL_NOTIFICATIONS` ya no se importa desde `NotificationsPage`; el estado inicial sale de `src/viewModels/notificationViewModels.ts`.
+- No se uso `manualChunks` porque `React.lazy` elimino el warning.
+
+Resultado de build:
+
+- Baseline antes: JS principal `545.84 kB`, gzip `131.25 kB`.
+- Despues: JS principal `278.39 kB`, gzip `81.60 kB`.
+- Reduccion aproximada: `267.45 kB`.
+- Warning de chunk JS mayor a 500 kB: eliminado.
+- `pnpm build`: exitoso.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fallo dentro del sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.
+
+Impacto visual esperado:
+
+- Ninguno. No se cambiaron clases, colores, layout, responsive, textos visibles, navegacion, cards, tablas, modales, formularios, badges, imagenes ni flujos visuales.
+
+Reporte detallado:
+
+- Ver `docs/PERFORMANCE_REPORT.md`.
+
+## Fase 16 - README general del proyecto
+
+Fecha de actualizacion: 2026-07-06.
+
+Resumen:
+
+- Se actualizo el `README.md` general en la raiz del repositorio.
+- El README quedo organizado en cuatro secciones principales:
+  - `DESCRIPCIÓN GENERAL DEL PROYECTO`.
+  - `ESTRUCTURA GENERAL DEL REPO`.
+  - `FRONTEND`.
+  - `BACKEND`.
+- La seccion `FRONTEND` documenta estado actual, tecnologias, instalacion, comandos, estructura interna, features, docs tecnicos, performance, continuidad de integracion y reglas de negocio.
+- La seccion `BACKEND` conserva la esencia del README anterior: `cd backend`, `npm install`, configuracion privada de `.env` y ejecucion con `npx tsx src/server.ts`.
+
+Cambios funcionales:
+
+- Ninguno. Solo se modifico documentacion.
+- No se renombraron carpetas.
+- No se elimino `frontend`.
+- No se modifico `backend`.
+- No se implemento API, Supabase, `fetch` ni persistencia real.
+
+Proximos pasos:
+
+- Backend/API y validaciones reales deben implementarse en fases posteriores.
+- El frontend debe continuar integrandose mediante `src/services`, `src/viewModels` y `src/domain`, conservando la UI aprobada.
+
+## Fase 17 - Validaciones frontend ligeras
+
+Fecha de actualizacion: 2026-07-06.
+
+Resumen:
+
+- Se agrego `src/validation/` con validadores puros de TypeScript, reutilizables y sin dependencias de React.
+- Se aplicaron validaciones ligeras en formularios principales sin cambiar el diseno visual aprobado.
+- Las validaciones son de apoyo visual; la validacion definitiva queda para backend/API.
+
+Archivos creados:
+
+- `src/validation/commonValidators.ts`
+- `src/validation/authValidators.ts`
+- `src/validation/profileValidators.ts`
+- `src/validation/cartValidators.ts`
+- `src/validation/checkoutValidators.ts`
+- `src/validation/paymentValidators.ts`
+- `src/validation/recipeValidators.ts`
+- `src/validation/couponValidators.ts`
+- `src/validation/adminValidators.ts`
+- `src/validation/refundValidators.ts`
+- `src/validation/index.ts`
+- `docs/FRONTEND_VALIDATIONS.md`
+
+Archivos modificados:
+
+- `src/features/auth/components/LoginPage.tsx`
+- `src/features/profile/components/ProfilePage.tsx`
+- `src/features/cart/components/CartPage.tsx`
+- `src/features/checkout/components/DeliverySelectPage.tsx`
+- `src/features/payment/components/CheckoutPage.tsx`
+- `src/features/recipes/components/PreCheckoutMedicalPage.tsx`
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/features/admin/sections/AdminInventorySection.tsx`
+- `docs/CODEX_AUDIT.md`
+
+Validaciones agregadas:
+
+- Auth: correo, contrasena, registro, recuperacion y codigo OTP/PIN.
+- Perfil: datos personales, correo, telefono, contrasena existente y solicitud de reembolso.
+- Carrito: carrito vacio, cantidades, stock por sede y cupon no vacio/vigente.
+- Checkout: metodo de entrega, pickup obligatorio, direccion, receptor y telefono.
+- Pago: banco, referencia, telefono emisor, facturacion y monto exacto del pedido.
+- Recipes: archivo visual requerido para productos con recipe digital o fisico.
+- Admin: productos, inventario, personal operativo y cupones.
+
+Restricciones respetadas:
+
+- No hubo backend real.
+- No hubo API real.
+- No se uso Supabase.
+- No se agrego `fetch`.
+- No se agrego persistencia real.
+- No se instalaron librerias nuevas.
+- Impacto visual esperado: minimo o ninguno; se reutilizaron errores inline, botones deshabilitados y `toast` ya existentes.
+
+Resultado de build:
+
+- Build baseline antes de cambios: exitoso.
+- Build intermedio despues de conectar validaciones: exitoso.
+- Build final: exitoso con `pnpm build`.
+- JS principal final: `278.49 kB`, gzip `81.62 kB`.
+- Warning de chunk JS mayor a 500 kB: no aparecio.
+
+Verificacion local:
+
+- `pnpm dev --host 127.0.0.1` fue bloqueado por el sandbox con `listen EPERM`.
+- Con permiso elevado, Vite arranco en `http://127.0.0.1:5173/`.
+- `curl -I http://127.0.0.1:5173/` respondio `HTTP/1.1 200 OK`.
+- El servidor temporal fue detenido despues de la verificacion.

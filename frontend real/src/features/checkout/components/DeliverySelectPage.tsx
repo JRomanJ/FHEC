@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Bike, Check, MapPin, Package, Store, User, X 
 import type { AuthUser, CartItem, Page } from "../../../app/types";
 import { effectivePrice, fmtUSD, fmtVES, H7, H9 } from "../../../app/data";
 import { GpsMapWidget } from "../../../components/order";
+import { firstError, normalizeCouponCode, validateCouponCodeInput, validateDeliverySelection } from "../../../validation";
 
 interface LegacySede {
   id: string;
@@ -45,11 +46,20 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   const [discInput, setDiscInput] = useState(discountCode);
   const [discErr,   setDiscErr]   = useState("");
   const [discOk,    setDiscOk]    = useState(discountApplied > 0 ? `${discountApplied}% aplicado` : "");
+  const [deliveryError, setDeliveryError] = useState("");
 
   const applyDisc = () => {
-    const pct = discountCodes[discInput.trim().toUpperCase()];
-    if (pct) { setDiscountApplied(pct); setDiscountCode(discInput.trim().toUpperCase()); setDiscOk(`¡${pct}% de descuento aplicado!`); setDiscErr(""); }
-    else      { setDiscErr("Código no válido."); setDiscOk(""); setDiscountApplied(0); }
+    const codeValidation = validateCouponCodeInput(discInput);
+    if (!codeValidation.valid) {
+      setDiscErr(firstError(codeValidation));
+      setDiscOk("");
+      setDiscountApplied(0);
+      return;
+    }
+    const normalizedCode = normalizeCouponCode(discInput);
+    const pct = discountCodes[normalizedCode];
+    if (pct) { setDiscountApplied(pct); setDiscountCode(normalizedCode); setDiscOk(`¡${pct}% de descuento aplicado!`); setDiscErr(""); }
+    else      { setDiscErr("El cupón no existe o no está vigente."); setDiscOk(""); setDiscountApplied(0); }
   };
 
   // Force pickup for psychotropics
@@ -57,8 +67,16 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
     if (hasControlled && deliveryMode === "delivery") setDeliveryMode("pickup");
   }, [hasControlled, deliveryMode, setDeliveryMode]);
 
-  const canPay = receiverName.trim().length > 0 &&
-    (deliveryMode === "pickup" || (deliveryMode === "delivery" && deliveryAddress.trim().length > 0));
+  const deliveryValidation = validateDeliverySelection({
+    mode: deliveryMode,
+    hasPickupOnlyItems: hasControlled,
+    selectedSede,
+    deliveryAddress,
+    receiverName,
+    receiverPhoneArea,
+    receiverPhone,
+  });
+  const canPay = deliveryValidation.valid;
 
   // Google Maps embed URL for the selected sede
   const mapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(activeSede.address)}&output=embed&hl=es&zoom=16`;
@@ -156,6 +174,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
                 <div className="relative mb-3">
                   <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input value={deliveryAddress} onChange={e => {
+                    setDeliveryError("");
                     setDeliveryAddress(e.target.value);
                     const a = e.target.value.toLowerCase();
                     setSelectedSede(a.includes("clinica") || a.includes("gumilla") ? "clinica" : "principal");
@@ -189,7 +208,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Nombre completo</label>
                 <div className="relative">
                   <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input value={receiverName} onChange={e => setReceiverName(e.target.value)}
+                  <input value={receiverName} onChange={e => { setReceiverName(e.target.value); setDeliveryError(""); }}
                     placeholder="Nombre de quien recibe el pedido"
                     className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white" />
                 </div>
@@ -197,11 +216,11 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
               <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Número de teléfono</label>
                 <div className="flex gap-2">
-                  <select value={receiverPhoneArea} onChange={e => setReceiverPhoneArea(e.target.value)}
+                  <select value={receiverPhoneArea} onChange={e => { setReceiverPhoneArea(e.target.value); setDeliveryError(""); }}
                     className="px-2 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white">
                     {veAreas.map(a => <option key={a}>{a}</option>)}
                   </select>
-                  <input value={receiverPhone} onChange={e => setReceiverPhone(e.target.value)}
+                  <input value={receiverPhone} onChange={e => { setReceiverPhone(e.target.value); setDeliveryError(""); }}
                     placeholder="000-0000"
                     className="flex-1 px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white" />
                 </div>
@@ -253,8 +272,29 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
                 <AlertTriangle size={12} />Completa el nombre del receptor para continuar
               </p>
             )}
+            {deliveryError && (
+              <p className="text-xs text-amber-600 flex items-center gap-1.5">
+                <AlertTriangle size={12} />{deliveryError}
+              </p>
+            )}
 
-            <button onClick={() => { onConfirmOrder?.(); onNav(hasRecipe ? "preCheckout" : "tracking"); }}
+            <button onClick={() => {
+              const validation = validateDeliverySelection({
+                mode: deliveryMode,
+                hasPickupOnlyItems: hasControlled,
+                selectedSede,
+                deliveryAddress,
+                receiverName,
+                receiverPhoneArea,
+                receiverPhone,
+              });
+              if (!validation.valid) {
+                setDeliveryError(firstError(validation));
+                return;
+              }
+              onConfirmOrder?.();
+              onNav(hasRecipe ? "preCheckout" : "tracking");
+            }}
               disabled={!canPay}
               className="w-full py-3.5 bg-[#179150] text-white rounded-xl font-black uppercase flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={H7}>
@@ -268,4 +308,3 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
     </div>
   );
 }
-

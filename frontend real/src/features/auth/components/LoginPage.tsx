@@ -17,6 +17,13 @@ import {
 import logoFarmahumana from "../../../imports/logo-farmahumana.png";
 import { H7, H9 } from "../../../app/data";
 import type { AuthUser, Page } from "../../../app/types";
+import {
+  firstError,
+  validateLoginForm,
+  validateOtpCode,
+  validateRecoveryContact,
+  validateRegisterForm,
+} from "../../../validation";
 
 // ─── LoginPage ────────────────────────────────────────────────────────────────
 function OtpInput({ length = 6, value, onChange }: { length?: number; value: string; onChange: (v: string) => void }) {
@@ -112,10 +119,23 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   const [regSuccess, setRegSuccess] = useState(false);
   const DEMO_OTP = "123456";
 
-  const hasContact = regEmail.trim() !== "";
-  const canSubmitReg = acceptTerms && regName.trim() !== "" && hasContact && regPass.length > 0 && regPass === regConfirmPass;
+  const registerValidation = validateRegisterForm({
+    name: regName,
+    email: regEmail,
+    phone: regPhone,
+    phoneArea: regPhoneArea,
+    password: regPass,
+    confirmPassword: regConfirmPass,
+    acceptTerms,
+  });
+  const canSubmitReg = registerValidation.valid;
 
   const handleLogin = () => {
+    const validation = validateLoginForm({ email: loginCred, password: loginPass });
+    if (!validation.valid) {
+      setLoginError(firstError(validation));
+      return;
+    }
     const found = demoAccounts.find(a => (a.email === loginCred || a.cedula === loginCred) && a.password === loginPass);
     if (!found) { setLoginError("Credencial o contraseña incorrectos."); return; }
     setLoginError("");
@@ -131,13 +151,30 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   };
 
   const handleRegisterSubmit = () => {
-    if (!canSubmitReg) return;
+    const validation = validateRegisterForm({
+      name: regName,
+      email: regEmail,
+      phone: regPhone,
+      phoneArea: regPhoneArea,
+      password: regPass,
+      confirmPassword: regConfirmPass,
+      acceptTerms,
+    });
+    if (!validation.valid) {
+      setOtpError(firstError(validation));
+      return;
+    }
     setOtpValue("");
     setOtpError("");
     setOtpPhase("email");
   };
 
   const handleOtpVerify = () => {
+    const validation = validateOtpCode(otpValue, 6);
+    if (!validation.valid) {
+      setOtpError(firstError(validation));
+      return;
+    }
     if (otpValue.replace(/ /g,"") !== DEMO_OTP) { setOtpError("Código incorrecto. Prueba: 123456"); return; }
     setOtpError("");
     setOtpPhase(null);
@@ -148,8 +185,8 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
     }, 1500);
   };
 
-  const fpCanSend = fpMode === "email" ? fpCred.trim().length > 0 : fpPhone.trim().length > 0;
-  const fpCodeComplete = fpCode.length === 6;
+  const fpCanSend = validateRecoveryContact({ mode: fpMode, email: fpCred, phone: fpPhone, phoneArea: fpPhoneArea }).valid;
+  const fpCodeComplete = validateOtpCode(fpCode, 6).valid;
   const fpPassMatch = fpNewPass.length >= 8 && fpNewPass === fpConfirmPass;
 
   const sharedInput = "w-full pl-10 pr-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all";
@@ -345,10 +382,10 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                 </div>
 
                 <button
-                  onClick={() => { if (fpCode.replace(/ /g,"").length === 6) setFpStep("newPass"); }}
-                  disabled={fpCode.replace(/ /g,"").length < 6}
+                  onClick={() => { if (fpCodeComplete) setFpStep("newPass"); }}
+                  disabled={!fpCodeComplete}
                   className={`w-full py-3 rounded-xl uppercase mb-3 transition-colors
-                    ${fpCode.replace(/ /g,"").length === 6 ? "bg-[#179150] text-white hover:bg-green-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                    ${fpCodeComplete ? "bg-[#179150] text-white hover:bg-green-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
                   style={H7}
                 >
                   Verificar
@@ -668,4 +705,3 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
     </div>
   );
 }
-

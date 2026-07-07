@@ -74,13 +74,3 @@ export interface LegacyGlobalOrder {
   preparedBy: string;
   dispatchedBy: string;
 }
-
-export interface LegacyNotification {
-  id: number;
-  type: string;
-  icon: string;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}

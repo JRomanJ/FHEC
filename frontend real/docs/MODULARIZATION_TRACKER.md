@@ -491,3 +491,330 @@ Esta fase extrajo el bloque administrativo completo desde `src/app/App.tsx` haci
 2. Extraer `BannerManagementPage` standalone si se decide integrarlo al feature admin o mantenerlo como feature de contenido.
 3. Crear una seccion de resenas admin si el prototipo final la requiere visualmente.
 4. Modularizar delivery/repartidor completo y notificaciones globales en la ultima tanda.
+
+## Fase 11 - Modularizacion final y preparacion de limpieza
+
+Esta fase extrajo las ultimas zonas grandes desde `src/app/App.tsx` sin cambiar UI: layout global, navbar/footer, notificaciones, delivery, tracking/reseña, favoritos, banners standalone y un formulario legacy de reembolso. Tambien se creo el inventario de limpieza para la fase 12.
+
+### Estado inicial de la fase
+
+- `git status --short`: limpio antes de editar.
+- `App.tsx`: 2321 lineas al iniciar la fase.
+- `AdminPanelPage.tsx`: 2001 lineas; se reviso pero no se dividio internamente por riesgo de tocar tabs y estado compartido.
+
+### Secciones extraidas
+
+| Seccion | Ubicacion aproximada anterior | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---:|---|---|---|---|
+| Navbar y barras de navegacion | `src/app/App.tsx:124-626` | Si | `src/components/layout/AppLayout.tsx` | medio | Incluye `NavDropdown`, `CatNavButton`, `SedeSelector`, `MobileUserMenu`, `Navbar` y `MenuBtn`. |
+| Footer | `src/app/App.tsx:2064` | Si | `src/components/layout/AppLayout.tsx` | bajo | Se preservaron columnas, redes, metodos de pago y categorias. |
+| Tracking / Mi Pedido / reseña | `src/app/App.tsx:731` | Si | `src/features/orders/components/TrackingPage.tsx` | medio | Incluye timeline, PIN, demo controls, receta rechazada, resumen y reseña. |
+| Favorites | `src/app/App.tsx:1247` | Si | `src/features/favorites/components/FavoritesPage.tsx` | bajo | Se movio porque seguia como pagina grande standalone. |
+| Gestion de banners standalone | `src/app/App.tsx:1326` | Si | `src/features/admin/components/BannerManagementPage.tsx` | bajo | Se mantiene como pantalla standalone `page === "banners"`. |
+| Delivery / repartidor | `src/app/App.tsx:1443` | Si | `src/features/delivery/components/DeliveryPanelPage.tsx` | medio | Incluye tabs, pedidos disponibles, mis viajes, viajes completados, PIN y limite de 3 viajes. |
+| Notificaciones globales | `src/app/App.tsx:1959` | Si | `src/features/notifications/components/NotificationsPage.tsx` | bajo | Se movio la pagina completa y el estado sigue en `App.tsx`. |
+| Formulario legacy de reembolso | `src/app/App.tsx:648` | Si | `src/features/refunds/components/RefundForm.tsx` | medio | No esta conectado a una ruta activa; queda documentado como candidato para decidir en fase 12. |
+| `AdminPanelPage.tsx` interno | `src/features/admin/components/AdminPanelPage.tsx` | No | Pendiente | medio | No se dividio porque la separacion de secciones requiere validar estado compartido y modales. |
+| Modales globales genericos | varias zonas | No | Pendiente | medio | Los modales estan embebidos en features y no se abstrajeron para no cambiar overlays. |
+
+### Archivos creados
+
+- `src/components/layout/AppLayout.tsx`
+- `src/components/layout/index.ts`
+- `src/features/delivery/components/DeliveryPanelPage.tsx`
+- `src/features/delivery/components/index.ts`
+- `src/features/delivery/index.ts`
+- `src/features/favorites/components/FavoritesPage.tsx`
+- `src/features/favorites/components/index.ts`
+- `src/features/favorites/index.ts`
+- `src/features/notifications/components/NotificationsPage.tsx`
+- `src/features/notifications/components/index.ts`
+- `src/features/notifications/index.ts`
+- `src/features/orders/components/TrackingPage.tsx`
+- `src/features/orders/components/index.ts`
+- `src/features/orders/index.ts`
+- `src/features/refunds/components/RefundForm.tsx`
+- `src/features/refunds/components/index.ts`
+- `src/features/refunds/index.ts`
+- `src/features/admin/components/BannerManagementPage.tsx`
+- `docs/CLEANUP_CANDIDATES.md`
+
+### Archivos modificados
+
+- `src/app/App.tsx`
+- `src/features/index.ts`
+- `src/features/admin/components/index.ts`
+- `docs/MODULARIZATION_TRACKER.md`
+- `docs/CODEX_AUDIT.md`
+
+### Props principales
+
+`Navbar` recibe:
+
+- `cartCount`, `onNav`, `page`, `searchQuery`, `setSearchQuery`
+- `user`, `onLogout`, `onCategorySelect`
+- `cartItems`, `onUpdateCartQuantity`, `onRemoveFromCart`
+- `hasActiveOrder`, `appNotifs`, `setAppNotifs`
+- `selectedSede`, `onSedeChange`, `products`, `categories`, `brandSynonyms`
+
+`TrackingPage` recibe:
+
+- `onNav`
+- `orderItems`
+- `deliveryMode`
+- `discountPct`
+- `onOrderComplete`
+
+`DeliveryPanel` recibe:
+
+- `onNav`
+- `userSede`
+
+`NotificationsPage` recibe:
+
+- `onNav`
+- `notifs`
+- `setNotifs`
+
+### Estado que quedo en App.tsx
+
+- Pantalla actual (`page`).
+- Sesion/rol (`user`).
+- Carrito, cantidades, pedido activo y cupon aplicado.
+- Producto seleccionado, favoritos y busqueda.
+- Sede visual, sede de checkout, modo de entrega y direccion.
+- Slides de banners.
+- Notificaciones globales compartidas entre navbar y pagina.
+- Navegacion general y callbacks hacia features.
+
+### Estado que se movio con los features
+
+- Estado interno de navbar: dropdowns, carrito rapido, notificaciones rapidas y menu movil.
+- Estado interno de tracking: demo controls, timer, PIN, receta rechazada y reseña.
+- Estado interno de delivery: tabs, sede, PIN, pedidos asignados, filtros de viajes y modales.
+- Estado interno de notificaciones: notificacion seleccionada y detalle.
+- Estado interno de banners standalone: edicion y draft.
+- Estado interno del formulario legacy de reembolso.
+
+### Decisiones
+
+- `App.tsx` quedo como orquestador final y no se introdujo router ni state management externo.
+- `AdminPanelPage.tsx` no se dividio internamente porque aun concentra estado compartido entre tabs, modales y secciones admin.
+- Los modales se mantuvieron dentro de sus features para evitar cambios de overlay o layout.
+- `RefundForm` se extrajo pero no se conecto, porque no estaba renderizado en el flujo activo.
+- Se creo `docs/CLEANUP_CANDIDATES.md` en vez de borrar archivos legacy.
+
+### Verificacion
+
+- `pnpm build`: exitoso.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- `App.tsx` paso de 2321 lineas a 287 lineas.
+
+### Pendiente recomendado para fase 12
+
+1. Revisar y borrar duplicados confirmados en `src/app/components/*`.
+2. Eliminar helpers inline no usados de `src/app/App.tsx`.
+3. Revisar assets no importados de `src/imports`.
+4. Decidir si `RefundForm` se conserva, se conecta o se elimina.
+5. No borrar `src/app/components/ui/*`, `src/app/data.ts` ni `src/app/types.ts` sin una validacion especifica.
+
+## Fase 12 - Limpieza exhaustiva
+
+- `git status --short`: limpio antes de iniciar la fase.
+- Build inicial: `pnpm build` exitoso.
+- `App.tsx`: 287 lineas al iniciar la fase, 192 lineas al finalizar.
+- `AdminPanelPage.tsx`: 2001 lineas; no se dividio internamente en esta fase.
+- Reporte detallado: `docs/CLEANUP_REPORT.md`.
+
+### Residuos eliminados
+
+| Residuo | Ubicacion | Eliminado | Riesgo | Nota |
+|---|---|---|---|---|
+| Pantallas legacy duplicadas | `src/app/components/*.tsx` | Si | bajo-medio | Las versiones activas viven en `src/features` y `src/components`. |
+| Helper Figma legacy | `src/app/components/figma/ImageWithFallback.tsx` | Si | bajo | Solo sostenia pantallas legacy eliminadas. |
+| Puente legacy | `src/app/shared.ts` | Si | bajo | Solo era usado por componentes legacy eliminados. |
+| Feature de reembolso no conectado | `src/features/refunds/*` | Si | medio | No tenia ruta activa ni imports reales; se elimino el export del barrel. |
+| Assets no referenciados | `src/imports/Captura_de_pantalla_*.png`, `IMG_238*.PNG`, `WhatsApp_Image_*.jpeg`, `image*.png` | Si | medio | Sin imports, rutas ni aparicion en build. |
+| Notas historicas dentro de `src` | `src/imports/pasted_text/*.md` | Movido | bajo | Se movieron a `docs/archive`. |
+| Dependencias no usadas | `package.json`, `pnpm-lock.yaml` | Si | medio | Se quitaron 13 dependencias sin imports activos. |
+| Helpers/tipos/mocks inline | `src/app/App.tsx` | Si | bajo | Se importan desde `src/app/data.ts` y `src/app/types.ts`. |
+
+### Conservado deliberadamente
+
+| Ruta | Motivo |
+|---|---|
+| `src/app/components/ui/*` | UI base shadcn/Radix; no se borra sin decision especifica archivo por archivo. |
+| `src/app/data.ts` | Puente activo para features visuales y getters legacy. |
+| `src/app/types.ts` | Tipos UI legacy activos; no se fusionaron con dominio DB. |
+| `src/domain/*` | Contratos de dominio alineados con DB final. |
+| `src/data/*` | Fuente mock central. |
+| `src/services/*` | Capa mock/API futura. |
+| `src/viewModels/*` | Adaptadores visuales activos. |
+
+### Pendientes posteriores
+
+1. Dividir `src/features/admin/components/AdminPanelPage.tsx` por secciones administrativas.
+2. Dividir `src/components/layout/AppLayout.tsx` en navbar, barra secundaria, menus y footer.
+3. Dividir `src/features/orders/components/TrackingPage.tsx` en timeline, resumen y reseña.
+4. Dividir `src/features/delivery/components/DeliveryPanelPage.tsx` en dashboard, tabs, cards y modales.
+5. Evaluar code splitting por feature para resolver el warning de chunk JS mayor a 500 kB.
+6. Mantener validacion visual antes de cualquier limpieza adicional en componentes UI base.
+
+### Verificacion
+
+- `pnpm build`: exitoso al final de la fase.
+- Persiste la advertencia no bloqueante de chunk JS mayor a 500 kB.
+- No se modifico `backend`, no se modifico `frontend` de pruebas y no se implemento API real.
+
+## Fase 13 - Division interna de modulos grandes
+
+Esta fase dividio archivos grandes restantes mediante extraccion mecanica de JSX, sin cambiar UI ni comportamiento visual.
+
+### Baseline
+
+- `git status --short`: limpio antes de editar.
+- Build inicial: `pnpm build` exitoso.
+- `App.tsx`: 192 lineas; no se modifico.
+- `AdminPanelPage.tsx`: 2001 lineas.
+- `AppLayout.tsx`: 638 lineas.
+- `TrackingPage.tsx`: 532 lineas.
+- `DeliveryPanelPage.tsx`: 522 lineas.
+
+### Secciones divididas
+
+| Seccion | Ubicacion anterior | Extraida | Nuevo archivo destino | Riesgo | Notas |
+|---|---|---|---|---|---|
+| Modulos superadmin | `src/features/admin/components/AdminPanelPage.tsx` | Si | `src/features/admin/sections/SuperadminModules.tsx` | medio | Se movio el bloque administrativo grande sin cambiar tabs ni estado compartido. |
+| Inventario admin | `AdminPanelPage.tsx` | Si | `src/features/admin/sections/SuperadminModules.tsx` | medio | Sigue agrupado dentro del modulo superadmin para evitar dividir estado antes de validacion visual. |
+| Footer global | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/Footer.tsx` | bajo | Se preservaron columnas, categorias, redes y metodos de pago. |
+| Selector de sede | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/SedeSelector.tsx` | bajo | Mantiene las mismas opciones y callbacks. |
+| Dropdown de categorias | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/CategoryDropdown.tsx` | bajo | Mantiene el mismo `CatNavButton` y comportamiento visual. |
+| Menu movil de usuario | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/MobileUserMenu.tsx` | medio | Se preservaron accesos, badges y callbacks. |
+| Helpers visuales de layout | `src/components/layout/AppLayout.tsx` | Si | `src/components/layout/layoutShared.ts` | bajo | Solo mueve constantes y calculos usados por layout. |
+| PIN de tracking | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderPinCard.tsx` | bajo | Sin cambios de PIN ni condicion visual. |
+| Resumen de items | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderItemsSummary.tsx` | bajo | Mantiene productos, totales, descuento, delivery y formato. |
+| Timeline de pedido | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderTrackingTimeline.tsx` | medio | Mantiene mobile/desktop timeline y estados. |
+| Formulario de resena | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/OrderReviewForm.tsx` | bajo | Mantiene rating, textarea y botones. |
+| Modales/feedback de tracking | `src/features/orders/components/TrackingPage.tsx` | Si | `src/features/orders/components/TrackingFeedbackModals.tsx` | bajo | Mantiene pedido cancelado, header y popup de gracias. |
+| Modales delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryPinModal.tsx`, `DeliveryMaxTripsModal.tsx` | bajo | Mantiene overlay, PIN demo y modal de limite de 3 pedidos. |
+| Header/tabs delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryHeader.tsx`, `DeliveryTabs.tsx` | bajo | Mantiene secciones y navegacion interna. |
+| Pedidos disponibles delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryAvailableOrders.tsx` | medio | Mantiene filtro por sede, expansion, mapa y asignacion visual. |
+| Viajes completados delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryCompletedTrips.tsx` | bajo | Mantiene filtros, tabla y total acumulado. |
+| Viajes asignados delivery | `src/features/delivery/components/DeliveryPanelPage.tsx` | Si | `DeliveryAssignedOrders.tsx` | medio | Mantiene cards, llamada, WhatsApp, mapa y confirmacion por PIN. |
+
+### Estado que quedo en padres
+
+- `AdminPanelPage.tsx`: estado administrativo compartido, tab activa, modales y callbacks.
+- `AppLayout.tsx`: estado de dropdowns/navbar, props globales desde `App.tsx` y callbacks de navegacion.
+- `TrackingPage.tsx`: estado de demo, timer, PIN visible, receta rechazada, rating, comentario y popup.
+- `DeliveryPanelPage.tsx`: tabs, sede seleccionada, PIN, pedido seleccionado, viajes asignados, orden expandida y filtros de viajes completados.
+
+### Estado movido
+
+- No se movio estado compartido relevante.
+- Solo se movieron constantes/helper visuales de bajo riesgo hacia `layoutShared.ts`, `trackingShared.ts` y `deliveryShared.ts`.
+
+### Archivos creados
+
+- `src/features/admin/sections/SuperadminModules.tsx`
+- `src/components/layout/CategoryDropdown.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/components/layout/MobileUserMenu.tsx`
+- `src/components/layout/SedeSelector.tsx`
+- `src/components/layout/layoutShared.ts`
+- `src/features/orders/components/OrderItemsSummary.tsx`
+- `src/features/orders/components/OrderPinCard.tsx`
+- `src/features/orders/components/OrderReviewForm.tsx`
+- `src/features/orders/components/OrderTrackingTimeline.tsx`
+- `src/features/orders/components/TrackingFeedbackModals.tsx`
+- `src/features/orders/components/trackingShared.ts`
+- `src/features/delivery/components/DeliveryAssignedOrders.tsx`
+- `src/features/delivery/components/DeliveryAvailableOrders.tsx`
+- `src/features/delivery/components/DeliveryCompletedTrips.tsx`
+- `src/features/delivery/components/DeliveryHeader.tsx`
+- `src/features/delivery/components/DeliveryMaxTripsModal.tsx`
+- `src/features/delivery/components/DeliveryPinModal.tsx`
+- `src/features/delivery/components/DeliveryTabs.tsx`
+- `src/features/delivery/components/deliveryShared.ts`
+
+### Lineas despues de la fase
+
+- `AdminPanelPage.tsx`: 831 lineas.
+- `SuperadminModules.tsx`: 1193 lineas.
+- `AppLayout.tsx`: 285 lineas.
+- `TrackingPage.tsx`: 354 lineas.
+- `DeliveryPanelPage.tsx`: 126 lineas.
+- `App.tsx`: 192 lineas, sin cambios.
+
+### Verificacion
+
+- Build inicial: exitoso.
+- Build intermedio despues de admin: exitoso.
+- Build intermedio despues de layout: exitoso.
+- Build intermedio despues de tracking: exitoso.
+- Build final despues de delivery: exitoso.
+- `pnpm dev --host 127.0.0.1`: el sandbox bloqueo el puerto con `listen EPERM`; con permiso local Vite respondio `HTTP/1.1 200 OK` en `http://127.0.0.1:5174/`.
+
+### Pendiente recomendado para fase 14
+
+1. Revisar `src/features/admin/sections/SuperadminModules.tsx`, que sigue siendo grande.
+2. Revisar props redundantes generadas por la division mecanica.
+3. Revisar exports internos que no se necesiten fuera de cada feature.
+4. Evaluar code splitting por feature en una fase especifica, porque el warning de chunk JS mayor a 500 kB persiste.
+
+## Fase 14 - Limpieza final de modulos extraidos
+
+Esta fase limpio residuos posteriores a la modularizacion y dividio un bloque adicional de admin sin modificar UI ni comportamiento visual.
+
+### Secciones y residuos procesados
+
+| Seccion / residuo | Ubicacion anterior | Accion | Nuevo destino / estado | Riesgo | Nota |
+|---|---|---|---|---|---|
+| Inventario admin | `src/features/admin/sections/SuperadminModules.tsx` | Extraido | `src/features/admin/sections/AdminInventorySection.tsx` | bajo-medio | Corte mecanico; mantiene estado local, clases, textos, tabla y modal de stock. |
+| Exports internos de layout | `src/components/layout/index.ts` | Limpiado | Solo exporta `AppLayout` y `Footer` | bajo | `CategoryDropdown`, `SedeSelector` y `MobileUserMenu` quedan como internos de `AppLayout`. |
+| Exports internos de delivery | `src/features/delivery/components/index.ts` | Limpiado | Solo exporta `DeliveryPanelPage` | bajo | Subcomponentes se importan de forma relativa dentro del modulo. |
+| Exports internos de orders | `src/features/orders/components/index.ts` | Limpiado | Solo exporta `TrackingPage` | bajo | Subcomponentes se importan de forma relativa dentro del modulo. |
+| Barrel raiz de features | `src/features/index.ts` | Eliminado | Sin reemplazo | bajo | No tenia consumidores; `App.tsx` importa por feature especifico. |
+| Puente app legacy | `src/app/data.ts` | Reducido | Conservado | bajo | Se retiraron exports sin referencias: `NOTIF_DATA`, `DEMO_PROFILE_REFUNDS`, `DEMO_DELIVERY_ORDERS`, `DEMO_COMPLETED_TRIPS`. |
+| Adaptador legacy de notificaciones | `src/data/adapters.ts` | Eliminado parcialmente | Contrato activo vive en `src/viewModels/notificationViewModels.ts` | bajo | Se elimino `toLegacyNotification` y `NOTIF_DATA` duplicado. |
+| Tipo legacy de notificaciones | `src/data/viewModels.ts` | Eliminado | Sin reemplazo necesario | bajo | `LegacyNotification` no tenia consumidores reales. |
+| Resolver Figma | `vite.config.ts` | Eliminado | Sin reemplazo | bajo | No hay imports `figma:asset/*` ni carpeta `src/assets`. |
+| `.DS_Store` | `src/.DS_Store`, `src/app/.DS_Store` | Eliminado | Sin reemplazo | bajo | Archivos del sistema operativo, no fuente. |
+
+### Estado que quedo en padres
+
+- `AdminPanelPage.tsx`: mantiene orquestacion administrativa, tabs, modales y estado compartido.
+- `SuperadminModules.tsx`: mantiene secciones administrativas con estado compartido; solo se extrajo inventario porque era un bloque aislado.
+- `App.tsx`: sigue como orquestador principal sin cambios funcionales.
+
+### Estado movido
+
+- `InventarioTab` mantiene su propio estado local (`sede`, `search`, `editingId`, `editStock`) dentro del nuevo archivo.
+- No se movio estado compartido entre secciones administrativas.
+
+### Lineas aproximadas despues de la fase
+
+- `App.tsx`: 192 lineas.
+- `AdminPanelPage.tsx`: 824 lineas.
+- `SuperadminModules.tsx`: 1044 lineas.
+- `AdminInventorySection.tsx`: 153 lineas.
+- `AppLayout.tsx`: 284 lineas.
+- `TrackingPage.tsx`: 354 lineas.
+- `DeliveryPanelPage.tsx`: 126 lineas.
+
+### Verificacion
+
+- Build inicial de fase 14: exitoso.
+- Build despues de limpiar `src/features`, barrels y `.DS_Store`: exitoso.
+- Build despues de extraer `AdminInventorySection.tsx`: exitoso.
+- Build despues de limpiar `src/app/data.ts`, adaptadores de notificaciones y resolver Vite: exitoso.
+- Build final documentado: exitoso.
+- Warning persistente: chunk JS mayor a 500 kB.
+
+### Pendientes reales
+
+1. Evaluar code splitting por feature en una fase dedicada; no se implemento en esta fase por restriccion.
+2. Mantener `src/app/data.ts` hasta que features consuman directamente servicios/view models.
+3. Mantener `src/app/types.ts` hasta definir tipos UI finales.
+4. Revisar `src/app/components/ui/*` solo con decision especifica, archivo por archivo.
+5. Dividir mas `SuperadminModules.tsx` solo si se puede aislar una seccion sin estado compartido ni riesgo visual.

@@ -8,9 +8,9 @@ export const insertRole = async (rol: string) => {
 
 export const assingnRole = async (userId: string, newRole: string) => {
     const { data, error } = await supabase
-        .from('perfiles')
+        .from('usuarios')
         .update({ rol: newRole})
-        .eq('id_usuario', userId);
+        .eq('id', userId);
     if (error) throw error;
     return data;
 }

@@ -1,6 +1,5 @@
 import { supabase, getAuthedClient } from './db/supabaseClient.js';
 import { insertUser } from './db/usuarios.js';
-import { insertProfile } from './db/perfiles.js';
 
 
 export const userLogger = async (email: string, password: string, nombre_completo: string, tipo_documento_identidad: string, 
@@ -24,7 +23,6 @@ export const userLogger = async (email: string, password: string, nombre_complet
 
     const newUser = await insertUser( userId, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, 
         codigo_area, acepta_terminos, acepta_promociones, acepta_promociones_sms, acepta_promociones_correo, acepta_notificaciones, acepta_notificaciones_sms, acepta_notificaciones_correo);
-    await insertProfile(userId);
     
     return newUser;
 };

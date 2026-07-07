@@ -15,7 +15,7 @@ export const createProduct = async (productoData: any) => {
     }
     return producto;
 }
-export const getProduct = async (criterios:{principio_activo?: string, marca_comercial?: string, forma_farmaceutica?: string}) => {
+export const findProduct = async (criterios:{principio_activo?: string, marca_comercial?: string, forma_farmaceutica?: string}) => {
     const supabase = await getAuthedClient();
     
     let query = supabase.from('productos').select('*');

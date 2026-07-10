@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { userLogger, loginUser } from './authService.js';
+import { loginUser } from './authService.js';
+import { userLogger } from './db/usuarios.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,22 +10,16 @@ app.use(cors());
 app.use(express.json());
 
 app.post('/api/log', async (req: Request, res: Response) => {
+    // DEBUG: Ver qué llega realmente desde el frontend
+    console.log("Cuerpo recibido:", JSON.stringify(req.body, null, 2));
+
     try {
-        const {correo, password, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones} = req.body;
-
-        await userLogger(correo, password, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, codigo_area, acepta_terminos, acepta_promociones);
-
-        res.status(200).json({ success: true, message: 'Usuario registrado exitosamente' });
-
-        // Simulacion de respuesta exitosa
-        res.status(200).json({
-            success: true,
-            message: 'Usuario registrado exitosamente en el servidor'
-        });
-    }catch (error){
-        console.error('Error en el registro:', error);
-        res.status(500).json({ success: false, message: 'Hubo un error al procesar el registro' });
-    }    
+        await userLogger(req.body);
+        res.status(200).json({ success: true, message: 'Usuario registrado' });
+    } catch (error: any) {
+        console.error('Error en el registro:', error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
 });
 
 app.post('/api/login', async (req: Request, res: Response) => {

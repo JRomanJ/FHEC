@@ -7,7 +7,7 @@ export const TestComms = () => {
     const handleLogin = async () => {
         try{
             const response = await apiClient('/login', { 
-                email: 'prueba2@correo.com',
+                email: 'mariagonzales@gmail.com',
                 password: 'clave123'
             });
 
@@ -29,15 +29,26 @@ export const TestComms = () => {
         try{
             const response = await apiClient('/log', {
                 //Datos que recibira el backend
-                correo: "prueba2@correo.com",
+                // Credenciales para Auth
+                correo: "mariagonzales@gmail.com",
                 password: "clave123",
-                nombre_completo: "Carlos", 
+                
+                // Datos personales y perfil
+                nombre_completo: "Maria Gonzalez",
                 tipo_documento_identidad: "V",
                 documento_identidad: "153451923",
-                acepta_terminos: true,
-                acepta_promociones: true, 
                 telefono: "+58-0208023",
-                codigo_area: "0286"                
+                codigo_area: "0286",
+                
+                // Preferencias y términos (todos en true)
+                acepta_terminos: true,
+                acepta_promociones: true,
+                acepta_promociones_sms: true,
+                acepta_promociones_correo: true,
+                acepta_notificaciones: true,
+                acepta_notificaciones_sms: true,
+                acepta_notificaciones_correo: true
+
             });
             setMessage(JSON.stringify(response));
 

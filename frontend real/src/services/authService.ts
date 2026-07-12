@@ -1,4 +1,19 @@
-import { DEMO_ACCOUNTS } from "../data";
+import { apiClient } from "./apiService";
+
+export const registerUser = async (userData: any) => {
+  try {
+    const response = await apiClient("/log", userData);
+    return response.data;
+  } catch (error) {
+    console.error("Error en la peticion de registro:", error);
+    return { success: false, message: (error as Error).message || "No se pudo conectar con el servidor"};
+  } 
+}
+
+
+
+//Pruebas con mock de login y logout
+/*import { DEMO_ACCOUNTS } from "../data";
 
 export function validarCredencialesMock(correo: string, password: string) {
   const normalized = correo.trim().toLowerCase();
@@ -19,4 +34,4 @@ export function loginMock(correo: string, password: string) {
 
 export function logoutMock() {
   return true;
-}
+}*/

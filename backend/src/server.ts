@@ -18,6 +18,7 @@ app.post('/api/log', async (req: Request, res: Response) => {
         res.status(200).json({ success: true, message: 'Usuario registrado' });
     } catch (error: any) {
         console.error('Error en el registro:', error.message);
+        console.error(error);
         res.status(500).json({ success: false, message: error.message });
     }
 });

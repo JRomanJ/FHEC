@@ -20,7 +20,7 @@ const runSystem = async () => {
         //REGISTRAR NUEVO USUARIO
         console.log('---Registrando usuario---');
         const newUser = await userLogger({
-            email: 'prueba@gmail.com',
+            email: 'anatorres@gmail.com',
             password: 'clave123',
             nombre_completo: 'Ana Torres',
             tipo_documento_identidad: 'V',

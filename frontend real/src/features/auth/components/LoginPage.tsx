@@ -1,3 +1,4 @@
+import { registerUser } from "../../../services/authService"
 import React, { useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -79,6 +80,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   const [view, setView] = useState<View>(initialView);
 
   // ── Login state ──
+  const [isLoading, setIsLoading] = useState(false);
   const [loginCred, setLoginCred] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -150,7 +152,11 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
     }
   };
 
-  const handleRegisterSubmit = () => {
+  const handleRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setIsLoading(true);
+    
     const validation = validateRegisterForm({
       name: regName,
       email: regEmail,
@@ -164,9 +170,31 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
       setOtpError(firstError(validation));
       return;
     }
-    setOtpValue("");
-    setOtpError("");
-    setOtpPhase("email");
+    try {
+      setOtpValue("");
+      console.log("Valores que se enviarán al servidor:", { 
+        email: regEmail});
+      await registerUser({
+        email: regEmail,
+        password: regPass,
+        nombre_completo: regName,
+        tipo_documento_identidad: regDocType,
+        documento_identidad: regCedula,
+        telefono: regPhone,
+        codigo_area: regPhoneArea,
+        acepta_terminos: acceptTerms,
+        acepta_promociones: true, // O el estado de tu checkbox correspondiente
+        acepta_promociones_sms: true,
+        acepta_promociones_correo: true,
+        acepta_notificaciones: acceptNotifications,
+        acepta_notificaciones_sms: true,
+        acepta_notificaciones_correo: true
+      });
+      setOtpPhase("email");
+    } catch (error: any) {
+      setOtpError(error.message || "Error desconocido al registrar el usuario.");
+    }  
+    
   };
 
   const handleOtpVerify = () => {

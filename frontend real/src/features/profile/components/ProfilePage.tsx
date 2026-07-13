@@ -57,7 +57,11 @@ export interface ProfilePageProps {
 }
 
 export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, veAreas, docTypes }: ProfilePageProps) {
-  const defaultContact = demoContact[user.email] ?? { phone: "+58 412-0000000", address: "Ciudad Guayana, Bolívar" };
+  const mockContact = demoContact[user.email] ?? { phone: "", address: "" };
+  const defaultContact = {
+    phone: user.phone ? (user.phone.startsWith("+") ? user.phone : `${user.areaCode ?? ""}-${user.phone}`.replace(/^-/, "")) : mockContact.phone,
+    address: user.address ?? mockContact.address,
+  };
 
   // ── Personal info (no OTP needed) ──
   const [editingInfo, setEditingInfo] = useState(false);

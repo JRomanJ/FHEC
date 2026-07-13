@@ -9,12 +9,12 @@ import { SedeSelector } from "./SedeSelector";
 import { CATS, H9, effectivePrice, fmtUSD } from "./layoutShared";
 import { SmartSearch } from "../../features/search";
 import { ProductBox } from "../product";
-import type { AuthUser, CartItem, Page, Product } from "../../app/types";
+import type { AuthUser, Branch, CartItem, Page, Product } from "../../app/types";
 import type { NotificationViewModel as AppNotification } from "../../viewModels/notificationViewModels";
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, user, onLogout, onCategorySelect,
-  cartItems, onUpdateCartQuantity, onRemoveFromCart, hasActiveOrder = false, appNotifs, setAppNotifs, selectedSede, onSedeChange, products, categories, brandSynonyms }: {
+  cartItems, onUpdateCartQuantity, onRemoveFromCart, hasActiveOrder = false, appNotifs, setAppNotifs, selectedSede, onSedeChange, products, branches, categories, brandSynonyms }: {
   cartCount: number; onNav: (p: Page) => void; page: Page;
   searchQuery: string; setSearchQuery: (q: string) => void;
   user: AuthUser | null; onLogout: () => void;
@@ -28,6 +28,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
   selectedSede: string;
   onSedeChange: (id: string) => void;
   products: Product[];
+  branches: Branch[];
   categories: typeof CATS;
   brandSynonyms: typeof BRAND_SYNONYMS;
 }) {
@@ -274,7 +275,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
 
             {/* Selector de sede — siempre a la derecha, no baja */}
             <div className="flex-shrink-0 pl-2">
-              <SedeSelector selectedSede={selectedSede} onSedeChange={onSedeChange} />
+              <SedeSelector selectedSede={selectedSede} onSedeChange={onSedeChange} branches={branches} />
             </div>
           </div>
         </div>

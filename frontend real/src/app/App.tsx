@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { Footer, Navbar } from "../components/layout";
 import { getLegacyNotificationViewModels } from "../viewModels/notificationViewModels";
@@ -7,14 +7,14 @@ import {
   BRAND_SYNONYMS,
   CATS,
   DEFAULT_SLIDES,
-  DEMO_ACCOUNTS,
   DEMO_CONTACT,
   DEMO_ORDERS,
   DISCOUNT_CODES,
-  PRODUCTS,
-  SEDES,
 } from "./data";
-import type { AuthUser, CartItem, Page, Product, Slide } from "./types";
+import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
+import { logout } from "../services/authService";
+import { getAvailableBranches, getCatalogProducts } from "../services/backendService";
+import { BRANCH_IDS } from "../config/api";
 
 const LoginPage = lazy(() => import("../features/auth/components/LoginPage").then((module) => ({ default: module.LoginPage })));
 const ProfilePage = lazy(() => import("../features/profile/components/ProfilePage").then((module) => ({ default: module.ProfilePage })));
@@ -57,26 +57,40 @@ export default function App() {
   const [cartDiscountApplied, setCartDiscountApplied] = useState(0);
   const [activeOrderItems, setActiveOrderItems] = useState<CartItem[]>([]);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
-  const [displaySede, setDisplaySede] = useState("principal");
+  const [displaySede, setDisplaySede] = useState(BRANCH_IDS.principal);
   // Shared notifications state — lifted so Navbar badge and NotificationsPage share it
   const [appNotifs, setAppNotifs] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
   const [cartDiscountCode, setCartDiscountCode] = useState("");
   // Shared checkout delivery state lifted to App so it persists across checkout screens
   const [checkoutDeliveryMode, setCheckoutDeliveryMode] = useState<"delivery"|"pickup">("delivery");
-  const [checkoutSede, setCheckoutSede] = useState("principal");
+  const [checkoutSede, setCheckoutSede] = useState(BRANCH_IDS.principal);
   const [checkoutAddress, setCheckoutAddress] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getCatalogProducts(displaySede), getAvailableBranches()])
+      .then(([items, realBranches]) => {
+        if (!cancelled) {
+          setProducts(items);
+          setBranches(realBranches);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setProducts([]);
+          console.error("No se pudieron cargar los datos reales:", error);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [displaySede]);
 
   const setPage = (p: Page) => { window.scrollTo({ top: 0 }); setPageRaw(p); };
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
-  // Resolve the sede assigned to the logged-in staff member (for DeliveryPanel / AdminPanel filtering)
-  const STAFF_SEDES: Record<string, string> = {
-    "auxiliar@fhec.com": "principal",
-    "repartidor@fhec.com": "principal",
-    "auditor@fhec.com": "clinica",
-    "admin@fhec.com": "Todas",
-  };
-  const staffSede = user ? (STAFF_SEDES[user.email] ?? "principal") : undefined;
+  // La tabla actual de usuarios no incluye una sede asignada.
+  const staffSede = user?.role === "superadmin" ? "Todas" : undefined;
 
   const handleCategorySelect = (category: string) => {
     setPreselectedCategory(category);
@@ -119,14 +133,14 @@ export default function App() {
     setPage("product");
   };
 
-  const selectedProduct = PRODUCTS.find(p => p.id === selectedProductId);
+  const selectedProduct = products.find(p => p.id === selectedProductId);
 
   // Login page renders without navbar
   if (page === "login" || page === "register") {
     return (
       <div style={{ fontFamily: "'Barlow', sans-serif" }}>
         <Suspense fallback={null}>
-          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
+          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
         </Suspense>
       </div>
     );
@@ -141,7 +155,7 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         user={user}
-        onLogout={() => { setUser(null); setCartItems([]); setHasActiveOrder(false); setActiveOrderItems([]); setPage("home"); }}
+        onLogout={() => { logout(); setUser(null); setCartItems([]); setHasActiveOrder(false); setActiveOrderItems([]); setPage("home"); }}
         onCategorySelect={handleCategorySelect}
         cartItems={cartItems}
         onUpdateCartQuantity={updateQuantity}
@@ -151,20 +165,21 @@ export default function App() {
         setAppNotifs={setAppNotifs}
         selectedSede={displaySede}
         onSedeChange={setDisplaySede}
-        products={PRODUCTS}
+        products={products}
+        branches={branches}
         categories={CATS}
         brandSynonyms={BRAND_SYNONYMS}
       />
       <main>
         <Suspense fallback={null}>
-          {page === "home" && <HomePage products={PRODUCTS} onProductClick={goToProduct} onAddToCart={addToCart} onNav={setPage} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} slides={slides} selectedSede={displaySede} />}
+          {page === "home" && <HomePage products={products} onProductClick={goToProduct} onAddToCart={addToCart} onNav={setPage} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} slides={slides} selectedSede={displaySede} />}
           {page === "banners" && <BannerManagementPage slides={slides} setSlides={setSlides} onNav={setPage} />}
-          {page === "catalog" && <CatalogPage products={PRODUCTS} searchQuery={searchQuery} onProductClick={goToProduct} onAddToCart={addToCart} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} preselectedCategory={preselectedCategory} />}
-          {page === "favorites" && <FavoritesPage products={PRODUCTS} favoriteIds={favoriteIds} onProductClick={goToProduct} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} cartItems={cartItems} onUpdateQuantity={updateQuantity} onNav={setPage} />}
+          {page === "catalog" && <CatalogPage products={products} searchQuery={searchQuery} onProductClick={goToProduct} onAddToCart={addToCart} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} preselectedCategory={preselectedCategory} />}
+          {page === "favorites" && <FavoritesPage products={products} favoriteIds={favoriteIds} onProductClick={goToProduct} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} cartItems={cartItems} onUpdateQuantity={updateQuantity} onNav={setPage} />}
           {page === "product" && selectedProduct && (
             <ProductDetailPage
               product={selectedProduct}
-              products={PRODUCTS}
+              products={products}
               onAddToCart={addToCart}
               onBack={() => setPage("catalog")}
               onProductClick={goToProduct}
@@ -176,8 +191,8 @@ export default function App() {
               selectedSede={displaySede}
             />
           )}
-          {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={PRODUCTS} discountCodes={DISCOUNT_CODES} />}
-          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={() => { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); }} sedes={SEDES} discountCodes={DISCOUNT_CODES} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
+          {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={products} discountCodes={DISCOUNT_CODES} />}
+          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={() => { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); }} sedes={branches} discountCodes={DISCOUNT_CODES} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
           {page === "preCheckout" && <PreCheckoutMedicalPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} />}
           {page === "checkout" && <CheckoutPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} discountApplied={cartDiscountApplied} deliveryMode={checkoutDeliveryMode} selectedSede={checkoutSede} user={user} onClearCart={() => { if (activeOrderItems.length === 0) { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); } }} veAreas={VE_AREAS} docTypes={DOC_TYPES} veBanks={VE_BANKS} />}
           {page === "tracking" && (
@@ -189,9 +204,9 @@ export default function App() {
               onOrderComplete={() => { setHasActiveOrder(false); }}
             />
           )}
-          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { setUser(null); setCartItems([]); setPage("home"); }} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
+          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { logout(); setUser(null); setCartItems([]); setPage("home"); }} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
           {page === "delivery" && <DeliveryPanel onNav={setPage} userSede={staffSede} />}
-          {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={PRODUCTS} setProducts={() => {}} slides={slides} setSlides={setSlides} />}
+          {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} />}
           {page === "notifications" && <NotificationsPage onNav={setPage} notifs={appNotifs} setNotifs={setAppNotifs} />}
         </Suspense>
       </main>

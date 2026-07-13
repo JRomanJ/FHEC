@@ -195,7 +195,7 @@ export function ProductDetailPage({ product, products, onAddToCart, onBack, onPr
           <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Principio activo</div>
           <div className="text-sm font-semibold text-foreground">{product.activeIngredient}</div>
         </div>
-        {(product.concentration || product.packSize) && (
+        {(product.concentration || product.packSize || product.category || product.presentation || product.barcode) && (
           <div className="flex flex-wrap gap-4">
             {product.concentration && (
               <div>
@@ -206,9 +206,12 @@ export function ProductDetailPage({ product, products, onAddToCart, onBack, onPr
             {product.packSize && (
               <div>
                 <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Unidades</div>
-                <div className="text-sm font-semibold text-foreground">{product.packSize} unidades</div>
+                <div className="text-sm font-semibold text-foreground">{product.packSize}</div>
               </div>
             )}
+            {product.category && <div><div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Categoría</div><div className="text-sm font-semibold text-foreground">{product.category}</div></div>}
+            {product.presentation && <div><div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Forma farmacéutica</div><div className="text-sm font-semibold text-foreground">{product.presentation}</div></div>}
+            {product.barcode && <div><div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Código de barras</div><div className="text-sm font-semibold text-foreground">{product.barcode}</div></div>}
           </div>
         )}
         <div>

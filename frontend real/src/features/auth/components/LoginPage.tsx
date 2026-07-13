@@ -1,4 +1,4 @@
-import { registerUser } from "../../../services/authService"
+import { login, registerUser } from "../../../services/authService"
 import React, { useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -68,14 +68,11 @@ export interface LoginPageProps {
   onLogin: (u: AuthUser) => void;
   onNav: (p: Page) => void;
   initialView?: "login" | "register";
-  demoAccounts: DemoAccount[];
   veAreas: string[];
   docTypes: string[];
 }
 
-interface DemoAccount extends AuthUser { password: string; }
-
-export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts, veAreas, docTypes }: LoginPageProps) {
+export function LoginPage({ onLogin, onNav, initialView = "login", veAreas, docTypes }: LoginPageProps) {
   type View = "login" | "register";
   const [view, setView] = useState<View>(initialView);
 
@@ -132,28 +129,28 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   });
   const canSubmitReg = registerValidation.valid;
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const validation = validateLoginForm({ email: loginCred, password: loginPass });
     if (!validation.valid) {
       setLoginError(firstError(validation));
       return;
     }
-    const found = demoAccounts.find(a => (a.email === loginCred || a.cedula === loginCred) && a.password === loginPass);
-    if (!found) { setLoginError("Credencial o contraseña incorrectos."); return; }
-    setLoginError("");
-    const { password: _, ...user } = found;
-    onLogin(user);
-    if (["auditor", "auxiliar", "superadmin"].includes(user.role)) {
-      onNav("admin");
-    } else if (user.role === "repartidor") {
-      onNav("delivery");
-    } else {
-      onNav("home");
+    setIsLoading(true);
+    try {
+      const user = await login(loginCred.trim(), loginPass);
+      setLoginError("");
+      onLogin(user);
+      if (["auditor", "auxiliar", "superadmin"].includes(user.role)) onNav("admin");
+      else if (user.role === "repartidor") onNav("delivery");
+      else onNav("home");
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "No se pudo iniciar sesión.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleRegisterSubmit = async () => {
     if (isLoading) return;
     setIsLoading(true);
     
@@ -168,13 +165,14 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
     });
     if (!validation.valid) {
       setOtpError(firstError(validation));
+      setIsLoading(false);
       return;
     }
     try {
       setOtpValue("");
       console.log("Valores que se enviarán al servidor:", { 
         email: regEmail});
-      await registerUser({
+      const response = await registerUser({
         email: regEmail,
         password: regPass,
         nombre_completo: regName,
@@ -183,18 +181,20 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
         telefono: regPhone,
         codigo_area: regPhoneArea,
         acepta_terminos: acceptTerms,
-        acepta_promociones: true, // O el estado de tu checkbox correspondiente
-        acepta_promociones_sms: true,
-        acepta_promociones_correo: true,
+        acepta_promociones: acceptNotifications,
+        acepta_promociones_sms: acceptNotifications,
+        acepta_promociones_correo: acceptNotifications,
         acepta_notificaciones: acceptNotifications,
-        acepta_notificaciones_sms: true,
-        acepta_notificaciones_correo: true
+        acepta_notificaciones_sms: acceptNotifications,
+        acepta_notificaciones_correo: acceptNotifications
       });
+      if (!response.success) throw new Error(response.message);
       setOtpPhase("email");
-    } catch (error: any) {
-      setOtpError(error.message || "Error desconocido al registrar el usuario.");
-    }  
-    
+    } catch (error) {
+      setOtpError(error instanceof Error ? error.message : "Error desconocido al registrar el usuario.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOtpVerify = () => {
@@ -550,8 +550,8 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                 </div>
               )}
 
-              <button onClick={handleLogin} className="w-full py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors" style={H7}>
-                Ingresar
+              <button onClick={handleLogin} disabled={isLoading} className="w-full py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-60" style={H7}>
+                {isLoading ? "Ingresando…" : "Ingresar"}
               </button>
 
               {/* Crear una cuenta — identical style to ¿Olvidaste tu contraseña? */}
@@ -564,29 +564,6 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
               </button>
             </div>
 
-            {/* Demo hint */}
-            <div className="mt-6 bg-[#e0f5eb] border border-[#a7f3d0] rounded-xl p-4">
-              <div className="text-xs font-black uppercase text-[#006064] mb-2" style={H9}>Cuentas demo</div>
-              <div className="space-y-1">
-                {demoAccounts.map(a => (
-                  <button
-                    key={a.email}
-                    onClick={() => { setLoginCred(a.email); setLoginPass(a.password); setLoginError(""); }}
-                    className="w-full text-left flex items-center justify-between text-xs px-2 py-1.5 rounded-lg hover:bg-[#e0f5eb] transition-colors"
-                  >
-                    <span className="text-foreground font-semibold">{a.name}</span>
-                    <span className={`font-black uppercase px-2 py-0.5 rounded-full text-[10px]
-                      ${a.role === "superadmin" ? "bg-[#006064] text-white" :
-                        a.role === "repartidor" ? "bg-[#50e9f8] text-[#006064]" :
-                        a.role === "cliente" ? "bg-green-100 text-[#179150]" :
-                        a.role === "auditor" ? "bg-gray-200 text-gray-700" :
-                        "bg-amber-100 text-amber-800"}`} style={H9}>
-                      {a.role}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

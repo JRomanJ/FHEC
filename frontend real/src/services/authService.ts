@@ -1,37 +1,61 @@
-import { apiClient } from "./apiService";
+import type { AuthUser, UserRole } from "../app/types";
+import { clearSession, requestJson, saveSession } from "./httpClient";
 
-export const registerUser = async (userData: any) => {
-  try {
-    const response = await apiClient("/log", userData);
-    return response.data;
-  } catch (error) {
-    console.error("Error en la peticion de registro:", error);
-    return { success: false, message: (error as Error).message || "No se pudo conectar con el servidor"};
-  } 
+interface ApiEnvelope<T> {
+  success: boolean;
+  message: string;
+  data: T;
 }
 
-
-
-//Pruebas con mock de login y logout
-/*import { DEMO_ACCOUNTS } from "../data";
-
-export function validarCredencialesMock(correo: string, password: string) {
-  const normalized = correo.trim().toLowerCase();
-  return (
-    DEMO_ACCOUNTS.find(
-      (account) => account.email.toLowerCase() === normalized && account.password === password,
-    ) ?? null
-  );
+interface BackendUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  documentType: string;
+  document: string;
+  phone: string;
+  areaCode: string;
+  address?: string;
 }
 
-export function loginMock(correo: string, password: string) {
-  const user = validarCredencialesMock(correo, password);
-  if (!user) return null;
-
-  const { password: _password, ...authUser } = user;
-  return authUser;
+interface BackendSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: number;
 }
 
-export function logoutMock() {
-  return true;
-}*/
+const normalizeRole = (role: string): UserRole => {
+  if (role === "super_admin" || role === "admin") return "superadmin";
+  if (["cliente", "repartidor", "auxiliar", "auditor", "superadmin"].includes(role)) {
+    return role as UserRole;
+  }
+  return "cliente";
+};
+
+export async function registerUser(userData: Record<string, unknown>) {
+  return requestJson<ApiEnvelope<unknown>>("/log", { method: "POST", body: userData });
+}
+
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const response = await requestJson<ApiEnvelope<{ user: BackendUser; session: BackendSession | null }>>("/login", {
+    method: "POST",
+    body: { email, password },
+  });
+  saveSession(response.data.session);
+  const user = response.data.user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: normalizeRole(user.role),
+    cedula: `${user.documentType || "V"}-${user.document}`,
+    phone: user.phone,
+    areaCode: user.areaCode,
+    address: user.address ?? "",
+  };
+}
+
+export function logout() {
+  clearSession();
+}

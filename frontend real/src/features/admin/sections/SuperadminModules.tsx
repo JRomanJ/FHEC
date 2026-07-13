@@ -18,19 +18,36 @@ import {
   X,
 } from "lucide-react";
 import type { Page, Product, Slide } from "../../../app/types";
-import { CATS, DEMO_ACCOUNTS, PRODUCTS, fmtUSD, H7, H9 } from "../../../app/data";
-import { getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels } from "../../../services";
+import { CATS, fmtUSD, H7, H9 } from "../../../app/data";
+import { assignRole, createInventoryEntry, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, updateInventoryPrice } from "../../../services";
+import { BRANCH_IDS } from "../../../config/api";
 import { InventarioTab } from "./AdminInventorySection";
 import {
   firstError,
   normalizeCouponCode,
   validateAdminCouponForm,
   validateAdminProductForm,
-  validateStaffForm,
 } from "../../../validation";
 
 // ─── SuperadminModules ────────────────────────────────────────────────────────
 export type SuperTab = "contenido" | "catalogo" | "personal" | "monitor" | "inventario" | "cupones";
+
+interface StaffRow {
+  id: string;
+  name: string;
+  cedula: string;
+  roles: string[];
+  createdAt: string;
+}
+
+interface BackendUserProfile {
+  id: string;
+  nombre_completo: string;
+  tipo_documento_identidad: string;
+  documento_identidad: string;
+  rol: string;
+  created_at: string;
+}
 
 // payRef only present when the order has been paid
 const DEMO_GLOBAL_ORDERS = getLegacyAdminMonitorOrderViewModels();
@@ -77,27 +94,24 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   };
 
   // ── Gestor Catálogo state ──
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>(products.length ? products : PRODUCTS);
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(products);
   const [catSearch, setCatSearch] = useState("");
   const [catFilter, setCatFilter] = useState("Todos");
   const [editProd, setEditProd] = useState<Product | null>(null);
   const [showProdForm, setShowProdForm] = useState(false);
   const [prodForm, setProdForm] = useState<Partial<Product>>({});
   const [prodFormError, setProdFormError] = useState("");
+  const [prodSaving, setProdSaving] = useState(false);
   const isProdEnabled = (p: Product) => p.enabled !== false;
+  React.useEffect(() => setCatalogProducts(products), [products]);
 
   // ── Gestor Personal state ──
-  const [staff, setStaff] = useState([
-    { id: 1, name: "Ana Torres",   email: "auxiliar@fhec.com",   cedula: "V-11223344", roles: ["auxiliar"] as string[],                        sede: "principal", active: true,  createdAt: "2024-01-15" },
-    { id: 2, name: "José Ramos",   email: "repartidor@fhec.com", cedula: "V-87654321", roles: ["repartidor"] as string[],                       sede: "principal", active: true,  createdAt: "2024-02-03" },
-    { id: 3, name: "Carlos Vega",  email: "auditor@fhec.com",    cedula: "V-33445566", roles: ["auditor"] as string[],                          sede: "clinica",   active: true,  createdAt: "2024-03-10" },
-    { id: 4, name: "Luis Medina",  email: "admin@fhec.com",      cedula: "V-55667788", roles: ["superadmin", "auditor", "auxiliar"] as string[], sede: "Todas",     active: true,  createdAt: "2024-01-01" },
-    { id: 5, name: "Carmen López", email: "carmen@fhec.com",     cedula: "V-22334455", roles: ["auxiliar"] as string[],                         sede: "clinica",   active: false, createdAt: "2024-04-20" },
-  ]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
   const [showStaffForm, setShowStaffForm] = useState(false);
-  const [staffForm, setStaffForm] = useState({ email: "", role: "auxiliar", sede: "principal" });
+  const [staffForm, setStaffForm] = useState({ docType: "V", document: "", role: "auxiliar" });
   const [staffFormError, setStaffFormError] = useState("");
-  const [editStaffId, setEditStaffId] = useState<number | null>(null);
+  const [editStaffId, setEditStaffId] = useState<string | null>(null);
+  const [staffSaving, setStaffSaving] = useState(false);
   const ROLE_OPTIONS = ["auxiliar", "repartidor", "auditor", "superadmin"];
 
   // ── Monitor Global state ──
@@ -217,12 +231,12 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
 
   const openNewProd = () => {
     setEditProd(null);
-    setProdForm({ name: "", brand: "", category: "Diabetes", presentation: "", packSize: "", priceUSD: 0, stock: 0, discount: 0, needsRecipe: false, rating: 5, reviews: 0, bgColor: "#e8f5e9", accentColor: "#179150", description: "", activeIngredient: "", contraindications: "", posology: "", concentration: "", concentrationUnit: "mg" });
+    setProdForm({ name: "", brand: "", barcode: "", category: "analgesicos", presentation: "", packSize: "", priceUSD: 0, stock: 1, discount: 0, needsRecipe: false, rating: 5, reviews: 0, bgColor: "#e8f5e9", accentColor: "#179150", description: "", activeIngredient: "", contraindications: "", posology: "", concentration: "", concentrationUnit: "mg" });
     setProdFormError("");
     setShowProdForm(true);
   };
 
-  const saveProd = () => {
+  const saveProd = async () => {
     const validation = validateAdminProductForm({
       name: prodForm.name,
       activeIngredient: prodForm.activeIngredient,
@@ -237,48 +251,75 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
       setProdFormError(firstError(validation));
       return;
     }
-    setProdFormError("");
-    if (editProd) {
-      setCatalogProducts(prev => prev.map(p => p.id === editProd.id ? { ...p, ...prodForm } as Product : p));
-    } else {
-      const newId = Math.max(...catalogProducts.map(p => p.id), 0) + 1;
-      setCatalogProducts(prev => [...prev, { ...prodForm, id: newId } as Product]);
+    if (!editProd && !prodForm.barcode?.trim()) {
+      setProdFormError("El código de barras es obligatorio para registrar el producto.");
+      return;
     }
-    setShowProdForm(false);
+    setProdFormError("");
+    setProdSaving(true);
+    try {
+      if (editProd?.backendId) {
+        await updateInventoryPrice(editProd.backendId, BRANCH_IDS.principal, Number(prodForm.priceUSD ?? 0));
+      } else {
+        const producto = {
+          principio_activo: prodForm.activeIngredient,
+          marca_comercial: prodForm.brand,
+          id_categoria: prodForm.category,
+          forma_farmaceutica: prodForm.presentation,
+          cantidad_presentacion: prodForm.packSize,
+          descripcion: prodForm.description,
+          imagen_producto: prodForm.imageUrl,
+          relevancia: prodForm.rating,
+          nivel_control: controlLevel(prodForm) === "ninguno" ? "Venta libre" : "Bajo receta",
+          concentracion: [prodForm.concentration, prodForm.concentrationUnit].filter(Boolean).join(""),
+          codigo_barras: prodForm.barcode,
+        };
+        const created = await createInventoryEntry<{ success: boolean; productoId: string }>(producto, BRANCH_IDS.principal);
+        await updateInventoryPrice(created.data.productoId, BRANCH_IDS.principal, Number(prodForm.priceUSD ?? 0));
+      }
+      const refreshed = await getCatalogProducts(BRANCH_IDS.principal);
+      setCatalogProducts(refreshed);
+      setProducts(refreshed);
+      setShowProdForm(false);
+    } catch (error) {
+      setProdFormError(error instanceof Error ? error.message : "No se pudo guardar el producto en Supabase.");
+    } finally {
+      setProdSaving(false);
+    }
   };
 
   const toggleProdEnabled = (id: number) => {
     setCatalogProducts(prev => prev.map(p => p.id === id ? { ...p, enabled: p.enabled === false ? true : false } : p));
   };
 
-  const toggleStaffEnabled = (id: number) => {
-    setStaff(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
-  };
-
-  const saveStaff = () => {
+  const saveStaff = async () => {
     setStaffFormError("");
-    const staffValidation = validateStaffForm({
-      email: staffForm.email,
-      role: staffForm.role,
-      duplicate: editStaffId === null && staff.some(s => s.email.toLowerCase() === staffForm.email.trim().toLowerCase()),
-    });
-    if (!staffValidation.valid) {
-      setStaffFormError(firstError(staffValidation));
+    if (!staffForm.document.trim()) {
+      setStaffFormError("El documento de identidad es obligatorio.");
       return;
     }
-    // Look up user data from existing accounts (demo)
-    const knownAccount = DEMO_ACCOUNTS.find(a => a.email === staffForm.email);
-    const resolvedName  = knownAccount?.name  ?? staffForm.email;
-    const resolvedCedula = knownAccount?.cedula ?? "—";
-    if (editStaffId !== null) {
-      setStaff(prev => prev.map(m => m.id === editStaffId ? { ...m, roles: [staffForm.role], sede: staffForm.sede } : m));
-    } else {
-      const newId = Math.max(...staff.map(s => s.id), 0) + 1;
-      setStaff(prev => [...prev, { id: newId, name: resolvedName, email: staffForm.email, cedula: resolvedCedula, roles: [staffForm.role], sede: staffForm.sede, active: true, createdAt: new Date().toISOString().split("T")[0] }]);
+    setStaffSaving(true);
+    try {
+      const response = await findUserByDocument<BackendUserProfile | null>(staffForm.docType, staffForm.document.trim());
+      if (!response.data) throw new Error("No existe un usuario registrado con ese documento.");
+      const databaseRole = staffForm.role === "superadmin" ? "super_admin" : staffForm.role;
+      await assignRole(response.data.id, databaseRole);
+      const row: StaffRow = {
+        id: response.data.id,
+        name: response.data.nombre_completo,
+        cedula: `${response.data.tipo_documento_identidad}-${response.data.documento_identidad}`,
+        roles: [staffForm.role],
+        createdAt: response.data.created_at,
+      };
+      setStaff((current) => [...current.filter((item) => item.id !== row.id), row]);
+      setStaffForm({ docType: "V", document: "", role: "auxiliar" });
+      setEditStaffId(null);
+      setShowStaffForm(false);
+    } catch (error) {
+      setStaffFormError(error instanceof Error ? error.message : "No se pudo asignar el rol.");
+    } finally {
+      setStaffSaving(false);
     }
-    setStaffForm({ email: "", role: "auxiliar", sede: "principal" });
-    setEditStaffId(null);
-    setShowStaffForm(false);
   };
 
   const SUPER_TABS: { key: SuperTab; label: string; icon: React.ReactNode }[] = [
@@ -556,6 +597,10 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                     <label className={lbl}>Nombre del producto *</label>
                     <input className={inp} value={prodForm.name ?? ""} onChange={e => setProdForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Metformina 500mg" />
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className={lbl}>Código de barras *</label>
+                    <input className={inp} value={prodForm.barcode ?? ""} disabled={Boolean(editProd)} onChange={e => setProdForm(f => ({ ...f, barcode: e.target.value }))} placeholder="Ej: 7591000000007" />
+                  </div>
                   {/* Marca */}
                   <div>
                     <label className={lbl}>Marca comercial *</label>
@@ -664,8 +709,8 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                   </div>
                 )}
                 <div className="flex gap-3 mt-6">
-                  <button onClick={saveProd} className="flex-1 py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors" style={H7}>
-                    {editProd ? "Guardar cambios" : "Crear producto"}
+                  <button onClick={saveProd} disabled={prodSaving} className="flex-1 py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-60" style={H7}>
+                    {prodSaving ? "Guardando…" : editProd ? "Guardar precio" : "Crear producto"}
                   </button>
                   <button onClick={() => setShowProdForm(false)} className="px-6 py-3 border border-border rounded-xl hover:bg-[#f0fdf7] transition-colors" style={H7}>Cancelar</button>
                 </div>
@@ -681,10 +726,10 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl uppercase text-foreground" style={H9}>Personal Operativo</h3>
-              <p className="text-sm text-muted-foreground">{staff.length} personas · {staff.filter(s => s.active).length} activas</p>
+              <p className="text-sm text-muted-foreground">Usuarios consultados y actualizados durante esta sesión.</p>
             </div>
             <button
-              onClick={() => { setStaffForm({ email: "", role: "auxiliar", sede: "principal" }); setEditStaffId(null); setStaffFormError(""); setShowStaffForm(true); }}
+              onClick={() => { setStaffForm({ docType: "V", document: "", role: "auxiliar" }); setEditStaffId(null); setStaffFormError(""); setShowStaffForm(true); }}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors"
               style={H7}
             >
@@ -698,7 +743,7 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
               <table className="w-full">
                 <thead>
                   <tr className="bg-[#f0fdf7] border-b border-border">
-                    {["Nombre completo", "Correo", "Documento de identidad", "Rol", "Sede", "Estado", ""].map(h => (
+                    {["Nombre completo", "Documento de identidad", "Rol", "Fecha de registro", ""].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-black uppercase text-muted-foreground whitespace-nowrap" style={H9}>{h}</th>
                     ))}
                   </tr>
@@ -711,43 +756,29 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                       auxiliar:   "bg-[#50e9f8]/20 text-[#006064]",
                       repartidor: "bg-purple-100 text-purple-800",
                     }[r] ?? "bg-green-100 text-green-800");
-                    const sedeLabel = s.sede === "principal" ? "Sede Principal" : s.sede === "clinica" ? "Clínica Humana" : "Todas las sedes";
                     return (
-                      <tr key={s.id} className={`border-b border-border/50 transition-colors ${s.active ? "hover:bg-[#f9fdfe]" : "bg-gray-50/60 opacity-60"}`}>
+                      <tr key={s.id} className="border-b border-border/50 hover:bg-[#f9fdfe] transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 ${s.active ? "bg-gradient-to-br from-[#50e9f8] to-[#179150]" : "bg-gray-300"}`} style={H9}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0 bg-gradient-to-br from-[#50e9f8] to-[#179150]" style={H9}>
                               {s.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                             </div>
-                            <span className={`font-semibold text-sm ${s.active ? "text-foreground" : "text-muted-foreground"}`}>{s.name}</span>
+                            <span className="font-semibold text-sm text-foreground">{s.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{s.email}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">{s.cedula}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${s.active ? roleBadge(s.roles[0]) : "bg-gray-100 text-gray-400"}`} style={H9}>{s.roles[0]}</span>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${roleBadge(s.roles[0] ?? "")}`} style={H9}>{s.roles[0]}</span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{sedeLabel}</td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${s.active ? "bg-[#e0f5eb] text-[#179150]" : "bg-gray-100 text-gray-500"}`} style={H9}>
-                            {s.active ? "Habilitado" : "Inhabilitado"}
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleDateString("es-VE")}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1.5">
                             <button
-                              onClick={() => { setEditStaffId(s.id); setStaffForm({ email: s.email, role: s.roles[0] ?? "auxiliar", sede: s.sede }); setShowStaffForm(true); }}
+                              onClick={() => { const [docType, document] = s.cedula.split("-"); setEditStaffId(s.id); setStaffForm({ docType: docType ?? "V", document: document ?? "", role: s.roles[0] ?? "auxiliar" }); setShowStaffForm(true); }}
                               className="p-1.5 hover:bg-[#50e9f8]/10 rounded-lg text-[#006064] transition-colors"
                               title="Editar asignación"
                             >
                               <Settings size={14} />
-                            </button>
-                            <button
-                              onClick={() => toggleStaffEnabled(s.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${s.active ? "hover:bg-amber-50 text-amber-600" : "hover:bg-[#e0f5eb] text-[#179150]"}`}
-                              title={s.active ? "Inhabilitar" : "Habilitar"}
-                            >
-                              {s.active ? <EyeOff size={14} /> : <Eye size={14} />}
                             </button>
                           </div>
                         </td>
@@ -772,9 +803,9 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className={lbl}>Correo electrónico del usuario *</label>
-                    <input type="email" className={inp} value={staffForm.email} onChange={e => setStaffForm(f => ({ ...f, email: e.target.value }))} placeholder="usuario@fhec.com" disabled={editStaffId !== null} />
-                    {editStaffId !== null && <p className="text-[10px] text-muted-foreground mt-1">El correo no puede modificarse.</p>}
+                    <label className={lbl}>Documento de identidad *</label>
+                    <div className="flex gap-2"><select className={`${inp} max-w-20`} value={staffForm.docType} onChange={e => setStaffForm(f => ({ ...f, docType: e.target.value }))}><option>V</option><option>E</option><option>J</option></select>
+                    <input className={inp} value={staffForm.document} onChange={e => setStaffForm(f => ({ ...f, document: e.target.value }))} placeholder="31275151" disabled={editStaffId !== null} /></div>
                   </div>
                   <div>
                     <label className={lbl}>Rol operativo *</label>
@@ -792,14 +823,6 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className={lbl}>Sede asignada</label>
-                    <select className={inp} value={staffForm.sede} onChange={e => setStaffForm(f => ({ ...f, sede: e.target.value }))}>
-                      <option value="principal">Sede Principal</option>
-                      <option value="clinica">Clínica Humana</option>
-                      <option value="Todas">Todas las sedes</option>
-                    </select>
-                  </div>
                   {staffFormError && (
                     <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2 text-sm">
                       <AlertTriangle size={14} />{staffFormError}
@@ -807,8 +830,8 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                   )}
                 </div>
                 <div className="flex gap-3 mt-6">
-                  <button onClick={saveStaff} className="flex-1 py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors font-black uppercase" style={H7}>
-                    {editStaffId ? "Guardar cambios" : "Asignar"}
+                  <button onClick={saveStaff} disabled={staffSaving} className="flex-1 py-3 bg-[#179150] text-white rounded-xl hover:bg-green-700 transition-colors font-black uppercase disabled:opacity-60" style={H7}>
+                    {staffSaving ? "Guardando…" : editStaffId ? "Guardar rol" : "Asignar"}
                   </button>
                   <button onClick={() => { setShowStaffForm(false); setEditStaffId(null); }} className="px-6 py-3 border border-border rounded-xl hover:bg-[#f0fdf7] transition-colors" style={H7}>Cancelar</button>
                 </div>

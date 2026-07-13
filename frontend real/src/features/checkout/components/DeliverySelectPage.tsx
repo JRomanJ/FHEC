@@ -35,10 +35,16 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   const discountAmt   = subtotal * discountApplied / 100;
   const ivaAmt        = subtotal * 0.16;
   const total         = subtotal + ivaAmt + deliveryFee - discountAmt;
-  const activeSede    = sedes.find(s => s.id === selectedSede) ?? sedes[0];
+  const activeSede    = sedes.find(s => s.id === selectedSede) ?? sedes[0] ?? {
+    id: "", name: "Sede no disponible", address: "", hours: "", mapsUrl: "#",
+  };
 
   // Receiver data — autocomplete from user profile
-  const userContact = user ? (demoContact[user.email] ?? { phone: "", address: "" }) : { phone: "", address: "" };
+  const fallbackContact = user ? (demoContact[user.email] ?? { phone: "", address: "" }) : { phone: "", address: "" };
+  const userContact = user ? {
+    phone: user.phone ? (user.phone.startsWith("+") ? user.phone : `${user.areaCode ?? ""}-${user.phone}`.replace(/^-/, "")) : fallbackContact.phone,
+    address: user.address ?? fallbackContact.address,
+  } : fallbackContact;
   const [receiverName,      setReceiverName]      = useState(user?.name ?? "");
   const [receiverPhone,     setReceiverPhone]     = useState(userContact.phone);
   const [receiverPhoneArea, setReceiverPhoneArea] = useState("0414");

@@ -26,4 +26,8 @@ export const getAuthedClient = async () => {
     return supabase;
 };
 
+console.log("DEBUG URL:", process.env.SUPABASE_URL);
+console.log("DEBUG KEY:", process.env.SUPABASE_ANON_KEY ? "DEFINIDA" : "VACÍA");
+
+
 export const supabase = createClient(supabaseUrl, supabaseKey);

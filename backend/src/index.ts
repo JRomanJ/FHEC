@@ -18,7 +18,7 @@ const sedeIdSimulada = '123e4567-e89b-12d3-a456-426614174000';
 const runSystem = async () => {
     try{
         //REGISTRAR NUEVO USUARIO
-        console.log('---Registrando usuario---');
+        /*console.log('---Registrando usuario---');
         const newUser = await userLogger({
             email: 'anatorres@gmail.com',
             password: 'clave123',
@@ -36,7 +36,7 @@ const runSystem = async () => {
             acepta_notificaciones_correo: true
         });
         //await userLogger('carlosvega@gmail.com', 'clave123', 'Carlos Vega', 'V', '32145897', '+58-0201893', '0286', true, true, true, true, true, true, true);
-        console.log('Usuario registrado con exito!', newUser);
+        console.log('Usuario registrado con exito!', newUser);*/
 
 
         //INICIAR SESION

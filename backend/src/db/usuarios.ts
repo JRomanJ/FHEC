@@ -45,7 +45,7 @@ export const userLogger = async (data: any) => {
 
     if (error) {
         console.error("Error detallado de Supabase:", JSON.stringify(error, null, 2));
-        throw error;
+        throw new Error(error.message || "Error en el servidor");
     }
 
     return authData;

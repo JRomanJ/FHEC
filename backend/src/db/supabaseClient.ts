@@ -27,3 +27,22 @@ export const getAuthedClient = async () => {
 };
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+export const createAuthedClient = (accessToken: string) => {
+    if (!accessToken) {
+        throw new Error('Falta el token de acceso de Supabase');
+    }
+
+    return createClient(supabaseUrl, supabaseKey, {
+        global: {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        },
+        auth: {
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+            persistSession: false,
+        },
+    });
+};

@@ -68,11 +68,14 @@ export interface LoginPageProps {
   onLogin: (u: AuthUser) => void;
   onNav: (p: Page) => void;
   initialView?: "login" | "register";
+  demoAccounts: DemoAccount[];
   veAreas: string[];
   docTypes: string[];
 }
 
-export function LoginPage({ onLogin, onNav, initialView = "login", veAreas, docTypes }: LoginPageProps) {
+interface DemoAccount extends AuthUser { password: string; }
+
+export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts, veAreas, docTypes }: LoginPageProps) {
   type View = "login" | "register";
   const [view, setView] = useState<View>(initialView);
 
@@ -562,6 +565,29 @@ export function LoginPage({ onLogin, onNav, initialView = "login", veAreas, docT
               <button onClick={() => setFpStep("sendCode")} className={linkBtn}>
                 ¿Olvidaste tu contraseña?
               </button>
+            </div>
+
+            <div className="mt-6 bg-[#e0f5eb] border border-[#a7f3d0] rounded-xl p-4">
+              <div className="text-xs font-black uppercase text-[#006064] mb-2" style={H9}>Cuentas demo</div>
+              <div className="space-y-1">
+                {demoAccounts.map(account => (
+                  <button
+                    key={account.email}
+                    onClick={() => { setLoginCred(account.email); setLoginPass(account.password); setLoginError(""); }}
+                    className="w-full text-left flex items-center justify-between text-xs px-2 py-1.5 rounded-lg hover:bg-[#e0f5eb] transition-colors"
+                  >
+                    <span className="text-foreground font-semibold">{account.name}</span>
+                    <span className={`font-black uppercase px-2 py-0.5 rounded-full text-[10px]
+                      ${account.role === "superadmin" ? "bg-[#006064] text-white" :
+                        account.role === "repartidor" ? "bg-[#50e9f8] text-[#006064]" :
+                        account.role === "cliente" ? "bg-green-100 text-[#179150]" :
+                        account.role === "auditor" ? "bg-gray-200 text-gray-700" :
+                        "bg-amber-100 text-amber-800"}`} style={H9}>
+                      {account.role}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
           </div>

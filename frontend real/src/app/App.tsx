@@ -7,6 +7,7 @@ import {
   BRAND_SYNONYMS,
   CATS,
   DEFAULT_SLIDES,
+  DEMO_ACCOUNTS,
   DEMO_CONTACT,
   DEMO_ORDERS,
   DISCOUNT_CODES,
@@ -140,7 +141,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: "'Barlow', sans-serif" }}>
         <Suspense fallback={null}>
-          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
+          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
         </Suspense>
       </div>
     );

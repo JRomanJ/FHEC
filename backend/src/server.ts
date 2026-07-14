@@ -8,6 +8,14 @@ import { findProduct } from './db/productos.js';
 import { insertRole, assingnRole } from './db/roles.js';
 import { cargarTodoEnSede } from './db/cargarProductosdePrueba.js';
 import { supabase } from './db/supabaseClient.js';
+import {
+    agregarProductoCarrito,
+    disminuirProductoCarrito,
+    eliminarProductoCarrito,
+    establecerCantidadProductoCarrito,
+    obtenerCarrito,
+    vaciarCarrito,
+} from './db/carritos.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,9 +29,31 @@ type AuthenticatedRequest = Request & {
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '1mb' }));
 
-const requireFields = (body: Record<string, unknown>, fields: string[]) => {
-    const missing = fields.filter((field) => body[field] === undefined || body[field] === null || body[field] === '');
+const requireFields = (body: Record<string, unknown> | undefined, fields: string[]) => {
+    const source = body ?? {};
+    const missing = fields.filter((field) => source[field] === undefined || source[field] === null || source[field] === '');
     if (missing.length) throw Object.assign(new Error(`Campos obligatorios: ${missing.join(', ')}`), { status: 400 });
+};
+
+const getAccessToken = (req: Request) => {
+    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    if (!accessToken) throw Object.assign(new Error('Debes iniciar sesion.'), { status: 401 });
+    return accessToken;
+};
+
+const parseInteger = (value: unknown, field: string, defaultValue?: number) => {
+    const resolvedValue = value ?? defaultValue;
+    const parsedValue = typeof resolvedValue === 'number'
+        ? resolvedValue
+        : typeof resolvedValue === 'string' && resolvedValue.trim() !== ''
+            ? Number(resolvedValue)
+            : Number.NaN;
+
+    if (!Number.isInteger(parsedValue)) {
+        throw Object.assign(new Error(`${field} debe ser un numero entero.`), { status: 400 });
+    }
+
+    return parsedValue;
 };
 
 const asyncRoute = (handler: (req: Request, res: Response) => Promise<void>) =>
@@ -140,6 +170,56 @@ app.get('/api/products/search', authenticate, asyncRoute(async (req, res) => {
     if (typeof req.query.forma_farmaceutica === 'string') criteria.forma_farmaceutica = req.query.forma_farmaceutica;
     const data = await findProduct(criteria);
     res.json({ success: true, data });
+}));
+
+app.get('/api/cart', authenticate, asyncRoute(async (req, res) => {
+    const data = await obtenerCarrito(getAccessToken(req));
+    res.json({ success: true, data });
+}));
+
+app.post('/api/cart/items', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['idInventario']);
+    const cantidad = parseInteger(req.body.cantidad, 'cantidad', 1);
+    const data = await agregarProductoCarrito(
+        getAccessToken(req),
+        String(req.body.idInventario),
+        cantidad,
+    );
+    res.status(201).json({ success: true, data });
+}));
+
+app.put('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['cantidad']);
+    const cantidad = parseInteger(req.body.cantidad, 'cantidad');
+    const data = await establecerCantidadProductoCarrito(
+        getAccessToken(req),
+        String(req.params.idInventario),
+        cantidad,
+    );
+    res.json({ success: true, data: { cantidad } });
+}));
+
+app.patch('/api/cart/items/:idInventario/decrement', authenticate, asyncRoute(async (req, res) => {
+    const cantidadADisminuir = parseInteger(req.body?.cantidad, 'cantidad', 1);
+    const cantidad = await disminuirProductoCarrito(
+        getAccessToken(req),
+        String(req.params.idInventario),
+        cantidadADisminuir,
+    );
+    res.json({ success: true, data: { cantidad } });
+}));
+
+app.delete('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, res) => {
+    const eliminado = await eliminarProductoCarrito(
+        getAccessToken(req),
+        String(req.params.idInventario),
+    );
+    res.json({ success: true, data: { eliminado } });
+}));
+
+app.delete('/api/cart', authenticate, asyncRoute(async (req, res) => {
+    const productosEliminados = await vaciarCarrito(getAccessToken(req));
+    res.json({ success: true, data: { productosEliminados } });
 }));
 
 app.get('/api/branches/by-name', asyncRoute(async (req, res) => {

@@ -94,3 +94,56 @@ export const findUserByCedula = async (tipo_documento_identidad: string, documen
     if (error) return null;
     return data;
 }
+
+export const updateUserAuthEmail = async (email: string) => {
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const { data, error } = await supabase.auth.updateUser({ email: normalizedEmail });
+
+    if (error) {
+        console.error('Error al actualizar correo en Supabase Auth:', JSON.stringify(error, null, 2));
+        throw new Error(`Error en actualización de correo: ${error.message || 'Error desconocido'}`);
+    }
+
+    if (!data.user) {
+        throw new Error('No se pudo actualizar el correo en la autenticación.');
+    }
+
+    return data.user;
+};
+
+export const updateUserProfile = async (userId: string, data: Partial<UserData> & { nombre_completo?: string; tipo_documento_identidad?: string; documento_identidad?: string; telefono?: string; codigo_area?: string; direccion_fiscal?: string; correo?: string }) => {
+    // Whitelist allowed fields to prevent role/id escalation attacks
+    const allowedFields: Record<string, unknown> = {};
+    const mapping: Record<string, string> = {
+        name: 'nombre_completo',
+        documentType: 'tipo_documento_identidad',
+        document: 'documento_identidad',
+        phone: 'telefono',
+        areaCode: 'codigo_area',
+        address: 'direccion_fiscal',
+    };
+
+    for (const [frontKey, dbCol] of Object.entries(mapping)) {
+        if ((data as any)[frontKey] !== undefined) {
+            allowedFields[dbCol] = (data as any)[frontKey];
+        }
+        if ((data as any)[dbCol] !== undefined) {
+            allowedFields[dbCol] = (data as any)[dbCol];
+        }
+    }
+
+    const { data: updated, error } = await supabase
+        .from('usuarios')
+        .update(allowedFields)
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Error al actualizar usuario en Supabase:", JSON.stringify(error, null, 2));
+        throw new Error(`Error en actualización: ${error.message || 'Error desconocido'}`);
+    }
+
+    return updated;
+};

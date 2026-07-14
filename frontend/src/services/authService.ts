@@ -14,8 +14,8 @@ interface BackendUser {
   role: string;
   documentType: string;
   document: string;
-  phone: string;
-  areaCode: string;
+  phone?: string;
+  areaCode?: string;
   address?: string;
 }
 
@@ -58,4 +58,24 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 
 export function logout() {
   clearSession();
+}
+
+export async function updateUser(userId: string, userData: Record<string, unknown>): Promise<AuthUser> {
+  const response = await requestJson<ApiEnvelope<BackendUser>>(`/users/${userId}`, {
+    method: "PATCH",
+    body: userData,
+  });
+
+  const user = response.data;
+  
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: normalizeRole(user.role),
+    cedula: `${user.documentType || "V"}-${user.document}`,
+    phone: user.phone,
+    areaCode: user.areaCode,
+    address: user.address ?? "",
+  };
 }

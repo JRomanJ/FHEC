@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -41,29 +41,31 @@ import {
   validateRefundDestinationStep,
   validateRefundTransactionStep,
 } from "../../../validation";
-
-export interface RefundRequest {
-  id: string; method: string; bank: string; reference: string; amount: string; status: "Pendiente" | "En revisión" | "Aprobado" | "Rechazado";
-}
+import { updateUser } from "../../../../src/services";
 
 export interface ProfilePageProps {
   user: AuthUser;
   onNav: (p: Page) => void;
   onLogout: () => void;
+  onUpdateUser?: (user: AuthUser) => void;
   demoOrders: ReturnType<typeof getLegacyOrderHistoryViewModels>;
   demoContact: Record<string, { phone: string; address: string }>;
   veAreas: string[];
   docTypes: string[];
 }
 
-export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, veAreas, docTypes }: ProfilePageProps) {
+export interface RefundRequest {
+  id: string; method: string; bank: string; reference: string; amount: string; status: "Pendiente" | "En revisión" | "Aprobado" | "Rechazado";
+}
+
+export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, demoContact, veAreas, docTypes }: ProfilePageProps) {
   const mockContact = demoContact[user.email] ?? { phone: "", address: "" };
   const defaultContact = {
     phone: user.phone ? (user.phone.startsWith("+") ? user.phone : `${user.areaCode ?? ""}-${user.phone}`.replace(/^-/, "")) : mockContact.phone,
     address: user.address ?? mockContact.address,
   };
-
   // ── Personal info (no OTP needed) ──
+  const [isUpdating, setIsUpdating] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
   const [name,       setName]       = useState(user.name);
   const [cedula,     setCedula]     = useState(user.cedula.replace(/^[A-Z]-?/, ""));
@@ -71,15 +73,39 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   const [address,    setAddress]    = useState(defaultContact.address);
   const [savedMsg,   setSavedMsg]   = useState(false);
 
-  const handleSaveInfo = () => {
+  useEffect(() => {
+    setName(user.name);
+    setCedula(user.cedula.replace(/^[A-Z]-?/, ""));
+    setProfDocType(user.cedula.split("-")[0] || "V");
+    setAddress(defaultContact.address);
+  }, [user.id, user.name, user.cedula, user.address, defaultContact.address]);
+
+  const handleSaveInfo = async () => {
     const validation = validateProfileInfo({ name, document: cedula });
     if (!validation.valid) {
       toast.error(firstError(validation));
       return;
     }
-    setEditingInfo(false);
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 2500);
+    
+    setIsUpdating(true);
+    try {
+      const updatedUser = await updateUser(user.id, {
+        name,
+        documentType: profDocType,
+        document: cedula,
+        address
+      });
+      
+      onUpdateUser?.(updatedUser);
+      setEditingInfo(false);
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
+    } catch (error) {
+      toast.error("Error al actualizar la información personal.");
+      console.log(error)
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // ── Email change with inline OTP ──
@@ -90,6 +116,11 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
   const [emailOtpValue,  setEmailOtpValue]  = useState("");
   const [emailOtpError,  setEmailOtpError]  = useState("");
 
+  useEffect(() => {
+    setCurrentEmail(user.email);
+    setCurrentPhone(defaultContact.phone);
+  }, [user.email, user.phone, user.areaCode, defaultContact.phone]);
+
   const handleSendEmailOtp = () => {
     const validation = validateProfileEmail(newEmail);
     if (!validation.valid) {
@@ -99,11 +130,29 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
     }
     setEmailOtpSent(true); setEmailOtpValue(""); setEmailOtpError("");
   };
-  const handleVerifyEmailOtp = () => {
-    if (emailOtpValue.replace(/ /g,"") !== "123456") { setEmailOtpError("Código incorrecto. Prueba: 123456"); return; }
-    setCurrentEmail(newEmail);
-    setEditingEmail(false); setEmailOtpSent(false); setNewEmail(""); setEmailOtpValue(""); setEmailOtpError("");
-    setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500);
+  const handleVerifyEmailOtp = async () => {
+    if (emailOtpValue.replace(/ /g,"") !== "123456") {
+      setEmailOtpError("Código incorrecto. Prueba: 123456");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const updatedUser = await updateUser(user.id, { email: newEmail });
+      onUpdateUser?.(updatedUser);
+      setCurrentEmail(newEmail);
+      setEditingEmail(false);
+      setEmailOtpSent(false);
+      setNewEmail("");
+      setEmailOtpValue("");
+      setEmailOtpError("");
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
+    } catch (error) {
+      toast.error("Error al actualizar el correo electrónico.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // ── Phone change with inline OTP ──
@@ -124,11 +173,32 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
     }
     setPhoneOtpSent(true); setPhoneOtpValue(""); setPhoneOtpError("");
   };
-  const handleVerifyPhoneOtp = () => {
-    if (phoneOtpValue.replace(/ /g,"") !== "123456") { setPhoneOtpError("Código incorrecto. Prueba: 123456"); return; }
-    setCurrentPhone(`${newPhoneArea}-${newPhoneNum}`);
-    setEditingPhone(false); setPhoneOtpSent(false); setNewPhoneNum(""); setPhoneOtpValue(""); setPhoneOtpError("");
-    setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500);
+  const handleVerifyPhoneOtp = async () => {
+    if (phoneOtpValue.replace(/ /g,"") !== "123456") {
+      setPhoneOtpError("Código incorrecto. Prueba: 123456");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const updatedUser = await updateUser(user.id, {
+        areaCode: newPhoneArea,
+        phone: newPhoneNum,
+      });
+      onUpdateUser?.(updatedUser);
+      setCurrentPhone(`${newPhoneArea}-${newPhoneNum}`);
+      setEditingPhone(false);
+      setPhoneOtpSent(false);
+      setNewPhoneNum("");
+      setPhoneOtpValue("");
+      setPhoneOtpError("");
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 2500);
+    } catch (error) {
+      toast.error("Error al actualizar el número de teléfono.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // ── Notifications ──
@@ -356,7 +426,14 @@ export function ProfilePage({ user, onNav, onLogout, demoOrders, demoContact, ve
                     {editingInfo ? (
                       <div className="flex gap-2">
                         <button onClick={() => setEditingInfo(false)} className="px-3 py-1.5 border border-border rounded-xl text-xs font-semibold hover:bg-muted transition-colors">Cancelar</button>
-                        <button onClick={handleSaveInfo} className="px-3 py-1.5 bg-[#179150] text-white rounded-xl text-xs font-black uppercase hover:bg-green-700 transition-colors flex items-center gap-1.5" style={H7}><Check size={12} /> Guardar</button>
+                        <button 
+                          onClick={handleSaveInfo} 
+                          disabled={isUpdating}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-colors flex items-center gap-1.5 ${isUpdating ? "bg-gray-400" : "bg-[#179150] hover:bg-green-700"} text-white`} 
+                          style={H7}
+                        >
+                          <Check size={12} /> {isUpdating ? "Guardando..." : "Guardar"}
+                        </button>
                       </div>
                     ) : (
                       <button onClick={() => setEditingInfo(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#50e9f8] text-[#006064] bg-[#e0f5eb] rounded-xl text-xs font-black uppercase hover:bg-[#50e9f8]/20 transition-colors" style={H9}>

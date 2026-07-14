@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import { loginUser } from './authService.js';
-import { userLogger, findUserAuth, findUserByCedula } from './db/usuarios.js';
+import { userLogger, findUserAuth, findUserByCedula, updateUserAuthEmail, updateUserProfile } from './db/usuarios.js';
 import { processInventoryEntry, getProducosWithFilters } from './db/inventario.js';
 import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js';
 import { findProduct } from './db/productos.js';
@@ -16,6 +16,7 @@ import {
     obtenerCarrito,
     vaciarCarrito,
 } from './db/carritos.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -149,6 +150,42 @@ app.post('/api/login', asyncRoute(async (req, res) => {
                 refreshToken: sessionData.session.refresh_token,
                 expiresAt: sessionData.session.expires_at,
             } : null,
+        },
+    });
+}));
+
+app.patch('/api/users/:userId', authenticate, asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
+    const userId = String(req.params.userId);
+
+    if (req.auth?.userId !== userId && !ADMIN_ROLES.has(req.auth?.role ?? '')) {
+        res.status(403).json({ success: false, message: 'No tienes permiso para modificar este usuario.' });
+        return;
+    }
+
+    const updatePayload = { ...req.body } as Record<string, unknown>;
+    const requestedEmail = typeof updatePayload.email === 'string' ? String(updatePayload.email).trim().toLowerCase() : undefined;
+
+    if (requestedEmail !== undefined) {
+        delete updatePayload.email;
+        await updateUserAuthEmail(requestedEmail);
+    }
+
+    const profileData = await updateUserProfile(userId, updatePayload);
+    const { data: authUserData } = await supabase.auth.getUser();
+
+    res.json({
+        success: true,
+        message: 'Usuario actualizado correctamente.',
+        data: {
+            id: profileData.id,
+            name: profileData.nombre_completo ?? '',
+            email: authUserData.user?.email ?? requestedEmail ?? '',
+            role: profileData.rol ?? 'cliente',
+            documentType: profileData.tipo_documento_identidad ?? '',
+            document: profileData.documento_identidad ?? '',
+            phone: profileData.telefono ?? '',
+            areaCode: profileData.codigo_area ?? '',
+            address: profileData.direccion_fiscal ?? '',
         },
     });
 }));

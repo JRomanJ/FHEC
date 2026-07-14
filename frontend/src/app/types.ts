@@ -6,7 +6,7 @@ export interface Slide { title: string; subtitle: string; badge: string; from: s
 export type UserRole = "cliente" | "repartidor" | "auxiliar" | "auditor" | "superadmin";
 
 export interface AuthUser {
-  id?: string;
+  id: string;
   name: string;
   email: string;
   role: UserRole;

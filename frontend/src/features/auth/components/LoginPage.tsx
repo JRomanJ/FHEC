@@ -194,7 +194,16 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
       if (!response.success) throw new Error(response.message);
       setOtpPhase("email");
     } catch (error) {
-      setOtpError(error instanceof Error ? error.message : "Error desconocido al registrar el usuario.");
+      const err = error as any; 
+
+      const message = err.message || "";
+
+      // Detección mejorada
+      if (message.includes("User already registered") || err.code === "user_already_exists") {
+        setOtpError("Este correo ya se encuentra registrado. Por favor, intenta con otro o inicia sesión.");
+      } else {
+        setOtpError(message || "Error desconocido al registrar el usuario.");
+      }
     } finally {
       setIsLoading(false);
     }

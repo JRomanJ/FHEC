@@ -6,13 +6,13 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey){
+if (!supabaseUrl || !supabaseKey) {
     throw new Error('Faltan las variables de entorno de Supabase');
 }
 
 export const getAuthedClient = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session) {
         throw new Error("No hay una sesión activa.");
     }
@@ -46,3 +46,5 @@ export const createAuthedClient = (accessToken: string) => {
         },
     });
 };
+console.log("DEBUG URL:", process.env.SUPABASE_URL);
+console.log("DEBUG KEY:", process.env.SUPABASE_ANON_KEY ? "DEFINIDA" : "VACÍA");

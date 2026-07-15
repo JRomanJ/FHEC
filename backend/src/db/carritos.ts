@@ -1,5 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
-import { getAuthedClient } from './supabaseClient.js';
+import { createAuthedClient } from './supabaseClient.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -51,29 +51,17 @@ const lanzarErrorCarrito = (accion: string, error: PostgrestError): never => {
 };
 
 export const obtenerCarrito = async (accessToken: string): Promise<ProductoCarrito[]> => {
-    const supabase = createAuthedClient(accessToken);
-    const { data, error } = await getAuthedClient();
+    const client = createAuthedClient(accessToken);
+    const { data, error } = await client
         .from('carritos')
-        .select(`
-            id_inventario,
-            cantidad,
-            fecha_agregado,
-            fecha_actualizacion,
-            inventario!inner (
-                id,
-                id_producto,
-                id_sede,
-                stock_disponible,
-                precio_usd,
-                descuento_porcentaje,
-                productos (*)
-            )
-        `)
+        .select(`id_inventario, cantidad, fecha_agregado, fecha_actualizacion, inventario!inner(id, id_producto, id_sede, stock_disponible, precio_usd, descuento_porcentaje, productos(*))`)
         .order('fecha_agregado', { ascending: true });
 
     if (error) lanzarErrorCarrito('No se pudo obtener el carrito', error);
     return (data ?? []) as unknown as ProductoCarrito[];
 };
+
+
 
 export const agregarProductoCarrito = async (
     accessToken: string,

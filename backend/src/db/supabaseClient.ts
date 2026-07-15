@@ -46,5 +46,3 @@ export const createAuthedClient = (accessToken: string) => {
         },
     });
 };
-console.log("DEBUG URL:", process.env.SUPABASE_URL);
-console.log("DEBUG KEY:", process.env.SUPABASE_ANON_KEY ? "DEFINIDA" : "VACÍA");

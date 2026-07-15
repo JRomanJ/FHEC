@@ -52,26 +52,14 @@ const lanzarErrorCarrito = (accion: string, error: PostgrestError): never => {
 export const obtenerCarrito = async (client: SupabaseClient): Promise<ProductoCarrito[]> => {
     const { data, error } = await client
         .from('carritos')
-        .select(`
-            id_inventario,
-            cantidad,
-            fecha_agregado,
-            fecha_actualizacion,
-            inventario!inner (
-                id,
-                id_producto,
-                id_sede,
-                stock_disponible,
-                precio_usd,
-                descuento_porcentaje,
-                productos (*)
-            )
-        `)
+        .select(`id_inventario, cantidad, fecha_agregado, fecha_actualizacion, inventario!inner(id, id_producto, id_sede, stock_disponible, precio_usd, descuento_porcentaje, productos(*))`)
         .order('fecha_agregado', { ascending: true });
 
     if (error) lanzarErrorCarrito('No se pudo obtener el carrito', error);
     return (data ?? []) as unknown as ProductoCarrito[];
 };
+
+
 
 export const agregarProductoCarrito = async (
     client: SupabaseClient,

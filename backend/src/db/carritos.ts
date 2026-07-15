@@ -1,5 +1,4 @@
-import type { PostgrestError } from '@supabase/supabase-js';
-import { createAuthedClient } from './supabaseClient.js';
+import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -50,8 +49,7 @@ const lanzarErrorCarrito = (accion: string, error: PostgrestError): never => {
     );
 };
 
-export const obtenerCarrito = async (accessToken: string): Promise<ProductoCarrito[]> => {
-    const client = createAuthedClient(accessToken);
+export const obtenerCarrito = async (client: SupabaseClient): Promise<ProductoCarrito[]> => {
     const { data, error } = await client
         .from('carritos')
         .select(`
@@ -76,14 +74,13 @@ export const obtenerCarrito = async (accessToken: string): Promise<ProductoCarri
 };
 
 export const agregarProductoCarrito = async (
-    accessToken: string,
+    client: SupabaseClient,
     idInventario: string,
     cantidad = 1,
 ) => {
     validarIdInventario(idInventario);
     validarCantidad(cantidad);
 
-    const client = createAuthedClient(accessToken);
     const { data, error } = await client.rpc('agregar_producto_carrito', {
         p_id_inventario: idInventario,
         p_cantidad: cantidad,
@@ -94,14 +91,13 @@ export const agregarProductoCarrito = async (
 };
 
 export const establecerCantidadProductoCarrito = async (
-    accessToken: string,
+    client: SupabaseClient,
     idInventario: string,
     cantidad: number,
 ) => {
     validarIdInventario(idInventario);
     validarCantidad(cantidad, true);
 
-    const client = createAuthedClient(accessToken);
     const { data, error } = await client.rpc('establecer_cantidad_producto_carrito', {
         p_id_inventario: idInventario,
         p_cantidad: cantidad,
@@ -112,14 +108,13 @@ export const establecerCantidadProductoCarrito = async (
 };
 
 export const disminuirProductoCarrito = async (
-    accessToken: string,
+    client: SupabaseClient,
     idInventario: string,
     cantidad = 1,
 ) => {
     validarIdInventario(idInventario);
     validarCantidad(cantidad);
 
-    const client = createAuthedClient(accessToken);
     const { data, error } = await client.rpc('disminuir_producto_carrito', {
         p_id_inventario: idInventario,
         p_cantidad: cantidad,
@@ -130,12 +125,11 @@ export const disminuirProductoCarrito = async (
 };
 
 export const eliminarProductoCarrito = async (
-    accessToken: string,
+    client: SupabaseClient,
     idInventario: string,
 ) => {
     validarIdInventario(idInventario);
 
-    const client = createAuthedClient(accessToken);
     const { data, error } = await client.rpc('eliminar_producto_carrito', {
         p_id_inventario: idInventario,
     });
@@ -144,8 +138,7 @@ export const eliminarProductoCarrito = async (
     return data as boolean;
 };
 
-export const vaciarCarrito = async (accessToken: string) => {
-    const client = createAuthedClient(accessToken);
+export const vaciarCarrito = async (client: SupabaseClient) => {
     const { data, error } = await client.rpc('vaciar_carrito');
 
     if (error) lanzarErrorCarrito('No se pudo vaciar el carrito', error);

@@ -7,7 +7,7 @@ import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js'
 import { findProduct } from './db/productos.js';
 import { insertRole, assingnRole } from './db/roles.js';
 import { cargarTodoEnSede } from './db/cargarProductosdePrueba.js';
-import { supabase } from './db/supabaseClient.js';
+import { createAuthedClient, supabase } from './db/supabaseClient.js';
 import {
     agregarProductoCarrito,
     disminuirProductoCarrito,
@@ -24,7 +24,11 @@ const ADMIN_ROLES = new Set(['admin', 'super_admin', 'superadmin']);
 const STAFF_ROLES = new Set(['auxiliar', 'auditor', 'repartidor', ...ADMIN_ROLES]);
 
 type AuthenticatedRequest = Request & {
-    auth?: { userId: string; role: string };
+    auth?: {
+        userId: string;
+        role: string;
+        db: ReturnType<typeof createAuthedClient>;
+    };
 };
 
 app.use(cors({ origin: true }));
@@ -36,10 +40,10 @@ const requireFields = (body: Record<string, unknown> | undefined, fields: string
     if (missing.length) throw Object.assign(new Error(`Campos obligatorios: ${missing.join(', ')}`), { status: 400 });
 };
 
-const getAccessToken = (req: Request) => {
-    const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-    if (!accessToken) throw Object.assign(new Error('Debes iniciar sesion.'), { status: 401 });
-    return accessToken;
+const getAuthedDb = (req: Request) => {
+    const db = (req as AuthenticatedRequest).auth?.db;
+    if (!db) throw Object.assign(new Error('Debes iniciar sesion.'), { status: 401 });
+    return db;
 };
 
 const parseInteger = (value: unknown, field: string, defaultValue?: number) => {
@@ -63,31 +67,27 @@ const asyncRoute = (handler: (req: Request, res: Response) => Promise<void>) =>
 const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-        const refreshToken = req.header('x-refresh-token');
         if (!accessToken) {
             res.status(401).json({ success: false, message: 'Debes iniciar sesión.' });
             return;
         }
 
-        if (refreshToken) {
-            const { error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-            });
-            if (sessionError) throw sessionError;
-        }
-
-        const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+        const db = createAuthedClient(accessToken);
+        const { data: authData, error: authError } = await db.auth.getUser(accessToken);
         if (authError || !authData.user) throw authError ?? new Error('Sesión inválida.');
 
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await db
             .from('usuarios')
             .select('rol')
             .eq('id', authData.user.id)
             .single();
         if (profileError) throw profileError;
 
-        req.auth = { userId: authData.user.id, role: String(profile?.rol ?? 'cliente') };
+        req.auth = {
+            userId: authData.user.id,
+            role: String(profile?.rol ?? 'cliente'),
+            db,
+        };
         next();
     } catch {
         res.status(401).json({ success: false, message: 'La sesión expiró o no es válida.' });
@@ -210,7 +210,7 @@ app.get('/api/products/search', authenticate, asyncRoute(async (req, res) => {
 }));
 
 app.get('/api/cart', authenticate, asyncRoute(async (req, res) => {
-    const data = await obtenerCarrito(getAccessToken(req));
+    const data = await obtenerCarrito(getAuthedDb(req));
     res.json({ success: true, data });
 }));
 
@@ -218,7 +218,7 @@ app.post('/api/cart/items', authenticate, asyncRoute(async (req, res) => {
     requireFields(req.body, ['idInventario']);
     const cantidad = parseInteger(req.body.cantidad, 'cantidad', 1);
     const data = await agregarProductoCarrito(
-        getAccessToken(req),
+        getAuthedDb(req),
         String(req.body.idInventario),
         cantidad,
     );
@@ -229,7 +229,7 @@ app.put('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, re
     requireFields(req.body, ['cantidad']);
     const cantidad = parseInteger(req.body.cantidad, 'cantidad');
     const data = await establecerCantidadProductoCarrito(
-        getAccessToken(req),
+        getAuthedDb(req),
         String(req.params.idInventario),
         cantidad,
     );
@@ -239,7 +239,7 @@ app.put('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, re
 app.patch('/api/cart/items/:idInventario/decrement', authenticate, asyncRoute(async (req, res) => {
     const cantidadADisminuir = parseInteger(req.body?.cantidad, 'cantidad', 1);
     const cantidad = await disminuirProductoCarrito(
-        getAccessToken(req),
+        getAuthedDb(req),
         String(req.params.idInventario),
         cantidadADisminuir,
     );
@@ -248,14 +248,14 @@ app.patch('/api/cart/items/:idInventario/decrement', authenticate, asyncRoute(as
 
 app.delete('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, res) => {
     const eliminado = await eliminarProductoCarrito(
-        getAccessToken(req),
+        getAuthedDb(req),
         String(req.params.idInventario),
     );
     res.json({ success: true, data: { eliminado } });
 }));
 
 app.delete('/api/cart', authenticate, asyncRoute(async (req, res) => {
-    const productosEliminados = await vaciarCarrito(getAccessToken(req));
+    const productosEliminados = await vaciarCarrito(getAuthedDb(req));
     res.json({ success: true, data: { productosEliminados } });
 }));
 

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
     agregarProductoCarrito,
     disminuirProductoCarrito,
@@ -20,13 +21,12 @@ const assert: (condition: unknown, message: string) => asserts condition = (cond
     if (!condition) throw new Error(`Prueba fallida: ${message}`);
 };
 
-const getItemQuantity = async (accessToken: string, inventoryId: string) => {
-    const cart = await obtenerCarrito(accessToken);
+const getItemQuantity = async (client: SupabaseClient, inventoryId: string) => {
+    const cart = await obtenerCarrito(client);
     return cart.find((item) => item.id_inventario === inventoryId)?.cantidad ?? 0;
 };
 
-const selectInventoryForTest = async (accessToken: string) => {
-    const client = createAuthedClient(accessToken);
+const selectInventoryForTest = async (client: SupabaseClient) => {
     let query = client
         .from('inventario')
         .select('id, stock_disponible')
@@ -69,8 +69,8 @@ const runCartTest = async () => {
     if (loginError) throw new Error(`No se pudo iniciar sesion: ${loginError.message}`);
     if (!loginData.session) throw new Error('Supabase no devolvio una sesion autenticada.');
 
-    const accessToken = loginData.session.access_token;
-    const initialCart = await obtenerCarrito(accessToken);
+    const db = createAuthedClient(loginData.session.access_token);
+    const initialCart = await obtenerCarrito(db);
 
     if (initialCart.length > 0 && !allowClearingExistingCart) {
         throw new Error(
@@ -83,43 +83,43 @@ const runCartTest = async () => {
 
     try {
         cleanupAllowed = true;
-        await vaciarCarrito(accessToken);
+        await vaciarCarrito(db);
 
         console.log('2. Buscando automaticamente un producto con stock...');
-        const inventory = await selectInventoryForTest(accessToken);
+        const inventory = await selectInventoryForTest(db);
         console.log(`   Inventario seleccionado: ${inventory.id} (stock: ${inventory.stock_disponible})`);
 
         console.log('3. Agregando una unidad...');
-        await agregarProductoCarrito(accessToken, inventory.id, 1);
-        assert(await getItemQuantity(accessToken, inventory.id) === 1, 'la cantidad debia ser 1.');
+        await agregarProductoCarrito(db, inventory.id, 1);
+        assert(await getItemQuantity(db, inventory.id) === 1, 'la cantidad debia ser 1.');
 
         console.log('4. Agregando dos unidades a la misma linea...');
-        await agregarProductoCarrito(accessToken, inventory.id, 2);
-        assert(await getItemQuantity(accessToken, inventory.id) === 3, 'la cantidad debia acumularse hasta 3.');
+        await agregarProductoCarrito(db, inventory.id, 2);
+        assert(await getItemQuantity(db, inventory.id) === 3, 'la cantidad debia acumularse hasta 3.');
 
         console.log('5. Disminuyendo una unidad...');
-        const quantityAfterDecrease = await disminuirProductoCarrito(accessToken, inventory.id, 1);
+        const quantityAfterDecrease = await disminuirProductoCarrito(db, inventory.id, 1);
         assert(quantityAfterDecrease === 2, 'la funcion debia devolver una cantidad restante de 2.');
-        assert(await getItemQuantity(accessToken, inventory.id) === 2, 'la cantidad guardada debia ser 2.');
+        assert(await getItemQuantity(db, inventory.id) === 2, 'la cantidad guardada debia ser 2.');
 
         console.log('6. Estableciendo la cantidad directamente en 1...');
-        await establecerCantidadProductoCarrito(accessToken, inventory.id, 1);
-        assert(await getItemQuantity(accessToken, inventory.id) === 1, 'la cantidad debia ser 1.');
+        await establecerCantidadProductoCarrito(db, inventory.id, 1);
+        assert(await getItemQuantity(db, inventory.id) === 1, 'la cantidad debia ser 1.');
 
         console.log('7. Disminuyendo hasta cero para eliminar automaticamente la linea...');
-        const quantityAfterRemovingLastUnit = await disminuirProductoCarrito(accessToken, inventory.id, 1);
+        const quantityAfterRemovingLastUnit = await disminuirProductoCarrito(db, inventory.id, 1);
         assert(quantityAfterRemovingLastUnit === 0, 'la funcion debia devolver cero.');
-        assert(await getItemQuantity(accessToken, inventory.id) === 0, 'la linea debia desaparecer del carrito.');
+        assert(await getItemQuantity(db, inventory.id) === 0, 'la linea debia desaparecer del carrito.');
 
         console.log('8. Probando la eliminacion directa de una linea...');
-        await agregarProductoCarrito(accessToken, inventory.id, 1);
-        const removed = await eliminarProductoCarrito(accessToken, inventory.id);
+        await agregarProductoCarrito(db, inventory.id, 1);
+        const removed = await eliminarProductoCarrito(db, inventory.id);
         assert(removed, 'la eliminacion directa debia devolver true.');
-        assert(await getItemQuantity(accessToken, inventory.id) === 0, 'la linea eliminada no debia existir.');
+        assert(await getItemQuantity(db, inventory.id) === 0, 'la linea eliminada no debia existir.');
 
         console.log('9. Dejando dos unidades registradas para comprobar la persistencia...');
-        await agregarProductoCarrito(accessToken, inventory.id, 2);
-        assert(await getItemQuantity(accessToken, inventory.id) === 2, 'la cantidad final debia ser 2.');
+        await agregarProductoCarrito(db, inventory.id, 2);
+        assert(await getItemQuantity(db, inventory.id) === 2, 'la cantidad final debia ser 2.');
 
         console.log('\nOK: todas las operaciones del carrito funcionan correctamente.');
         console.log(`Quedaron 2 unidades registradas en el inventario ${inventory.id}.`);
@@ -131,9 +131,9 @@ const runCartTest = async () => {
         readline.close();
 
         if (answer.trim().toLowerCase() === 'v') {
-            const deletedRows = await vaciarCarrito(accessToken);
+            const deletedRows = await vaciarCarrito(db);
             assert(deletedRows >= 1, 'vaciar el carrito debia eliminar al menos una linea.');
-            assert((await obtenerCarrito(accessToken)).length === 0, 'el carrito debia quedar vacio.');
+            assert((await obtenerCarrito(db)).length === 0, 'el carrito debia quedar vacio.');
             console.log('El carrito de la cuenta de prueba quedo vacio.\n');
         } else {
             console.log('Prueba terminada. Los productos permanecen registrados en el carrito.\n');
@@ -141,7 +141,7 @@ const runCartTest = async () => {
     } catch (error) {
         if (cleanupAllowed) {
             try {
-                await vaciarCarrito(accessToken);
+                await vaciarCarrito(db);
                 console.error('Se limpio el carrito de prueba despues del fallo.');
             } catch (cleanupError) {
                 console.error('No se pudo limpiar el carrito despues del fallo:', cleanupError);

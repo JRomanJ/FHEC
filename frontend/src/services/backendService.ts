@@ -45,6 +45,18 @@ export const assignRole = <T>(userId: string, rol: string) =>
 export const seedInventory = <T>(sedeId: string) =>
   requestJson<ApiEnvelope<T>>("/inventory/seed", { method: "POST", body: { sedeId } });
 
+export const getFavorites = <T>() =>
+  requestJson<ApiEnvelope<T>>("/favorites");
+
+export const addFavorite = <T>(productId: string) =>
+  requestJson<ApiEnvelope<T>>(`/favorites/${encodeURIComponent(productId)}`, { method: "POST" });
+
+export const removeFavorite = <T>(productId: string) =>
+  requestJson<ApiEnvelope<T>>(`/favorites/${encodeURIComponent(productId)}`, { method: "DELETE" });
+
+export const clearFavorites = <T>() =>
+  requestJson<ApiEnvelope<T>>("/favorites", { method: "DELETE" });
+
 interface InventoryProductRow {
   id_inventario: string; id_producto: string; stock_disponible: number | null; precio_usd: number | null;
   principio_activo: string; marca_comercial: string; id_categoria: string;

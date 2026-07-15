@@ -21,8 +21,20 @@ export const userLogger = async (email: string, password: string, nombre_complet
     const userId = authData.user!.id;
     await getAuthedClient(); // Asegurar de que el cliente esté autenticado antes de insertar en la base de datos
 
-    const newUser = await insertUser( userId, nombre_completo, tipo_documento_identidad, documento_identidad, telefono, 
-        codigo_area, acepta_terminos, acepta_promociones, acepta_promociones_sms, acepta_promociones_correo, acepta_notificaciones, acepta_notificaciones_sms, acepta_notificaciones_correo);
+    const newUser = await insertUser(userId, {
+        nombre_completo,
+        tipo_documento_identidad,
+        documento_identidad,
+        telefono,
+        codigo_area,
+        acepta_terminos,
+        acepta_promociones,
+        acepta_promociones_sms,
+        acepta_promociones_correo,
+        acepta_notificaciones,
+        acepta_notificaciones_sms,
+        acepta_notificaciones_correo,
+    });
     
     return newUser;
 };

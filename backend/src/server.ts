@@ -16,12 +16,19 @@ import {
     obtenerCarrito,
     vaciarCarrito,
 } from './db/carritos.js';
+import {
+    agregarFavorito,
+    listarFavoritos,
+    quitarFavorito,
+    vaciarFavoritos,
+} from './db/favoritos.js';
 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_ROLES = new Set(['admin', 'super_admin', 'superadmin']);
 const STAFF_ROLES = new Set(['auxiliar', 'auditor', 'repartidor', ...ADMIN_ROLES]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type AuthenticatedRequest = Request & {
     auth?: {
@@ -59,6 +66,14 @@ const parseInteger = (value: unknown, field: string, defaultValue?: number) => {
     }
 
     return parsedValue;
+};
+
+const validateUuid = (value: unknown, field: string) => {
+    const resolvedValue = typeof value === 'string' ? value : '';
+    if (!UUID_PATTERN.test(resolvedValue)) {
+        throw Object.assign(new Error(`${field} debe ser un UUID valido.`), { status: 400 });
+    }
+    return resolvedValue;
 };
 
 const asyncRoute = (handler: (req: Request, res: Response) => Promise<void>) =>
@@ -256,6 +271,28 @@ app.delete('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req,
 
 app.delete('/api/cart', authenticate, asyncRoute(async (req, res) => {
     const productosEliminados = await vaciarCarrito(getAuthedDb(req));
+    res.json({ success: true, data: { productosEliminados } });
+}));
+
+app.get('/api/favorites', authenticate, asyncRoute(async (req, res) => {
+    const data = await listarFavoritos(getAuthedDb(req));
+    res.json({ success: true, data });
+}));
+
+app.post('/api/favorites/:productId', authenticate, asyncRoute(async (req, res) => {
+    const productId = validateUuid(req.params.productId, 'productId');
+    const agregado = await agregarFavorito(getAuthedDb(req), productId);
+    res.status(201).json({ success: true, data: { agregado, idProducto: productId } });
+}));
+
+app.delete('/api/favorites/:productId', authenticate, asyncRoute(async (req, res) => {
+    const productId = validateUuid(req.params.productId, 'productId');
+    const eliminado = await quitarFavorito(getAuthedDb(req), productId);
+    res.json({ success: true, data: { eliminado, idProducto: productId } });
+}));
+
+app.delete('/api/favorites', authenticate, asyncRoute(async (req, res) => {
+    const productosEliminados = await vaciarFavoritos(getAuthedDb(req));
     res.json({ success: true, data: { productosEliminados } });
 }));
 

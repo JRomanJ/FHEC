@@ -14,7 +14,7 @@ import {
 } from "./data";
 import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
 import { logout } from "../services/authService";
-import { getAvailableBranches, getCatalogProducts } from "../services/backendService";
+import { addFavorite, getAvailableBranches, getCatalogProducts, getFavorites, removeFavorite } from "../services/backendService";
 import { BRANCH_IDS } from "../config/api";
 
 const LoginPage = lazy(() => import("../features/auth/components/LoginPage").then((module) => ({ default: module.LoginPage })));
@@ -87,6 +87,33 @@ export default function App() {
     return () => { cancelled = true; };
   }, [displaySede]);
 
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+
+    let cancelled = false;
+    getFavorites<string[]>()
+      .then((response) => {
+        if (cancelled) return;
+        const next = new Set<number>();
+        const backendIds = response.data ?? [];
+        backendIds.forEach((backendId) => {
+          const product = products.find((item) => item.backendId === backendId);
+          if (product) next.add(product.id);
+        });
+        setFavoriteIds(next);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("No se pudieron cargar los favoritos:", error);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [products, user]);
+
   const setPage = (p: Page) => { window.scrollTo({ top: 0 }); setPageRaw(p); };
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
@@ -117,16 +144,46 @@ export default function App() {
     });
   };
 
-  const toggleFavorite = (productId: number) => {
+  const toggleFavorite = async (productId: number) => {
+    const product = products.find((item) => item.id === productId);
+    if (!product?.backendId) {
+      return;
+    }
+
+    const isFavorite = favoriteIds.has(productId);
+
     setFavoriteIds(prev => {
       const next = new Set(prev);
-      if (next.has(productId)) {
+      if (isFavorite) {
         next.delete(productId);
       } else {
         next.add(productId);
       }
       return next;
     });
+
+    if (!user) {
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        await removeFavorite(product.backendId);
+      } else {
+        await addFavorite(product.backendId);
+      }
+    } catch (error) {
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (isFavorite) {
+          next.add(productId);
+        } else {
+          next.delete(productId);
+        }
+        return next;
+      });
+      console.error("No se pudo actualizar el estado de favoritos:", error);
+    }
   };
 
   const goToProduct = (id: number) => {
@@ -141,7 +198,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: "'Barlow', sans-serif" }}>
         <Suspense fallback={null}>
-          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
+          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); setFavoriteIds(new Set()); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
         </Suspense>
       </div>
     );
@@ -156,7 +213,7 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         user={user}
-        onLogout={() => { logout(); setUser(null); setCartItems([]); setHasActiveOrder(false); setActiveOrderItems([]); setPage("home"); }}
+        onLogout={() => { logout(); setUser(null); setCartItems([]); setFavoriteIds(new Set()); setHasActiveOrder(false); setActiveOrderItems([]); setPage("home"); }}
         onCategorySelect={handleCategorySelect}
         cartItems={cartItems}
         onUpdateCartQuantity={updateQuantity}
@@ -205,7 +262,7 @@ export default function App() {
               onOrderComplete={() => { setHasActiveOrder(false); }}
             />
           )}
-          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { logout(); setUser(null); setCartItems([]); setPage("home"); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
+          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { logout(); setUser(null); setCartItems([]); setFavoriteIds(new Set()); setPage("home"); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
           {page === "delivery" && <DeliveryPanel onNav={setPage} userSede={staffSede} />}
           {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} />}
           {page === "notifications" && <NotificationsPage onNav={setPage} notifs={appNotifs} setNotifs={setAppNotifs} />}

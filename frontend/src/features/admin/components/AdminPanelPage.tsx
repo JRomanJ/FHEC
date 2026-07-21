@@ -90,8 +90,8 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
 
   // Determine available tabs based on role
   const isSuperadmin = user.role === "superadmin";
-  const isAuditor   = user.role === "auditor";
-  const isAuxiliar  = user.role === "auxiliar";
+  const isAuditor = user.role === "auditor";
+  const isAuxiliar = user.role === "auxiliar";
 
   // Auto-select first available tab
   React.useEffect(() => {
@@ -153,7 +153,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
   const filteredOrders = orders.filter(o => {
     const matchesSede = sedeFilter === "todas" || o.sede === sedeFilter;
     const matchesSearch = o.id.toLowerCase().includes(searchOrder.toLowerCase()) ||
-                          o.clientName.toLowerCase().includes(searchOrder.toLowerCase());
+      o.clientName.toLowerCase().includes(searchOrder.toLowerCase());
     return matchesSede && matchesSearch;
   });
 
@@ -178,22 +178,21 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
           {/* Tabs — flat: Auditoría, Operaciones, + superadmin subtabs */}
           <div className="flex flex-wrap gap-2">
             {([
-              ...(isAuditor  ? [{ key: "auditor",   label: "Auditoría",           icon: <Shield size={14} /> }] : []),
-              ...(isAuxiliar ? [{ key: "auxiliar",  label: "Operaciones",          icon: <Package size={14} /> }] : []),
+              ...(isAuditor ? [{ key: "auditor", label: "Auditoría", icon: <Shield size={14} /> }] : []),
+              ...(isAuxiliar ? [{ key: "auxiliar", label: "Operaciones", icon: <Package size={14} /> }] : []),
               ...(isSuperadmin ? [
-                { key: "contenido",  label: "Contenido",          icon: <FileText size={14} /> },
-                { key: "catalogo",   label: "Catálogo",           icon: <Package size={14} /> },
-                { key: "inventario", label: "Inventario",         icon: <SlidersHorizontal size={14} /> },
-                { key: "personal",   label: "Personal Operativo", icon: <User size={14} /> },
-                { key: "monitor",    label: "Monitor Global",     icon: <ClipboardList size={14} /> },
-                { key: "cupones",    label: "Cupones",            icon: <CreditCard size={14} /> },
-                { key: "reembolsos", label: "Reembolsos",         icon: <CreditCard size={14} /> },
+                { key: "contenido", label: "Contenido", icon: <FileText size={14} /> },
+                { key: "catalogo", label: "Catálogo", icon: <Package size={14} /> },
+                { key: "inventario", label: "Inventario", icon: <SlidersHorizontal size={14} /> },
+                { key: "personal", label: "Personal Operativo", icon: <User size={14} /> },
+                { key: "monitor", label: "Monitor Global", icon: <ClipboardList size={14} /> },
+                { key: "cupones", label: "Cupones", icon: <CreditCard size={14} /> },
+                { key: "reembolsos", label: "Reembolsos", icon: <CreditCard size={14} /> },
               ] : []),
             ] as { key: typeof activeTab; label: string; icon: React.ReactNode }[]).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase transition-all ${
-                  activeTab === t.key ? "bg-white text-[#006064]" : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase transition-all ${activeTab === t.key ? "bg-white text-[#006064]" : "text-white/70 hover:text-white hover:bg-white/10"
+                  }`}
                 style={H7}>
                 {t.icon}{t.label}
               </button>
@@ -230,10 +229,9 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                     <div className="lg:col-span-3 space-y-4">
                       {/* Estado */}
                       <div className="flex items-center justify-between">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase ${
-                          selectedRecipe.status === "approved" ? "bg-[#179150] text-white" :
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase ${selectedRecipe.status === "approved" ? "bg-[#179150] text-white" :
                           selectedRecipe.status === "rejected" ? "bg-red-500 text-white" :
-                          "bg-amber-100 text-amber-800"}`} style={H9}>
+                            "bg-amber-100 text-amber-800"}`} style={H9}>
                           {selectedRecipe.status === "approved" ? "Aprobado" : selectedRecipe.status === "rejected" ? "Rechazado" : "Pendiente"}
                         </span>
                         <span className="text-xs text-muted-foreground">{selectedRecipe.product}</span>
@@ -247,12 +245,12 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                         </div>
                         <div className="grid grid-cols-2 gap-2.5">
                           {[
-                            ["Nº de pedido",           selectedRecipe.orderId],
-                            ["Producto",               selectedRecipe.product],
-                            ["Principio activo",       selectedRecipe.activeIngredient],
-                            ["Concentración",          `${selectedRecipe.concentration} ${selectedRecipe.concentrationUnit}`],
-                            ["Unidades por paquete",   `${selectedRecipe.packSize} unidades`],
-                            ["Cantidad solicitada",    `${selectedRecipe.quantity} ${selectedRecipe.quantity === 1 ? "unidad" : "unidades"}`],
+                            ["Nº de pedido", selectedRecipe.orderId],
+                            ["Producto", selectedRecipe.product],
+                            ["Principio activo", selectedRecipe.activeIngredient],
+                            ["Concentración", `${selectedRecipe.concentration} ${selectedRecipe.concentrationUnit}`],
+                            ["Unidades por paquete", `${selectedRecipe.packSize} unidades`],
+                            ["Cantidad solicitada", `${selectedRecipe.quantity} ${selectedRecipe.quantity === 1 ? "unidad" : "unidades"}`],
                           ].map(([label, value]) => (
                             <div key={label}>
                               <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">{label}</div>
@@ -356,10 +354,9 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                         </td>
                         <td className="px-4 py-3.5 text-xs text-muted-foreground">{recipe.quantity} {recipe.quantity === 1 ? "unidad" : "unidades"}</td>
                         <td className="px-4 py-3.5">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            recipe.status === "approved" ? "bg-[#179150] text-white" :
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${recipe.status === "approved" ? "bg-[#179150] text-white" :
                             recipe.status === "rejected" ? "bg-red-500 text-white" :
-                            "bg-amber-100 text-amber-800"}`} style={H9}>
+                              "bg-amber-100 text-amber-800"}`} style={H9}>
                             {recipe.status === "approved" ? "Aprobado" : recipe.status === "rejected" ? "Rechazado" : "Pendiente"}
                           </span>
                         </td>
@@ -395,7 +392,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                   </div>
                   <div className="text-2xl sm:text-4xl font-black text-amber-600 leading-none" style={H9}>{ordersByStatus.porPreparar}</div>
                 </div>
-                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Preparar</div>
+                <div className="text-xs sm:text-sm font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Preparar</div>
               </div>
 
               <div className="bg-white rounded-2xl border border-border p-3 sm:p-5 shadow-sm">
@@ -405,7 +402,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                   </div>
                   <div className="text-2xl sm:text-4xl font-black text-blue-600 leading-none" style={H9}>{ordersByStatus.porRetirar}</div>
                 </div>
-                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Retirar</div>
+                <div className="text-xs sm:text-sm font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Retirar</div>
               </div>
 
               <div className="bg-white rounded-2xl border border-border p-3 sm:p-5 shadow-sm">
@@ -415,12 +412,12 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                   </div>
                   <div className="text-2xl sm:text-4xl font-black text-[#179150] leading-none" style={H9}>{ordersByStatus.listoDelivery}</div>
                 </div>
-                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Listo Delivery</div>
+                <div className="text-xs sm:text-sm font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Listo Delivery</div>
               </div>
             </div>
 
             {/* Orders list */}
-            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="bg-white sm:rounded-2xl border-y sm:border border-border shadow-sm overflow-hidden -mx-6 sm:mx-0">
               <div className="px-6 py-5 border-b border-border">
                 <h2 className="text-xl uppercase text-foreground mb-4" style={H9}>Gestión de Pedidos</h2>
 
@@ -437,15 +434,15 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                   </div>
 
                   {userHasAllSedes ? (
-                  <select
-                    value={sedeFilter}
-                    onChange={e => setSedeFilter(e.target.value)}
-                    className="px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white"
-                  >
-                    <option value="todas">Todas las sedes</option>
-                    <option value="principal">Principal</option>
-                    <option value="clinica">Clínica Humana</option>
-                  </select>
+                    <select
+                      value={sedeFilter}
+                      onChange={e => setSedeFilter(e.target.value)}
+                      className="px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white"
+                    >
+                      <option value="todas">Todas las sedes</option>
+                      <option value="principal">Principal</option>
+                      <option value="clinica">Clínica Humana</option>
+                    </select>
                   ) : (
                     <div className="flex items-center gap-2 bg-[#e0f5eb] border border-[#a7f3d0] rounded-xl px-4 py-2.5">
                       <MapPin size={14} className="text-[#179150] flex-shrink-0" />
@@ -457,45 +454,66 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40">
-                      {["Orden", "Cliente", "Sede", "Estado", "Items", "Total", "Método Pago", "Acción"].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-muted-foreground" style={H9}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map((order, i) => (
-                      <tr key={order.id} className={`border-b border-border hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
-                        <td className="px-4 py-3.5 text-[#179150] font-black text-xs" style={H9}>{order.id}</td>
-                        <td className="px-4 py-3.5 text-foreground text-xs font-semibold">{order.clientName}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground text-xs capitalize">{order.sede}</td>
-                        <td className="px-4 py-3.5">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            order.status === "Por preparar" ? "bg-amber-100 text-amber-800" :
-                            order.status === "Por retirar" ? "bg-blue-100 text-blue-800" :
-                            "bg-green-100 text-[#179150]"
-                          }`} style={H9}>
+              <div className="p-4 sm:p-6 bg-muted/10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredOrders.length === 0 ? (
+                    <div className="col-span-full py-12 text-center text-muted-foreground text-sm">
+                      No hay pedidos que coincidan con la búsqueda.
+                    </div>
+                  ) : (
+                    filteredOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="bg-slate-50 rounded-2xl border border-border shadow-sm p-5 flex flex-col gap-4 hover:border-[#179150]/30 hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-[#179150] font-black text-sm mb-1" style={H9}>{order.id}</div>
+                            <div className="text-foreground font-bold text-base leading-tight">{order.clientName}</div>
+                          </div>
+                          <span className={`shrink-0 inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${order.status === "Por preparar" ? "bg-amber-100 text-amber-800" :
+                              order.status === "Por retirar" ? "bg-blue-100 text-blue-800" :
+                                "bg-green-100 text-[#179150]"
+                            }`} style={H9}>
                             {order.status}
                           </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-muted-foreground text-xs">{order.items}</td>
-                        <td className="px-4 py-3.5 text-foreground text-xs font-semibold">${order.total.toFixed(2)}</td>
-                        <td className="px-4 py-3.5 text-muted-foreground text-xs">{order.paymentMethod}</td>
-                        <td className="px-4 py-3.5">
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="text-[#179150] text-xs font-semibold hover:underline"
-                          >
-                            Ver detalles
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+
+                        <div className="h-px w-full bg-border" />
+
+                        {/* Details */}
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground text-xs block mb-0.5">Items</span>
+                            <span className="font-semibold text-foreground">{order.items}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs block mb-0.5">Total</span>
+                            <span className="font-black text-foreground">${order.total.toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs block mb-0.5">Pago</span>
+                            <span className="font-semibold text-foreground line-clamp-1" title={order.paymentMethod}>{order.paymentMethod}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-xs block mb-0.5">Sede</span>
+                            <span className="font-semibold text-foreground capitalize">{order.sede}</span>
+                          </div>
+                        </div>
+
+                        {/* Footer Action */}
+                        <button
+                          className="mt-1 w-full py-2.5 bg-cyan-50 hover:bg-cyan-600 text-cyan-700 hover:text-white rounded-xl font-bold text-sm transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
+                        >
+                          Ver detalles del pedido
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
 
@@ -523,11 +541,10 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Estado</div>
-                        <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-black uppercase ${
-                          selectedOrder.status === "Por preparar" ? "bg-amber-100 text-amber-800" :
+                        <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-black uppercase ${selectedOrder.status === "Por preparar" ? "bg-amber-100 text-amber-800" :
                           selectedOrder.status === "Por retirar" ? "bg-blue-100 text-blue-800" :
-                          "bg-green-100 text-[#179150]"
-                        }`} style={H9}>
+                            "bg-green-100 text-[#179150]"
+                          }`} style={H9}>
                           {selectedOrder.status}
                         </span>
                       </div>
@@ -629,11 +646,10 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                         <button
                           onClick={despacharPedido}
                           disabled={pinInput.length !== 4}
-                          className={`w-full py-3 rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                            pinInput.length === 4
-                              ? "bg-[#50e9f8] text-[#006064] hover:bg-[#2dd8e8]"
-                              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          }`}
+                          className={`w-full py-3 rounded-xl transition-colors flex items-center justify-center gap-2 ${pinInput.length === 4
+                            ? "bg-[#50e9f8] text-[#006064] hover:bg-[#2dd8e8]"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            }`}
                           style={H7}
                         >
                           <Truck size={16} />
@@ -728,21 +744,21 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                       <div className="grid sm:grid-cols-2 gap-3">
                         {(selectedRefund.method === "Pago Móvil"
                           ? [
-                              ["Método de pago",      selectedRefund.method],
-                              ["Banco emisor",         selectedRefund.bank],
-                              ["Código de área",       selectedRefund.areaCode],
-                              ["Número telefónico",    selectedRefund.phone],
-                              ["Monto",                selectedRefund.amount],
-                              ["Referencia bancaria",  selectedRefund.reference],
-                              ["Fecha",                selectedRefund.date],
-                            ]
+                            ["Método de pago", selectedRefund.method],
+                            ["Banco emisor", selectedRefund.bank],
+                            ["Código de área", selectedRefund.areaCode],
+                            ["Número telefónico", selectedRefund.phone],
+                            ["Monto", selectedRefund.amount],
+                            ["Referencia bancaria", selectedRefund.reference],
+                            ["Fecha", selectedRefund.date],
+                          ]
                           : [
-                              ["Método de pago",      selectedRefund.method],
-                              ["Banco emisor",         selectedRefund.bank],
-                              ["Monto",                selectedRefund.amount],
-                              ["Referencia bancaria",  selectedRefund.reference],
-                              ["Fecha",                selectedRefund.date],
-                            ]
+                            ["Método de pago", selectedRefund.method],
+                            ["Banco emisor", selectedRefund.bank],
+                            ["Monto", selectedRefund.amount],
+                            ["Referencia bancaria", selectedRefund.reference],
+                            ["Fecha", selectedRefund.date],
+                          ]
                         ).map(([label, value]) => (
                           <div key={label}>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">{label}</div>
@@ -761,21 +777,21 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                       <div className="grid sm:grid-cols-2 gap-3">
                         {(selectedRefund.refundMethod === "Pago Móvil"
                           ? [
-                              ["Método de reembolso",  selectedRefund.refundMethod],
-                              ["Banco",                selectedRefund.refundBank],
-                              ["Código de área",       selectedRefund.refundAreaCode],
-                              ["Número telefónico",    selectedRefund.refundPhone],
-                              ["Tipo de documento",    selectedRefund.refundDocType],
-                              ["N° de documento",      selectedRefund.refundDoc],
-                            ]
+                            ["Método de reembolso", selectedRefund.refundMethod],
+                            ["Banco", selectedRefund.refundBank],
+                            ["Código de área", selectedRefund.refundAreaCode],
+                            ["Número telefónico", selectedRefund.refundPhone],
+                            ["Tipo de documento", selectedRefund.refundDocType],
+                            ["N° de documento", selectedRefund.refundDoc],
+                          ]
                           : [
-                              ["Método de reembolso",  selectedRefund.refundMethod],
-                              ["Banco",                selectedRefund.refundBank],
-                              ["Número de cuenta",     selectedRefund.account],
-                              ["Tipo de documento",    selectedRefund.refundDocType],
-                              ["N° de documento",      selectedRefund.refundDoc],
-                              ["Nombre del beneficiario", selectedRefund.holder],
-                            ]
+                            ["Método de reembolso", selectedRefund.refundMethod],
+                            ["Banco", selectedRefund.refundBank],
+                            ["Número de cuenta", selectedRefund.account],
+                            ["Tipo de documento", selectedRefund.refundDocType],
+                            ["N° de documento", selectedRefund.refundDoc],
+                            ["Nombre del beneficiario", selectedRefund.holder],
+                          ]
                         ).map(([label, value]) => (
                           <div key={label}>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">{label}</div>
@@ -815,8 +831,8 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
         )}
 
         {/* SUPERADMIN MODULES — flat, one per tab */}
-        {(["contenido","catalogo","personal","monitor","cupones"] as const).includes(activeTab as any) && isSuperadmin && (
-          <SuperadminModules onNav={onNav} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} forcedTab={activeTab as "contenido"|"catalogo"|"personal"|"monitor"|"cupones"} />
+        {(["contenido", "catalogo", "personal", "monitor", "cupones"] as const).includes(activeTab as any) && isSuperadmin && (
+          <SuperadminModules onNav={onNav} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} forcedTab={activeTab as "contenido" | "catalogo" | "personal" | "monitor" | "cupones"} />
         )}
       </div>
     </div>

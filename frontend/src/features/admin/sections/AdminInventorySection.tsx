@@ -12,7 +12,7 @@ const BRANCH_OPTIONS = [
 
 export function InventarioTab({ setCatalogProducts }: {
   products: Product[];
-  setCatalogProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  setCatalogProducts: (products: Product[]) => void;
 }) {
   const [branchId, setBranchId] = useState<string>(BRANCH_IDS.principal);
   const [products, setProducts] = useState<Product[]>([]);

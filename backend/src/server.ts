@@ -34,10 +34,6 @@ type AuthenticatedRequest = Request & {
     };
 };
 
-<<<<<<< HEAD
-//app.use(cors({ origin: true }));
-app.use(express.json({ limit: '1mb' }));
-=======
 type HttpError = Error & { status?: number; code?: string; type?: string };
 
 const app = express();
@@ -61,7 +57,6 @@ const normalizeRole = (role: unknown): AppRole => {
 };
 
 const databaseRole = (role: string) => role === 'superadmin' ? 'super_admin' : role;
->>>>>>> a19456a1c51936c6e28cacd435784273037b7efd
 
 app.use(cors({
   origin: [
@@ -145,7 +140,7 @@ app.use((req, res, next) => {
     next();
 });
 
-const configuredOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
+const configuredOrigins = (process.env.CORS_ORIGINS ?? 'https://fhec-frontend.onrender.com,http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map((origin) => origin.trim()).filter(Boolean);
 const allowEveryOrigin = configuredOrigins.includes('*');
 app.use(cors({

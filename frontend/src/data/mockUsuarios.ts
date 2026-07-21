@@ -1,5 +1,7 @@
 import type { Usuario } from "../domain";
 
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_ACCOUNT_PASSWORD ?? "clave123";
+
 export const USUARIO_IDS = {
   Cliente: 1,
   Repartidor: 2,
@@ -18,7 +20,7 @@ export const mockUsuarios: Usuario[] = [
     tipo_documento_identidad: "V",
     documento_identidad: "12345678",
     direccion_fiscal: "Av. Las Américas, Edif. Torre Pte., Piso 3, Pto. Ordaz",
-    contrasena: "123",
+    contrasena: DEMO_PASSWORD,
     acepta_terminos: true,
     acepta_promociones: true,
     acepta_promociones_sms: true,
@@ -37,7 +39,7 @@ export const mockUsuarios: Usuario[] = [
     tipo_documento_identidad: "V",
     documento_identidad: "87654321",
     direccion_fiscal: "Urb. Villa Asia, Calle 15, Casa 8, Pto. Ordaz",
-    contrasena: "123",
+    contrasena: DEMO_PASSWORD,
     acepta_terminos: true,
     acepta_promociones: false,
     acepta_promociones_sms: false,
@@ -56,7 +58,7 @@ export const mockUsuarios: Usuario[] = [
     tipo_documento_identidad: "V",
     documento_identidad: "11223344",
     direccion_fiscal: "Calle Caroní, Res. La Llovizna, Apto 2B, Pto. Ordaz",
-    contrasena: "123",
+    contrasena: DEMO_PASSWORD,
     acepta_terminos: true,
     acepta_promociones: false,
     acepta_promociones_sms: false,
@@ -75,7 +77,7 @@ export const mockUsuarios: Usuario[] = [
     tipo_documento_identidad: "V",
     documento_identidad: "33445566",
     direccion_fiscal: "Av. Guayana, Centro Cívico, Piso 7, Pto. Ordaz",
-    contrasena: "123",
+    contrasena: DEMO_PASSWORD,
     acepta_terminos: true,
     acepta_promociones: false,
     acepta_promociones_sms: false,
@@ -94,7 +96,7 @@ export const mockUsuarios: Usuario[] = [
     tipo_documento_identidad: "V",
     documento_identidad: "55667788",
     direccion_fiscal: "Urb. Chilemex, Calle Principal, Casa 1, Pto. Ordaz",
-    contrasena: "123",
+    contrasena: DEMO_PASSWORD,
     acepta_terminos: true,
     acepta_promociones: false,
     acepta_promociones_sms: false,

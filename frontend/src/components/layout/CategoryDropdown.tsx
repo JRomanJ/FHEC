@@ -21,7 +21,7 @@ export function CatNavButton({ page, onNav, onCategorySelect }: {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
+        className={`flex items-center gap-1 px-2 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
           ${active || open ? "bg-white/25 text-[#006064] font-bold" : "text-[#006064]/80 hover:text-[#006064] hover:bg-white/15 hover:font-semibold"}`}>
         Categorías <ChevronDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

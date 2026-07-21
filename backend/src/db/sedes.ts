@@ -1,10 +1,9 @@
-import { supabase, getAuthedClient } from './supabaseClient.js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient.js';
 
 
-export const createBranch = async (nombre: string, direccion: string, latitud: number, longitud: number) => {
-    const supabase = await getAuthedClient();
-
-    const {data, error } = await supabase
+export const createBranch = async (client: SupabaseClient, nombre: string, direccion: string, latitud: number, longitud: number) => {
+    const {data, error } = await client
         .from('sedes')
         .insert([{
             nombre: nombre,
@@ -30,14 +29,8 @@ export const getBranchByName = async(nombre: string) => {
     return data;
 }
 
-export const updateBranchPrice = async (productoId: string, sedeId: string, precioUsd: number) => {
-    console.log('Buscando en inventario con:', {
-        productoId: productoId, // Verifica que sea igual al UUID de la columna id_producto
-        sedeId: sedeId          // Verifica que sea igual al UUID de la columna id_sede
-    });
-    
-    const supabase = await getAuthedClient();
-    const { data, error } = await supabase 
+export const updateBranchPrice = async (client: SupabaseClient, productoId: string, sedeId: string, precioUsd: number) => {
+    const { data, error } = await client
         .from('inventario')
         .update({ precio_usd: precioUsd })
         .eq('id_producto', productoId)

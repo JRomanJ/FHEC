@@ -1,15 +1,14 @@
-import { supabase, getAuthedClient } from './supabaseClient.js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient.js';
 import { createProduct} from './productos.js';
 
 
-export const processInventoryEntry = async (productoData: any, sedeId: string) => {
-    const supabase = await getAuthedClient();
-
+export const processInventoryEntry = async (client: SupabaseClient, productoData: any, sedeId: string) => {
     // Crear o actualizar el producto (gracias al UPSERT que configuramos antes)
-    const producto = await createProduct(productoData);
+    const producto = await createProduct(client, productoData);
     
     // Delegar toda la lógica de inventario a la función SQL
-    const { error: errStock } = await (supabase as any)
+    const { error: errStock } = await (client as any)
         .rpc('incrementar_stock', {
             p_producto_id: producto.id,
             p_sede_id: sedeId

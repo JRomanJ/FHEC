@@ -38,8 +38,18 @@ type AuthenticatedRequest = Request & {
     };
 };
 
-app.use(cors({ origin: true }));
+//app.use(cors({ origin: true }));
 app.use(express.json({ limit: '1mb' }));
+
+app.use(cors({
+  origin: [
+    'https://fhec-frontend.onrender.com', // El sitio en producción
+    'http://localhost:5173',              // Puerto común de Vite 
+    'http://localhost:3000'               // Por si el frontend corre aquí
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 
 const requireFields = (body: Record<string, unknown> | undefined, fields: string[]) => {
     const source = body ?? {};

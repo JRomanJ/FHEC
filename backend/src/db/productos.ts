@@ -33,5 +33,10 @@ export const findProduct = async (criterios:{principio_activo?: string, marca_co
     const {data: producto, error} = await query.maybeSingle();
     if (error) throw new Error(`Error buscando producto: ${error.message}`);
 
+    if (producto) {
+        // Añadir una imagen de prueba si el producto existe
+        producto.imagen_url = 'https://picsum.photos/200/300';
+    }
+
     return producto;
 }

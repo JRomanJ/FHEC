@@ -28,11 +28,11 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
             <div className="flex items-center gap-3 mb-3">
               <img src={logoFarmahumana} alt="FHEC" className="w-12 h-12 object-contain" />
               <div>
-                <div className="text-white text-lg font-black leading-none uppercase tracking-wide" style={H9}>FARMAHUMANA</div>
+                <div className="text-white text-lg font-black leading-none uppercase tracking-[0.05em]" style={H9}>FARMAHUMANA</div>
                 <div className="text-[#50e9f8] text-[10px] font-bold tracking-[0.2em] mt-1">FHEC</div>
               </div>
             </div>
-            <p className="text-white/70 text-sm leading-relaxed mb-5">Tu farmacia de confianza en Ciudad Guayana.</p>
+            <p className="text-white/70 text-sm leading-relaxed mb-5">Servicio con calidad humana.</p>
             <div className="flex gap-3">
               {SOCIAL_LINKS.map(s => (
                 <a key={s.title} href={s.href} target="_blank" rel="noopener noreferrer" title={s.title}
@@ -106,18 +106,18 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
         </div>
 
         {/* ─── MOBILE LAYOUT (ACCORDION) ─── */}
-        <div className="block md:hidden mb-8">
+        <div className="block md:hidden mb-6">
           {/* Header (Logo + Social) */}
           <div className="mb-8 flex flex-col items-center text-center">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
               <img src={logoFarmahumana} alt="FHEC" className="w-14 h-14 object-contain" />
               <div className="text-left">
-                <div className="text-white text-xl font-black leading-none uppercase tracking-wide" style={H9}>FARMAHUMANA</div>
+                <div className="text-white text-xl font-black leading-none uppercase tracking-[0.05em]" style={H9}>FARMAHUMANA</div>
                 <div className="text-[#50e9f8] text-[10px] font-bold tracking-[0.2em] mt-1.5">FHEC</div>
               </div>
             </div>
             
-            <div className="flex gap-4 mb-5">
+            <div className="flex gap-4 mb-4">
               {SOCIAL_LINKS.map(s => (
                 <a key={s.title} href={s.href} target="_blank" rel="noopener noreferrer" title={s.title}
                   className="w-11 h-11 rounded-full bg-white/10 hover:bg-[#50e9f8] hover:text-[#004d52] flex items-center justify-center transition-colors text-white">
@@ -126,11 +126,11 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
               ))}
             </div>
 
-            <p className="text-white/80 text-[15px] font-medium leading-relaxed whitespace-nowrap">Tu farmacia de confianza en Ciudad Guayana.</p>
+            <p className="text-white/80 text-[15px] font-medium leading-relaxed whitespace-nowrap">Servicio con calidad humana.</p>
           </div>
 
           {/* Nuestras Sedes */}
-          <div className="my-8 pb-4 pt-2">
+          <div className="mb-6 mt-4 pb-2">
             <div className="text-[#50e9f8] font-black text-sm uppercase tracking-wider mb-3">Nuestras sedes</div>
             <div className="pl-2">
               <div className="flex items-start gap-2 mb-2">
@@ -212,7 +212,7 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-6 flex items-center justify-center text-center text-[11px] text-white/40">
+        <div className="pt-4 flex items-center justify-center text-center text-[11px] text-white/40">
           <span>© {new Date().getFullYear()} Farmahumana FHEC, C.A. · Reg. MPPS N° FAR-0001-2024 · Todos los derechos reservados.</span>
         </div>
       </div>

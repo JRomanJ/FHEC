@@ -97,7 +97,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
               {notifOpen && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-2xl shadow-2xl z-[60] overflow-hidden">
                   <div className="px-4 py-3 border-b border-border bg-muted/40 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground" style={H9}>Notificaciones</h3>
+                    <h3 className="text-lg font-bold text-foreground" style={H9}>Notificaciones</h3>
                     <button onClick={() => setNotifOpen(false)} className="w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center">
                       <X size={13} className="text-muted-foreground" />
                     </button>
@@ -147,7 +147,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
               {cartOpen && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-2xl shadow-2xl z-[60] overflow-hidden">
                   <div className="px-4 py-3 border-b border-border bg-muted/40 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground" style={H9}>Mi Carrito ({cartCount})</h3>
+                    <h3 className="text-lg font-bold text-foreground" style={H9}>Mi Carrito ({cartCount})</h3>
                     <button onClick={() => setCartOpen(false)} className="w-6 h-6 rounded-full hover:bg-muted flex items-center justify-center">
                       <X size={13} className="text-muted-foreground" />
                     </button>

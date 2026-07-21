@@ -1,33 +1,33 @@
-# Backend del Proyecto
+# Backend FHEC
 
-Este directorio contiene la lógica del lado del servidor y la integración con una base de datos de prueba (supabase) para el manejo de registros, autenticación y reglas de negocio. Está desarrollado utilizando Node.js y TypeScript.
+API Express/TypeScript integrada con Supabase. Cada solicitud autenticada valida el JWT con Supabase y usa un cliente aislado con el token de ese usuario.
 
-## Requisitos Previos
+## Configuracion
 
-Para ejecutar este proyecto de forma local, es necesario contar con:
-* [Node.js](https://nodejs.org/) (versión LTS recomendada).
-* `npm` (incluido con Node.js) como gestor de paquetes.
+1. Copia `.env.example` como `.env`.
+2. Configura `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+3. Configura `SUPABASE_SERVICE_ROLE_KEY` solo para administracion de usuarios y para sincronizar las cuentas de prueba. Nunca expongas esta clave al frontend.
 
+Las variables de CORS, limites y rate limiting tienen valores locales seguros en `.env.example`.
 
-**Variables de Entorno (Conexión a Base de Datos):**
+## Comandos
 
-   El proyecto utiliza un archivo de variables de entorno para mantener seguras las credenciales de conexión a Supabase.
-   
-   * Localiza el archivo `.env.example` en la raíz de este directorio.
-   * Duplica este archivo y renómbralo estrictamente como `.env`.
-   * Abre el archivo `.env` recién creado. Debería tener la siguiente estructura:
+```bash
+npm install
+npm run dev
+npm start
+npm run typecheck
+npm run check
+```
 
-    env
-        SUPABASE_URL=aqui_va_la_url_del_proyecto
-        SUPABASE_SERVICE_ROLE_KEY=aqui_va_la_clave_secreta_del_backend
-        
+El servidor escucha en `http://localhost:3000` de forma predeterminada y publica la API bajo `/api`.
 
-   Solicita al administrador del proyecto los valores reales para la URL y la clave, y reemplázalos en el .env.
-   
-   > **Importante:** El archivo `.env` está ignorado en Git. Por motivos de seguridad, nunca hagas un commit con credenciales reales.
+## Cuentas de prueba reales
 
-## Ejecución en Entorno Local
-Posicionarse en la carpeta del backend desde la terminal y ejecutar:
-bash
-   npm install
-   npm run dev
+El frontend autocompleta cinco cuentas: cliente, repartidor, auxiliar, auditor y superadministrador. Para crearlas o reconciliarlas de forma idempotente en Supabase Auth y en la tabla `usuarios`:
+
+```bash
+npm run seed:test-accounts
+```
+
+`DEMO_ACCOUNT_PASSWORD` debe coincidir con `VITE_DEMO_ACCOUNT_PASSWORD` del frontend. El script confirma los correos de prueba, corrige sus roles y actualiza la contraseña; requiere la clave service-role.

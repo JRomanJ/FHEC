@@ -13,7 +13,7 @@ import {
   DISCOUNT_CODES,
 } from "./data";
 import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
-import { logout } from "../services/authService";
+import { getCurrentUser, hasSession, logout } from "../services/authService";
 import { addFavorite, getAvailableBranches, getCatalogProducts, getFavorites, removeFavorite } from "../services/backendService";
 import { BRANCH_IDS } from "../config/api";
 
@@ -34,6 +34,29 @@ const NotificationsPage = lazy(() => import("../features/notifications/component
 const TrackingPage = lazy(() => import("../features/orders/components/TrackingPage").then((module) => ({ default: module.TrackingPage })));
 const INITIAL_NOTIFICATIONS = getLegacyNotificationViewModels();
 
+const DEFAULT_PAGE_BY_ROLE: Record<AuthUser["role"], Page> = {
+  cliente: "home",
+  repartidor: "delivery",
+  auxiliar: "admin",
+  auditor: "admin",
+  superadmin: "admin",
+};
+
+const PUBLIC_PAGES = new Set<Page>(["home", "catalog", "product", "cart", "login", "register"]);
+const PAGES_BY_ROLE: Record<AuthUser["role"], Set<Page>> = {
+  cliente: new Set(["home", "catalog", "product", "cart", "deliverySelect", "preCheckout", "checkout", "orderComplete", "tracking", "favorites", "profile", "notifications"]),
+  repartidor: new Set(["delivery", "profile", "notifications"]),
+  auxiliar: new Set(["admin", "profile", "notifications"]),
+  auditor: new Set(["admin", "profile", "notifications"]),
+  superadmin: new Set(["admin", "banners", "profile", "notifications"]),
+};
+
+const resolvePageAccess = (requested: Page, user: AuthUser | null): Page => {
+  if (!user) return PUBLIC_PAGES.has(requested) ? requested : "login";
+  if (requested === "login" || requested === "register") return DEFAULT_PAGE_BY_ROLE[user.role];
+  return PAGES_BY_ROLE[user.role].has(requested) ? requested : DEFAULT_PAGE_BY_ROLE[user.role];
+};
+
 // ─── Shared form constants ────────────────────────────────────────────────────
 const VE_AREAS = ["0412", "0414", "0416", "0424", "0426"];
 const DOC_TYPES = ["V", "E", "J", "G", "P"];
@@ -53,6 +76,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
   const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
   const [cartDiscountApplied, setCartDiscountApplied] = useState(0);
@@ -68,6 +92,28 @@ export default function App() {
   const [checkoutAddress, setCheckoutAddress] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasSession()) {
+      setAuthReady(true);
+      return () => { cancelled = true; };
+    }
+
+    getCurrentUser()
+      .then((restoredUser) => {
+        if (cancelled) return;
+        setUser(restoredUser);
+        setPageRaw(DEFAULT_PAGE_BY_ROLE[restoredUser.role]);
+      })
+      .catch((error) => {
+        if (!cancelled) console.error("No se pudo restaurar la sesion:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +160,38 @@ export default function App() {
     return () => { cancelled = true; };
   }, [products, user]);
 
-  const setPage = (p: Page) => { window.scrollTo({ top: 0 }); setPageRaw(p); };
+  useEffect(() => {
+    if (!authReady) return;
+    const allowedPage = resolvePageAccess(page, user);
+    if (allowedPage !== page) setPageRaw(allowedPage);
+  }, [authReady, page, user]);
+
+  const setPage = (requested: Page) => {
+    window.scrollTo({ top: 0 });
+    setPageRaw(resolvePageAccess(requested, user));
+  };
+
+  const handleAuthenticated = (authenticatedUser: AuthUser) => {
+    setUser(authenticatedUser);
+    setCartItems([]);
+    setFavoriteIds(new Set());
+    setPageRaw(DEFAULT_PAGE_BY_ROLE[authenticatedUser.role]);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("No se pudo revocar la sesion remota:", error);
+    } finally {
+      setUser(null);
+      setCartItems([]);
+      setFavoriteIds(new Set());
+      setHasActiveOrder(false);
+      setActiveOrderItems([]);
+      setPageRaw("home");
+    }
+  };
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   // La tabla actual de usuarios no incluye una sede asignada.
@@ -193,12 +270,16 @@ export default function App() {
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
+  if (!authReady) {
+    return <div className="min-h-screen bg-[#f0fdf7] flex items-center justify-center text-[#006064] font-semibold">Restaurando sesion...</div>;
+  }
+
   // Login page renders without navbar
   if (page === "login" || page === "register") {
     return (
       <div style={{ fontFamily: "'Barlow', sans-serif" }}>
         <Suspense fallback={null}>
-          <LoginPage onLogin={(u) => { setUser(u); setCartItems([]); setFavoriteIds(new Set()); }} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
+          <LoginPage onLogin={handleAuthenticated} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
         </Suspense>
       </div>
     );
@@ -213,7 +294,7 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         user={user}
-        onLogout={() => { logout(); setUser(null); setCartItems([]); setFavoriteIds(new Set()); setHasActiveOrder(false); setActiveOrderItems([]); setPage("home"); }}
+        onLogout={() => { void handleLogout(); }}
         onCategorySelect={handleCategorySelect}
         cartItems={cartItems}
         onUpdateCartQuantity={updateQuantity}
@@ -262,7 +343,7 @@ export default function App() {
               onOrderComplete={() => { setHasActiveOrder(false); }}
             />
           )}
-          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { logout(); setUser(null); setCartItems([]); setFavoriteIds(new Set()); setPage("home"); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
+          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { void handleLogout(); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
           {page === "delivery" && <DeliveryPanel onNav={setPage} userSede={staffSede} />}
           {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} />}
           {page === "notifications" && <NotificationsPage onNav={setPage} notifs={appNotifs} setNotifs={setAppNotifs} />}

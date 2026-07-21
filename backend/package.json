@@ -4,8 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck",
+    "seed:test-accounts": "tsx src/scripts/seedTestAccounts.ts"
   },
   "keywords": [],
   "author": "",

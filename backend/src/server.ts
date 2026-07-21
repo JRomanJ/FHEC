@@ -1,13 +1,15 @@
+import { randomUUID } from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
-import { loginUser } from './authService.js';
-import { userLogger, findUserAuth, findUserByCedula, updateUserAuthEmail, updateUserProfile } from './db/usuarios.js';
+import type { SupabaseClient, User } from '@supabase/supabase-js';
+import { loginUser, refreshUserSession, registerUser, revokeUserSession, sessionPayload } from './authService.js';
+import { findUserAuth, findUserByCedula, updateOtherUserAuthEmail, updateUserAuthEmail, updateUserProfile } from './db/usuarios.js';
 import { processInventoryEntry, getProducosWithFilters } from './db/inventario.js';
 import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js';
 import { findProduct } from './db/productos.js';
 import { insertRole, assingnRole } from './db/roles.js';
 import { cargarTodoEnSede } from './db/cargarProductosdePrueba.js';
-import { createAuthedClient, supabase } from './db/supabaseClient.js';
+import { createAuthedClient } from './db/supabaseClient.js';
 import {
     agregarProductoCarrito,
     disminuirProductoCarrito,
@@ -16,30 +18,45 @@ import {
     obtenerCarrito,
     vaciarCarrito,
 } from './db/carritos.js';
-import {
-    agregarFavorito,
-    listarFavoritos,
-    quitarFavorito,
-    vaciarFavoritos,
-} from './db/favoritos.js';
+import { agregarFavorito, listarFavoritos, quitarFavorito, vaciarFavoritos } from './db/favoritos.js';
 
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const ADMIN_ROLES = new Set(['admin', 'super_admin', 'superadmin']);
-const STAFF_ROLES = new Set(['auxiliar', 'auditor', 'repartidor', ...ADMIN_ROLES]);
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+type AppRole = 'cliente' | 'repartidor' | 'auxiliar' | 'auditor' | 'superadmin';
+type Profile = Record<string, unknown> & { rol?: string | null };
 
 type AuthenticatedRequest = Request & {
     auth?: {
+        accessToken: string;
+        user: User;
         userId: string;
-        role: string;
-        db: ReturnType<typeof createAuthedClient>;
+        role: AppRole;
+        profile: Profile;
+        db: SupabaseClient;
     };
 };
 
-app.use(cors({ origin: true }));
-app.use(express.json({ limit: '1mb' }));
+type HttpError = Error & { status?: number; code?: string; type?: string };
+
+const app = express();
+const PORT = Number(process.env.PORT ?? 3000);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SUPERADMIN = new Set<AppRole>(['superadmin']);
+const INVENTORY_EDITORS = new Set<AppRole>(['auxiliar', 'superadmin']);
+const VALID_ROLES = new Set(['cliente', 'repartidor', 'auxiliar', 'auditor', 'superadmin', 'super_admin']);
+const PROFILE_COLUMNS = 'id, nombre_completo, rol, tipo_documento_identidad, documento_identidad, telefono, codigo_area, direccion_fiscal';
+
+const parsePositiveInteger = (value: string | undefined, fallback: number) => {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizeRole = (role: unknown): AppRole => {
+    const value = String(role ?? 'cliente').trim().toLowerCase();
+    if (value === 'super_admin' || value === 'admin' || value === 'superadmin') return 'superadmin';
+    if (value === 'repartidor' || value === 'auxiliar' || value === 'auditor') return value;
+    return 'cliente';
+};
+
+const databaseRole = (role: string) => role === 'superadmin' ? 'super_admin' : role;
 
 const requireFields = (body: Record<string, unknown> | undefined, fields: string[]) => {
     const source = body ?? {};
@@ -47,171 +64,249 @@ const requireFields = (body: Record<string, unknown> | undefined, fields: string
     if (missing.length) throw Object.assign(new Error(`Campos obligatorios: ${missing.join(', ')}`), { status: 400 });
 };
 
-const getAuthedDb = (req: Request) => {
-    const db = (req as AuthenticatedRequest).auth?.db;
-    if (!db) throw Object.assign(new Error('Debes iniciar sesion.'), { status: 401 });
-    return db;
+const validateUuid = (value: unknown, field: string) => {
+    const resolved = typeof value === 'string' ? value : '';
+    if (!UUID_PATTERN.test(resolved)) throw Object.assign(new Error(`${field} debe ser un UUID valido.`), { status: 400 });
+    return resolved;
 };
 
 const parseInteger = (value: unknown, field: string, defaultValue?: number) => {
-    const resolvedValue = value ?? defaultValue;
-    const parsedValue = typeof resolvedValue === 'number'
-        ? resolvedValue
-        : typeof resolvedValue === 'string' && resolvedValue.trim() !== ''
-            ? Number(resolvedValue)
-            : Number.NaN;
-
-    if (!Number.isInteger(parsedValue)) {
-        throw Object.assign(new Error(`${field} debe ser un numero entero.`), { status: 400 });
-    }
-
-    return parsedValue;
+    const resolved = value ?? defaultValue;
+    const parsed = typeof resolved === 'number' ? resolved : Number(resolved);
+    if (!Number.isInteger(parsed)) throw Object.assign(new Error(`${field} debe ser un numero entero.`), { status: 400 });
+    return parsed;
 };
 
-const validateUuid = (value: unknown, field: string) => {
-    const resolvedValue = typeof value === 'string' ? value : '';
-    if (!UUID_PATTERN.test(resolvedValue)) {
-        throw Object.assign(new Error(`${field} debe ser un UUID valido.`), { status: 400 });
-    }
-    return resolvedValue;
+const asyncRoute = (handler: (req: AuthenticatedRequest, res: Response) => Promise<void>) =>
+    (req: Request, res: Response, next: NextFunction) => void handler(req as AuthenticatedRequest, res).catch(next);
+
+const getAuthedDb = (req: AuthenticatedRequest) => {
+    if (!req.auth) throw Object.assign(new Error('Debes iniciar sesion.'), { status: 401 });
+    return req.auth.db;
 };
 
-const asyncRoute = (handler: (req: Request, res: Response) => Promise<void>) =>
-    (req: Request, res: Response, next: NextFunction) => void handler(req, res).catch(next);
+const loadProfile = async (db: SupabaseClient, user: User): Promise<Profile> => {
+    const { data, error } = await db.from('usuarios').select(PROFILE_COLUMNS).eq('id', user.id).maybeSingle();
+    if (error) throw error;
+    if (data) return data as Profile;
+
+    return {
+        id: user.id,
+        nombre_completo: user.user_metadata?.nombre_completo ?? '',
+        rol: user.user_metadata?.rol ?? 'cliente',
+        tipo_documento_identidad: user.user_metadata?.tipo_documento_identidad ?? '',
+        documento_identidad: user.user_metadata?.documento_identidad ?? '',
+        telefono: user.user_metadata?.telefono ?? '',
+        codigo_area: user.user_metadata?.codigo_area ?? '',
+        direccion_fiscal: user.user_metadata?.direccion_fiscal ?? '',
+    };
+};
+
+const serializeUser = (user: User, profile: Profile) => ({
+    id: user.id,
+    name: String(profile.nombre_completo ?? user.user_metadata?.nombre_completo ?? ''),
+    email: String(user.email ?? ''),
+    role: normalizeRole(profile.rol ?? user.user_metadata?.rol),
+    documentType: String(profile.tipo_documento_identidad ?? ''),
+    document: String(profile.documento_identidad ?? ''),
+    phone: String(profile.telefono ?? ''),
+    areaCode: String(profile.codigo_area ?? ''),
+    address: String(profile.direccion_fiscal ?? ''),
+});
+
+app.disable('x-powered-by');
+if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
+
+app.use((req, res, next) => {
+    const incoming = req.header('x-request-id');
+    const requestId = incoming && /^[A-Za-z0-9._:-]{1,80}$/.test(incoming) ? incoming : randomUUID();
+    res.setHeader('X-Request-Id', requestId);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    next();
+});
+
+const configuredOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
+    .split(',').map((origin) => origin.trim()).filter(Boolean);
+const allowEveryOrigin = configuredOrigins.includes('*');
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowEveryOrigin || configuredOrigins.includes(origin)) return callback(null, true);
+        return callback(Object.assign(new Error('Origen no permitido por CORS.'), { status: 403 }));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'X-Request-Id'],
+    exposedHeaders: ['X-Request-Id'],
+    maxAge: 600,
+}));
+
+type RateEntry = { count: number; resetAt: number };
+const createRateLimiter = (windowMs: number, maxRequests: number) => {
+    const entries = new Map<string, RateEntry>();
+    return (req: Request, res: Response, next: NextFunction) => {
+        const now = Date.now();
+        const key = req.ip || req.socket.remoteAddress || 'unknown';
+        const current = entries.get(key);
+        const entry = !current || current.resetAt <= now ? { count: 0, resetAt: now + windowMs } : current;
+        entry.count += 1;
+        entries.set(key, entry);
+        res.setHeader('RateLimit-Limit', String(maxRequests));
+        res.setHeader('RateLimit-Remaining', String(Math.max(0, maxRequests - entry.count)));
+        res.setHeader('RateLimit-Reset', String(Math.ceil(entry.resetAt / 1000)));
+        if (entry.count > maxRequests) {
+            res.setHeader('Retry-After', String(Math.ceil((entry.resetAt - now) / 1000)));
+            res.status(429).json({ success: false, message: 'Demasiadas solicitudes. Intenta nuevamente mas tarde.' });
+            return;
+        }
+        if (entries.size > 5_000) {
+            for (const [storedKey, stored] of entries) if (stored.resetAt <= now) entries.delete(storedKey);
+        }
+        next();
+    };
+};
+
+app.use(createRateLimiter(
+    parsePositiveInteger(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60_000),
+    parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
+));
+const authRateLimiter = createRateLimiter(
+    parsePositiveInteger(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 15 * 60_000),
+    parsePositiveInteger(process.env.AUTH_RATE_LIMIT_MAX, 20),
+);
+
+app.use(express.json({ limit: process.env.JSON_LIMIT ?? '256kb' }));
 
 const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-        const accessToken = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-        if (!accessToken) {
-            res.status(401).json({ success: false, message: 'Debes iniciar sesión.' });
+        const authorization = req.header('authorization') ?? '';
+        const match = authorization.match(/^Bearer\s+(.+)$/i);
+        if (!match?.[1]) {
+            res.status(401).json({ success: false, message: 'Debes iniciar sesion.' });
             return;
         }
 
+        const accessToken = match[1];
         const db = createAuthedClient(accessToken);
-        const { data: authData, error: authError } = await db.auth.getUser(accessToken);
-        if (authError || !authData.user) throw authError ?? new Error('Sesión inválida.');
-
-        const { data: profile, error: profileError } = await db
-            .from('usuarios')
-            .select('rol')
-            .eq('id', authData.user.id)
-            .single();
-        if (profileError) throw profileError;
-
+        const { data, error } = await db.auth.getUser(accessToken);
+        if (error || !data.user) throw Object.assign(new Error('Sesion invalida.'), { status: 401 });
+        const profile = await loadProfile(db, data.user);
         req.auth = {
-            userId: authData.user.id,
-            role: String(profile?.rol ?? 'cliente'),
+            accessToken,
+            user: data.user,
+            userId: data.user.id,
+            role: normalizeRole(profile.rol ?? data.user.user_metadata?.rol),
+            profile,
             db,
         };
         next();
     } catch {
-        res.status(401).json({ success: false, message: 'La sesión expiró o no es válida.' });
+        res.status(401).json({ success: false, message: 'La sesion expiro o no es valida.' });
     }
 };
 
-const authorize = (allowedRoles: Set<string>) =>
+const authorize = (allowedRoles: Set<AppRole>) =>
     (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         if (!req.auth || !allowedRoles.has(req.auth.role)) {
-            res.status(403).json({ success: false, message: 'No tienes permiso para realizar esta operación.' });
+            res.status(403).json({ success: false, message: 'No tienes permiso para realizar esta operacion.' });
             return;
         }
         next();
     };
 
-app.get('/api/health', (_req, res) => res.json({ success: true }));
+app.get('/api/health', (_req, res) => res.json({ success: true, data: { status: 'ok' } }));
 
-app.post('/api/log', asyncRoute(async (req, res) => {
-    requireFields(req.body, ['email', 'password', 'nombre_completo', 'documento_identidad', 'acepta_terminos']);
-    const data = await userLogger(req.body);
-    res.status(201).json({ success: true, message: 'Usuario registrado.', data });
-}));
-
-app.post('/api/login', asyncRoute(async (req, res) => {
-    requireFields(req.body, ['email', 'password']);
-    const login = await loginUser(String(req.body.email).trim().toLowerCase(), String(req.body.password));
-
-    if (login.status === 'PENDING_VERIFICATION') {
-        res.status(403).json({ success: false, status: login.status, message: login.message });
-        return;
-    }
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    const authUser = login.user;
-    if (!authUser) throw new Error('Supabase no devolvió el usuario autenticado.');
-    const { data: profile, error: profileError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-    if (profileError) throw profileError;
-
-    res.json({
+app.post('/api/log', authRateLimiter, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['email', 'password', 'nombre_completo', 'tipo_documento_identidad', 'documento_identidad', 'acepta_terminos']);
+    if (req.body.acepta_terminos !== true) throw Object.assign(new Error('Debes aceptar los terminos.'), { status: 400 });
+    const data = await registerUser(req.body);
+    res.status(201).json({
         success: true,
-        message: 'Inicio de sesión exitoso.',
-        data: {
-            user: {
-                id: authUser.id,
-                name: profile.nombre_completo ?? authUser.user_metadata?.nombre_completo ?? '',
-                email: authUser.email ?? req.body.email,
-                role: profile.rol ?? 'cliente',
-                documentType: profile.tipo_documento_identidad ?? '',
-                document: profile.documento_identidad ?? '',
-                phone: profile.telefono ?? '',
-                areaCode: profile.codigo_area ?? '',
-                address: profile.direccion_fiscal ?? '',
-            },
-            session: sessionData.session ? {
-                accessToken: sessionData.session.access_token,
-                refreshToken: sessionData.session.refresh_token,
-                expiresAt: sessionData.session.expires_at,
-            } : null,
-        },
+        message: data.emailConfirmationRequired
+            ? 'Cuenta creada. Revisa tu correo para confirmarla antes de iniciar sesion.'
+            : 'Cuenta creada correctamente.',
+        data,
     });
 }));
 
-app.patch('/api/users/:userId', authenticate, asyncRoute(async (req: AuthenticatedRequest, res: Response) => {
-    const userId = String(req.params.userId);
+app.post('/api/login', authRateLimiter, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['email', 'password']);
+    const { user, session } = await loginUser(String(req.body.email), String(req.body.password));
+    const profile = await loadProfile(createAuthedClient(session.access_token), user);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+        success: true,
+        message: 'Inicio de sesion exitoso.',
+        data: { user: serializeUser(user, profile), session: sessionPayload(session) },
+    });
+}));
 
-    if (req.auth?.userId !== userId && !ADMIN_ROLES.has(req.auth?.role ?? '')) {
-        res.status(403).json({ success: false, message: 'No tienes permiso para modificar este usuario.' });
+app.get('/api/auth/me', authenticate, asyncRoute(async (req, res) => {
+    const auth = req.auth!;
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, data: { user: serializeUser(auth.user, auth.profile) } });
+}));
+
+app.post('/api/auth/refresh', authRateLimiter, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['refreshToken']);
+    const refreshed = await refreshUserSession(String(req.body.refreshToken));
+    const profile = await loadProfile(createAuthedClient(refreshed.session.access_token), refreshed.user);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+        success: true,
+        message: 'Sesion renovada.',
+        data: { user: serializeUser(refreshed.user, profile), session: refreshed.payload },
+    });
+}));
+
+app.post('/api/logout', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['refreshToken']);
+    await revokeUserSession(req.auth!.accessToken, String(req.body.refreshToken));
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, message: 'Sesion cerrada.' });
+}));
+
+app.patch('/api/users/:userId', authenticate, asyncRoute(async (req, res) => {
+    const userId = validateUuid(req.params.userId, 'userId');
+    if (req.auth!.userId !== userId && req.auth!.role !== 'superadmin') {
+        res.status(403).json({ success: false, message: 'No tienes permiso para modificar este perfil.' });
         return;
     }
 
     const updatePayload = { ...req.body } as Record<string, unknown>;
-    const requestedEmail = typeof updatePayload.email === 'string' ? String(updatePayload.email).trim().toLowerCase() : undefined;
-
-    if (requestedEmail !== undefined) {
+    const requestedEmail = typeof updatePayload.email === 'string'
+        ? updatePayload.email.trim().toLowerCase()
+        : undefined;
+    if (requestedEmail) {
+        if (req.auth!.userId === userId) await updateUserAuthEmail(getAuthedDb(req), requestedEmail);
+        else await updateOtherUserAuthEmail(userId, requestedEmail);
         delete updatePayload.email;
-        await updateUserAuthEmail(requestedEmail);
     }
-
-    const profileData = await updateUserProfile(userId, updatePayload);
-    const { data: authUserData } = await supabase.auth.getUser();
-
-    res.json({
-        success: true,
-        message: 'Usuario actualizado correctamente.',
-        data: {
-            id: profileData.id,
-            name: profileData.nombre_completo ?? '',
-            email: authUserData.user?.email ?? requestedEmail ?? '',
-            role: profileData.rol ?? 'cliente',
-            documentType: profileData.tipo_documento_identidad ?? '',
-            document: profileData.documento_identidad ?? '',
-            phone: profileData.telefono ?? '',
-            areaCode: profileData.codigo_area ?? '',
-            address: profileData.direccion_fiscal ?? '',
-        },
-    });
+    let profile: Profile;
+    if (Object.keys(updatePayload).length > 0) {
+        profile = await updateUserProfile(getAuthedDb(req), userId, updatePayload);
+    } else if (req.auth!.userId === userId) {
+        profile = req.auth!.profile;
+    } else {
+        const { data, error } = await getAuthedDb(req).from('usuarios').select(PROFILE_COLUMNS).eq('id', userId).single();
+        if (error) throw error;
+        profile = data as Profile;
+    }
+    const authUser = req.auth!.user;
+    const serialized = serializeUser({ ...authUser, email: requestedEmail ?? authUser.email } as User, profile);
+    res.json({ success: true, message: 'Perfil actualizado correctamente.', data: serialized });
 }));
 
 app.get('/api/inventory/:sedeId', asyncRoute(async (req, res) => {
-    const filters = {
+    const sedeId = validateUuid(req.params.sedeId, 'sedeId');
+    const data = await getProducosWithFilters(sedeId, {
         principio_activo: req.query.principio_activo,
         marca_comercial: req.query.marca_comercial,
         categoria: req.query.categoria,
-    };
-    const data = await getProducosWithFilters(String(req.params.sedeId), filters);
+    });
     res.json({ success: true, data });
 }));
 
@@ -220,63 +315,46 @@ app.get('/api/products/search', authenticate, asyncRoute(async (req, res) => {
     if (typeof req.query.principio_activo === 'string') criteria.principio_activo = req.query.principio_activo;
     if (typeof req.query.marca_comercial === 'string') criteria.marca_comercial = req.query.marca_comercial;
     if (typeof req.query.forma_farmaceutica === 'string') criteria.forma_farmaceutica = req.query.forma_farmaceutica;
-    const data = await findProduct(criteria);
-    res.json({ success: true, data });
+    res.json({ success: true, data: await findProduct(getAuthedDb(req), criteria) });
 }));
 
 app.get('/api/cart', authenticate, asyncRoute(async (req, res) => {
-    const data = await obtenerCarrito(getAuthedDb(req));
-    res.json({ success: true, data });
+    res.json({ success: true, data: await obtenerCarrito(getAuthedDb(req)) });
 }));
 
 app.post('/api/cart/items', authenticate, asyncRoute(async (req, res) => {
     requireFields(req.body, ['idInventario']);
-    const cantidad = parseInteger(req.body.cantidad, 'cantidad', 1);
-    const data = await agregarProductoCarrito(
-        getAuthedDb(req),
-        String(req.body.idInventario),
-        cantidad,
-    );
+    const inventoryId = validateUuid(req.body.idInventario, 'idInventario');
+    const data = await agregarProductoCarrito(getAuthedDb(req), inventoryId, parseInteger(req.body.cantidad, 'cantidad', 1));
     res.status(201).json({ success: true, data });
 }));
 
 app.put('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, res) => {
     requireFields(req.body, ['cantidad']);
+    const inventoryId = validateUuid(req.params.idInventario, 'idInventario');
     const cantidad = parseInteger(req.body.cantidad, 'cantidad');
-    const data = await establecerCantidadProductoCarrito(
-        getAuthedDb(req),
-        String(req.params.idInventario),
-        cantidad,
-    );
+    await establecerCantidadProductoCarrito(getAuthedDb(req), inventoryId, cantidad);
     res.json({ success: true, data: { cantidad } });
 }));
 
 app.patch('/api/cart/items/:idInventario/decrement', authenticate, asyncRoute(async (req, res) => {
-    const cantidadADisminuir = parseInteger(req.body?.cantidad, 'cantidad', 1);
-    const cantidad = await disminuirProductoCarrito(
-        getAuthedDb(req),
-        String(req.params.idInventario),
-        cantidadADisminuir,
-    );
+    const inventoryId = validateUuid(req.params.idInventario, 'idInventario');
+    const cantidad = await disminuirProductoCarrito(getAuthedDb(req), inventoryId, parseInteger(req.body?.cantidad, 'cantidad', 1));
     res.json({ success: true, data: { cantidad } });
 }));
 
 app.delete('/api/cart/items/:idInventario', authenticate, asyncRoute(async (req, res) => {
-    const eliminado = await eliminarProductoCarrito(
-        getAuthedDb(req),
-        String(req.params.idInventario),
-    );
+    const inventoryId = validateUuid(req.params.idInventario, 'idInventario');
+    const eliminado = await eliminarProductoCarrito(getAuthedDb(req), inventoryId);
     res.json({ success: true, data: { eliminado } });
 }));
 
 app.delete('/api/cart', authenticate, asyncRoute(async (req, res) => {
-    const productosEliminados = await vaciarCarrito(getAuthedDb(req));
-    res.json({ success: true, data: { productosEliminados } });
+    res.json({ success: true, data: { productosEliminados: await vaciarCarrito(getAuthedDb(req)) } });
 }));
 
 app.get('/api/favorites', authenticate, asyncRoute(async (req, res) => {
-    const data = await listarFavoritos(getAuthedDb(req));
-    res.json({ success: true, data });
+    res.json({ success: true, data: await listarFavoritos(getAuthedDb(req)) });
 }));
 
 app.post('/api/favorites/:productId', authenticate, asyncRoute(async (req, res) => {
@@ -292,74 +370,82 @@ app.delete('/api/favorites/:productId', authenticate, asyncRoute(async (req, res
 }));
 
 app.delete('/api/favorites', authenticate, asyncRoute(async (req, res) => {
-    const productosEliminados = await vaciarFavoritos(getAuthedDb(req));
-    res.json({ success: true, data: { productosEliminados } });
+    res.json({ success: true, data: { productosEliminados: await vaciarFavoritos(getAuthedDb(req)) } });
 }));
 
 app.get('/api/branches/by-name', asyncRoute(async (req, res) => {
     requireFields(req.query as Record<string, unknown>, ['nombre']);
-    const data = await getBranchByName(String(req.query.nombre));
-    res.json({ success: true, data });
+    res.json({ success: true, data: await getBranchByName(String(req.query.nombre)) });
 }));
 
-app.post('/api/inventory', authenticate, authorize(STAFF_ROLES), asyncRoute(async (req, res) => {
+app.post('/api/inventory', authenticate, authorize(INVENTORY_EDITORS), asyncRoute(async (req, res) => {
     requireFields(req.body, ['producto', 'sedeId']);
-    const data = await processInventoryEntry(req.body.producto, req.body.sedeId);
+    const sedeId = validateUuid(req.body.sedeId, 'sedeId');
+    const data = await processInventoryEntry(getAuthedDb(req), req.body.producto, sedeId);
     res.status(201).json({ success: true, data });
 }));
 
-app.patch('/api/inventory/price', authenticate, authorize(STAFF_ROLES), asyncRoute(async (req, res) => {
+app.patch('/api/inventory/price', authenticate, authorize(INVENTORY_EDITORS), asyncRoute(async (req, res) => {
     requireFields(req.body, ['productoId', 'sedeId', 'precioUsd']);
+    const productoId = validateUuid(req.body.productoId, 'productoId');
+    const sedeId = validateUuid(req.body.sedeId, 'sedeId');
     const price = Number(req.body.precioUsd);
-    if (!Number.isFinite(price) || price < 0) throw Object.assign(new Error('El precio debe ser un número positivo.'), { status: 400 });
-    const data = await updateBranchPrice(req.body.productoId, req.body.sedeId, price);
-    res.json({ success: true, data });
+    if (!Number.isFinite(price) || price < 0) throw Object.assign(new Error('El precio debe ser un numero positivo.'), { status: 400 });
+    res.json({ success: true, data: await updateBranchPrice(getAuthedDb(req), productoId, sedeId, price) });
 }));
 
-app.post('/api/branches', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.post('/api/branches', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     requireFields(req.body, ['nombre', 'direccion', 'latitud', 'longitud']);
-    const data = await createBranch(req.body.nombre, req.body.direccion, Number(req.body.latitud), Number(req.body.longitud));
+    const data = await createBranch(getAuthedDb(req), String(req.body.nombre), String(req.body.direccion), Number(req.body.latitud), Number(req.body.longitud));
     res.status(201).json({ success: true, data });
 }));
 
-app.get('/api/users/auth', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.get('/api/users/auth', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     requireFields(req.query as Record<string, unknown>, ['email']);
-    const user = await findUserAuth(String(req.query.email));
-    const data = user ? { id: user.id, correo: user.correo } : null;
-    res.json({ success: true, data });
+    res.json({ success: true, data: await findUserAuth(String(req.query.email).trim().toLowerCase()) });
 }));
 
-app.get('/api/users/by-document', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.get('/api/users/by-document', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     requireFields(req.query as Record<string, unknown>, ['tipo', 'documento']);
-    const data = await findUserByCedula(String(req.query.tipo), String(req.query.documento));
+    const data = await findUserByCedula(getAuthedDb(req), String(req.query.tipo), String(req.query.documento));
     res.json({ success: true, data });
 }));
 
-app.post('/api/roles', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.post('/api/roles', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     requireFields(req.body, ['rol']);
-    const data = await insertRole(req.body.rol);
-    res.status(201).json({ success: true, data });
+    const role = String(req.body.rol).trim().toLowerCase();
+    if (!VALID_ROLES.has(role)) throw Object.assign(new Error('Rol no valido.'), { status: 400 });
+    res.status(201).json({ success: true, data: await insertRole(getAuthedDb(req), databaseRole(role)) });
 }));
 
-app.patch('/api/users/:userId/role', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.patch('/api/users/:userId/role', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const userId = validateUuid(req.params.userId, 'userId');
     requireFields(req.body, ['rol']);
-    const data = await assingnRole(String(req.params.userId), req.body.rol);
-    res.json({ success: true, data });
+    const role = String(req.body.rol).trim().toLowerCase();
+    if (!VALID_ROLES.has(role)) throw Object.assign(new Error('Rol no valido.'), { status: 400 });
+    res.json({ success: true, data: await assingnRole(getAuthedDb(req), userId, databaseRole(role)) });
 }));
 
-// Operación interna de inicialización. No se publica como control visible en el frontend.
-app.post('/api/inventory/seed', authenticate, authorize(ADMIN_ROLES), asyncRoute(async (req, res) => {
+app.post('/api/inventory/seed', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     requireFields(req.body, ['sedeId']);
-    const data = await cargarTodoEnSede(req.body.sedeId);
-    res.json({ success: true, data });
+    const sedeId = validateUuid(req.body.sedeId, 'sedeId');
+    res.json({ success: true, data: await cargarTodoEnSede(getAuthedDb(req), sedeId) });
 }));
 
-app.use((error: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
-    console.error(error);
-    res.status(error.status ?? 500).json({
+app.use((_req, res) => {
+    res.status(404).json({ success: false, message: 'Ruta no encontrada.' });
+});
+
+app.use((error: HttpError, _req: Request, res: Response, _next: NextFunction) => {
+    const status = error.type === 'entity.too.large' ? 413 : error.status && error.status >= 400 && error.status < 600 ? error.status : 500;
+    if (status >= 500) console.error(error);
+    res.status(status).json({
         success: false,
-        message: error.message || 'Error interno del servidor.',
+        message: status >= 500 ? 'Error interno del servidor.' : error.message,
+        ...(error.code ? { code: error.code } : {}),
     });
 });
 
 app.listen(PORT, () => console.log(`Servidor corriendo en http://localhost:${PORT}`));
+
+export { app };

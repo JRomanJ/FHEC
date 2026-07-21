@@ -119,6 +119,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   const [otpValue, setOtpValue] = useState("");
   const [otpError, setOtpError] = useState("");
   const [regSuccess, setRegSuccess] = useState(false);
+  const [regSuccessMessage, setRegSuccessMessage] = useState("");
   const DEMO_OTP = "123456";
 
   const registerValidation = validateRegisterForm({
@@ -143,9 +144,6 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
       const user = await login(loginCred.trim(), loginPass);
       setLoginError("");
       onLogin(user);
-      if (["auditor", "auxiliar", "superadmin"].includes(user.role)) onNav("admin");
-      else if (user.role === "repartidor") onNav("delivery");
-      else onNav("home");
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "No se pudo iniciar sesión.");
     } finally {
@@ -192,7 +190,16 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
         acepta_notificaciones_correo: acceptNotifications
       });
       if (!response.success) throw new Error(response.message);
-      setOtpPhase("email");
+      setOtpPhase(null);
+      setOtpError("");
+      setRegSuccessMessage(response.message);
+      setRegSuccess(true);
+      window.setTimeout(() => {
+        setRegSuccess(false);
+        setLoginCred(regEmail.trim());
+        setLoginPass("");
+        setView("login");
+      }, 1800);
     } catch (error) {
       const err = error as any; 
 
@@ -220,8 +227,9 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
     setOtpPhase(null);
     setRegSuccess(true);
     setTimeout(() => {
-      onLogin({ name: regName || "Nuevo Usuario", email: regEmail, role: "cliente", cedula: regCedula || "—" });
-      onNav("home");
+      setLoginCred(regEmail.trim());
+      setLoginPass("");
+      setView("login");
     }, 1500);
   };
 
@@ -614,7 +622,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                   <CheckCircle size={30} className="text-white" />
                 </div>
                 <div className="text-xl uppercase text-foreground" style={H9}>¡Registro exitoso!</div>
-                <div className="text-sm text-muted-foreground text-center">Redirigiendo a la tienda…</div>
+                <div className="text-sm text-muted-foreground text-center">{regSuccessMessage}</div>
               </div>
             ) : (
               <div className="space-y-4">

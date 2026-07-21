@@ -1,7 +1,7 @@
-import { supabase, getAuthedClient } from './supabaseClient.js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export const createProduct = async (productoData: any) => {
-    const { data: producto, error} = await supabase
+export const createProduct = async (client: SupabaseClient, productoData: any) => {
+    const { data: producto, error} = await client
     .from('productos')
     .upsert(
         productoData,
@@ -15,10 +15,8 @@ export const createProduct = async (productoData: any) => {
     }
     return producto;
 }
-export const findProduct = async (criterios:{principio_activo?: string, marca_comercial?: string, forma_farmaceutica?: string}) => {
-    const supabase = await getAuthedClient();
-    
-    let query = supabase.from('productos').select('*');
+export const findProduct = async (client: SupabaseClient, criterios:{principio_activo?: string, marca_comercial?: string, forma_farmaceutica?: string}) => {
+    let query = client.from('productos').select('*');
 
     if (criterios.principio_activo) {
         query = query.ilike('principio_activo', `%${criterios.principio_activo}%`);

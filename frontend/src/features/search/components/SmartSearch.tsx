@@ -64,7 +64,7 @@ export function SmartSearch({ searchQuery, setSearchQuery, onNav, products, cate
   const showDropdown = open && (q.length > 0 || history.length > 0);
 
   return (
-    <div className="relative flex-1 mx-2 lg:mx-6" ref={ref}>
+    <div className="relative flex-1 mx-0 sm:mx-2 lg:mx-6" ref={ref}>
       <div className="relative">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <input

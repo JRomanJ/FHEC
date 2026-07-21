@@ -605,7 +605,7 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
                         <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Cód. área</label>
                         <select value={editingPhone ? newPhoneArea : currentPhone.split("-")[0]?.replace(/^\+58\s?/,"") || "0414"}
                           onChange={e => setNewPhoneArea(e.target.value)} disabled={!editingPhone}
-                          className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none ${editingPhone ? "border-[#50e9f8] bg-white focus:border-[#179150]" : "border-border bg-[#f8fafc] opacity-70"}`}>
+                          className={`w-full pl-3 pr-10 py-2.5 border rounded-xl text-sm focus:outline-none bg-[position:right_1.25rem_center] ${editingPhone ? "border-[#50e9f8] bg-white focus:border-[#179150]" : "border-border bg-[#f8fafc] opacity-70"}`}>
                           {veAreas.map(a => <option key={a}>{a}</option>)}
                         </select>
                       </div>

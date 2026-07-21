@@ -58,11 +58,6 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
               ))}
               <li><button className="text-white/60 text-xs hover:text-white transition-colors text-left">Contáctanos</button></li>
               <li><button className="text-white/60 text-xs hover:text-white transition-colors text-left">Trabaja con nosotros</button></li>
-              <li className="pt-1">
-                <div className="text-white/40 text-[10px] mb-1">Nuestras sedes</div>
-                <div className="text-white/50 text-[10px] leading-relaxed">📍 Sede Principal — Calle 07, Ciudad Guayana</div>
-                <div className="text-white/50 text-[10px] leading-relaxed mt-0.5">📍 Clínica Humana — Av. José Gumilla</div>
-              </li>
             </ul>
           </div>
 
@@ -93,17 +88,18 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
                 </div>
               ))}
             </div>
+            
+            <div className="mt-5 pt-4 border-t border-white/10">
+              <div className="text-white font-bold text-xs uppercase tracking-wider mb-2">Nuestras sedes</div>
+              <div className="text-white/50 text-[11px] leading-relaxed">📍 Sede Principal — Calle 07, Ciudad Guayana</div>
+              <div className="text-white/50 text-[11px] leading-relaxed mt-0.5">📍 Clínica Humana — Av. José Gumilla</div>
+            </div>
           </div>
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-white/35">
+        <div className="border-t border-white/10 pt-5 flex items-center justify-center text-center text-[11px] text-white/35">
           <span>© {new Date().getFullYear()} Farmahumana FHEC, C.A. · Reg. MPPS N° FAR-0001-2024 · Todos los derechos reservados.</span>
-          <div className="flex items-center gap-4">
-            <button className="hover:text-white/60 transition-colors">Términos</button>
-            <button className="hover:text-white/60 transition-colors">Privacidad</button>
-            <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 bg-[#179150] rounded-full" />Ciudad Guayana, Venezuela</span>
-          </div>
         </div>
       </div>
     </footer>

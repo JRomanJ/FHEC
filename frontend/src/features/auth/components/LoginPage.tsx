@@ -512,20 +512,22 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
       )}
 
       {/* Header */}
-      <div className="relative overflow-hidden px-8 py-8" style={{ background: "linear-gradient(135deg, #50e9f8 0%, #179150 100%)" }}>
-        <div className="max-w-5xl mx-auto flex items-center gap-4">
+      <div className="relative overflow-hidden px-4 py-8" style={{ background: "linear-gradient(135deg, #50e9f8 0%, #179150 100%)" }}>
+        <div className="flex items-center gap-4 pl-1">
           <img src={logoFarmahumana} alt="Farmahumana" className="w-14 h-14 object-contain drop-shadow-lg" />
           <div>
             <div className="text-white text-4xl leading-none uppercase" style={H9}>Farmahumana</div>
-            <div className="text-white/80 text-sm mt-1">Tu salud, nuestra prioridad</div>
+            <div className="text-white/80 text-sm mt-1">Servicio con calidad humana</div>
           </div>
         </div>
-        <button onClick={() => onNav("home")} className="absolute top-4 right-5 text-white/70 hover:text-white text-xs flex items-center gap-1 transition-colors">
-          <ArrowLeft size={13} /> Volver a la tienda
+        <button onClick={() => onNav("home")} className="absolute top-4 right-4 md:right-5 flex items-center justify-center transition-colors
+          w-8 h-8 rounded-full bg-black/10 text-white hover:bg-black/20 md:w-auto md:h-auto md:px-3 md:py-1 md:gap-1.5 text-xs md:text-sm md:font-bold">
+          <ArrowLeft size={16} className="md:w-[18px] md:h-[18px]" />
+          <span className="hidden md:inline">Volver</span>
         </button>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-10">
+      <div className="max-w-md md:max-w-lg mx-auto px-4 py-10">
 
         {/* ══ LOGIN VIEW ══ */}
         {view === "login" && (

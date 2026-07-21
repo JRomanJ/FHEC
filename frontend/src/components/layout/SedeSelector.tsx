@@ -22,11 +22,11 @@ export function SedeSelector({ selectedSede, onSedeChange, branches }: {
   return (
     <div ref={ref} className="relative ml-auto">
       <button onClick={() => setOpen((value) => !value)} disabled={!current}
-        className="flex items-center gap-1.5 px-3 py-1.5 my-1 rounded-lg text-xs text-[#006064]/80 hover:bg-white/15 transition-all whitespace-nowrap disabled:opacity-50">
-        <MapPin size={11} />
+        className="flex items-center gap-1.5 px-3 py-1.5 my-1 rounded-lg text-sm text-white/90 hover:bg-white/15 transition-all whitespace-nowrap disabled:opacity-50">
+        <MapPin size={13} className="text-white" />
         <span className="hidden sm:inline">{current?.name ?? "Sin sedes"}</span>
         <span className="sm:hidden">Sede</span>
-        <ChevronDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={13} className={`text-white transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && current && (
         <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-2xl shadow-2xl z-[60] overflow-hidden min-w-[220px]">

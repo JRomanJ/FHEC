@@ -232,11 +232,11 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
       <nav className="w-full" style={{ background: "linear-gradient(90deg, #50e9f8 0%, #179150 100%)" }}>
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex items-center">
-            {/* Opciones principales — pueden bajar a segunda línea en móvil */}
+            {/* Opciones principales */}
             <div className="flex items-center flex-wrap flex-1 min-w-0">
               {/* Inicio */}
               <button onClick={() => onNav("home")}
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
+                className={`px-2 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
                   ${page === "home" ? "bg-white/25 text-[#006064] font-bold" : "text-[#006064]/80 hover:text-[#006064] hover:bg-white/15 hover:font-semibold"}`}>
                 Inicio
               </button>
@@ -247,7 +247,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
               {/* Mi Pedido — solo cuando hay pedido activo */}
               {hasActiveOrder && (
                 <button onClick={() => onNav("tracking")}
-                  className={`relative px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
+                  className={`relative px-2 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
                     ${page === "tracking" ? "bg-white/25 text-[#006064] font-bold" : "text-[#006064]/80 hover:text-[#006064] hover:bg-white/15 hover:font-semibold"}`}>
                   Mi Pedido
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
@@ -257,7 +257,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
               {/* Delivery — solo repartidor */}
               {isDelivery && (
                 <button onClick={() => onNav("delivery")}
-                  className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
+                  className={`px-2 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
                     ${page === "delivery" ? "bg-white/25 text-[#006064] font-bold" : "text-[#006064]/80 hover:text-[#006064] hover:bg-white/15 hover:font-semibold"}`}>
                   Delivery
                 </button>
@@ -266,9 +266,10 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
               {/* Administración — auxiliar, auditor, superadmin */}
               {isInternal && (
                 <button onClick={() => onNav("admin")}
-                  className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
+                  className={`px-2 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all my-1
                     ${page === "admin" ? "bg-white/25 text-[#006064] font-bold" : "text-[#006064]/80 hover:text-[#006064] hover:bg-white/15 hover:font-semibold"}`}>
-                  Administración
+                  <span className="sm:hidden">Admin</span>
+                  <span className="hidden sm:inline">Administración</span>
                 </button>
               )}
             </div>

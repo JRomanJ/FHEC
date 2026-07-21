@@ -387,35 +387,35 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
         {activeTab === "auxiliar" && isAuxiliar && (
           <div className="space-y-6">
             {/* KPIs */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <Clock size={20} className="text-amber-600" />
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              <div className="bg-white rounded-2xl border border-border p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <Clock size={18} className="text-amber-600 sm:w-5 sm:h-5" />
                   </div>
-                  <div className="text-xs font-black uppercase text-muted-foreground tracking-wider" style={H9}>Por Preparar</div>
+                  <div className="text-2xl sm:text-4xl font-black text-amber-600 leading-none" style={H9}>{ordersByStatus.porPreparar}</div>
                 </div>
-                <div className="text-4xl font-black text-amber-600" style={H9}>{ordersByStatus.porPreparar}</div>
+                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Preparar</div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Store size={20} className="text-blue-600" />
+              <div className="bg-white rounded-2xl border border-border p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                    <Store size={18} className="text-blue-600 sm:w-5 sm:h-5" />
                   </div>
-                  <div className="text-xs font-black uppercase text-muted-foreground tracking-wider" style={H9}>Por Retirar</div>
+                  <div className="text-2xl sm:text-4xl font-black text-blue-600 leading-none" style={H9}>{ordersByStatus.porRetirar}</div>
                 </div>
-                <div className="text-4xl font-black text-blue-600" style={H9}>{ordersByStatus.porRetirar}</div>
+                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Por Retirar</div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-border p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Truck size={20} className="text-[#179150]" />
+              <div className="bg-white rounded-2xl border border-border p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                    <Truck size={18} className="text-[#179150] sm:w-5 sm:h-5" />
                   </div>
-                  <div className="text-xs font-black uppercase text-muted-foreground tracking-wider" style={H9}>Listo Delivery</div>
+                  <div className="text-2xl sm:text-4xl font-black text-[#179150] leading-none" style={H9}>{ordersByStatus.listoDelivery}</div>
                 </div>
-                <div className="text-4xl font-black text-[#179150]" style={H9}>{ordersByStatus.listoDelivery}</div>
+                <div className="text-[10px] sm:text-xs font-black uppercase text-muted-foreground tracking-wider leading-tight" style={H9}>Listo Delivery</div>
               </div>
             </div>
 

@@ -214,18 +214,18 @@ export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity
             <div className="flex items-center justify-between border-2 border-[#50e9f8] rounded-xl overflow-hidden bg-[#e0f8fd]">
               <button
                 onClick={handleDecrement}
-                className="w-10 h-10 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064]"
+                className="w-8 sm:w-10 h-10 flex-shrink-0 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064]"
               >
                 <Minus size={14} />
               </button>
-              <div className="flex-1 text-center">
-                <div className="text-xs text-[#006064]/70">En carrito</div>
-                <div className="text-base font-black text-[#006064]" style={H9}>{cartQuantity}</div>
+              <div className="flex-1 text-center flex flex-col justify-center items-center overflow-hidden">
+                <div className="text-[10px] sm:text-xs text-[#006064]/70 whitespace-nowrap leading-tight">En carrito</div>
+                <div className="text-sm sm:text-base font-black text-[#006064] leading-none" style={H9}>{cartQuantity}</div>
               </div>
               <button
                 onClick={handleIncrement}
                 disabled={cartQuantity >= product.stock}
-                className="w-10 h-10 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 sm:w-10 h-10 flex-shrink-0 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Plus size={14} />
               </button>
@@ -234,14 +234,14 @@ export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity
             <button
               onClick={handleAdd}
               disabled={product.stock === 0}
-              className={`w-full py-2.5 rounded-xl text-sm uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-2
+              className={`w-full py-2.5 rounded-xl text-xs sm:text-sm uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap
                 ${product.stock === 0
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-[#50e9f8] text-[#006064] hover:bg-[#2dd8e8]"
                 }`}
               style={H7}
             >
-              {product.stock === 0 ? "Sin Disponibilidad" : (<><ShoppingCart size={14} />Añadir al Carrito</>)}
+              {product.stock === 0 ? "Sin Disponibilidad" : (<><ShoppingCart size={14} className="flex-shrink-0" /><span>Añadir<span className="hidden min-[380px]:inline"> al Carrito</span></span></>)}
             </button>
           )}
         </div>

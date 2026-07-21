@@ -166,18 +166,18 @@ export function ProductDetailPage({ product, products, onAddToCart, onBack, onPr
               <div className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-400 text-base uppercase flex items-center justify-center" style={H7}>Sin Disponibilidad</div>
             ) : cartQty > 0 ? (
               <div className="flex-1 flex items-center justify-between border-2 border-[#50e9f8] rounded-xl overflow-hidden bg-[#e0f8fd]">
-                <button onClick={() => onUpdateQuantity(product.id, -1)} className="w-14 h-12 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064]"><Minus size={18} /></button>
-                <div className="text-center">
-                  <div className="text-xs text-[#006064]/70 font-semibold">En carrito</div>
-                  <div className="text-xl font-black text-[#006064] leading-none" style={H9}>{cartQty}</div>
+                <button onClick={() => onUpdateQuantity(product.id, -1)} className="w-10 sm:w-14 h-12 flex-shrink-0 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064]"><Minus size={18} /></button>
+                <div className="flex-1 text-center flex flex-col justify-center items-center overflow-hidden">
+                  <div className="text-[11px] sm:text-xs text-[#006064]/70 font-semibold whitespace-nowrap leading-tight">En carrito</div>
+                  <div className="text-lg sm:text-xl font-black text-[#006064] leading-none" style={H9}>{cartQty}</div>
                 </div>
-                <button onClick={() => onUpdateQuantity(product.id, 1)} disabled={cartQty >= sedeStock} className="w-14 h-12 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064] disabled:opacity-30"><Plus size={18} /></button>
+                <button onClick={() => onUpdateQuantity(product.id, 1)} disabled={cartQty >= sedeStock} className="w-10 sm:w-14 h-12 flex-shrink-0 flex items-center justify-center hover:bg-[#50e9f8]/20 transition-colors text-[#006064] disabled:opacity-30"><Plus size={18} /></button>
               </div>
             ) : (
               <button onClick={handleAdd}
-                className="flex-1 py-3 rounded-xl text-base uppercase flex items-center justify-center gap-2 transition-all bg-[#50e9f8] text-[#006064] hover:bg-[#2dd8e8]"
+                className="flex-1 py-3 px-2 rounded-xl text-sm sm:text-base uppercase flex items-center justify-center gap-1.5 sm:gap-2 transition-all bg-[#50e9f8] text-[#006064] hover:bg-[#2dd8e8] whitespace-nowrap"
                 style={H7}>
-                <ShoppingCart size={16} />Añadir al Carrito
+                <ShoppingCart size={16} className="flex-shrink-0" /><span>Añadir<span className="hidden min-[380px]:inline"> al Carrito</span></span>
               </button>
             )}
             <button onClick={() => onToggleFavorite(product.id)}

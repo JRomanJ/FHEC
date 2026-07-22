@@ -71,7 +71,7 @@ export function CatalogPage({ products, searchQuery, onProductClick, onAddToCart
                   ${selected.has(item) ? "bg-[#179150] border-[#179150]" : "border-border bg-white group-hover:border-[#179150]"}`}
                 onClick={() => toggle(selected, item, setSelected)}
               >
-                {selected.has(item) && <Check size={10} className="text-[#006064]" />}
+                {selected.has(item) && <Check size={12} className="text-white stroke-[3]" />}
               </div>
               <span className="text-sm text-foreground cursor-pointer" onClick={() => toggle(selected, item, setSelected)}>{item}</span>
             </label>

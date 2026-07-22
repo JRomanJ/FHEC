@@ -558,10 +558,10 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                     value={loginPass}
                     onChange={e => { setLoginPass(e.target.value); setLoginError(""); }}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all"
+                    className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                   />
-                  <button type="button" onClick={() => setShowLoginPass(v => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showLoginPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  <button type="button" onClick={() => setShowLoginPass(v => !v)} className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground">
+                    {showLoginPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
@@ -687,12 +687,12 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                         value={regPass}
                         onChange={e => setRegPass(e.target.value)}
                         placeholder="Mín. 8 car."
-                        className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm bg-white focus:outline-none focus:border-[#179150]"
+                        className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm bg-white focus:outline-none focus:border-[#179150] [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                       />
                       <button
                         type="button"
                         onClick={() => { const n = !showRegPass; setShowRegPass(n); setShowRegConfirm(n); }}
-                        className="absolute right-0 top-0 h-full px-3.5 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-2 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {showRegPass ? <EyeOff size={16}/> : <Eye size={16}/>}
                       </button>
@@ -707,13 +707,13 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                         value={regConfirmPass}
                         onChange={e => setRegConfirmPass(e.target.value)}
                         placeholder="••••••••"
-                        className={`w-full pl-10 pr-10 py-3 border-[1.5px] rounded-xl text-sm bg-white focus:outline-none transition-all
+                        className={`w-full pl-10 pr-10 py-3 border-[1.5px] rounded-xl text-sm bg-white focus:outline-none transition-all [&::-ms-reveal]:hidden [&::-webkit-credentials-auto-fill-button]:hidden
                           ${regConfirmPass && regConfirmPass !== regPass ? "border-red-400 focus:border-red-400" : "border-border focus:border-[#179150]"}`}
                       />
                       <button
                         type="button"
                         onClick={() => { const n = !showRegConfirm; setShowRegPass(n); setShowRegConfirm(n); }}
-                        className="absolute right-0 top-0 h-full px-3.5 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-2 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {showRegConfirm ? <EyeOff size={16}/> : <Eye size={16}/>}
                       </button>

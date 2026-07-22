@@ -120,12 +120,12 @@ export function PreCheckoutMedicalPage({ cartItems, onNav }: { cartItems: CartIt
             <div key={item.product.id} className={`bg-white border-2 rounded-2xl p-5 ${uploaded ? "border-[#179150]" : "border-border"}`}>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <div className="font-black text-sm uppercase" style={H9}>{item.product.name}</div>
+                  <div className="font-black text-lg uppercase" style={H9}>{item.product.name}</div>
                   <div className="text-xs text-muted-foreground">{item.product.brand}</div>
                 </div>
                 {uploaded
-                  ? <span className="bg-[#179150] text-white text-xs font-black px-3 py-1 rounded-full flex items-center gap-1" style={H9}><Check size={10} />OK</span>
-                  : <span className="bg-red-100 text-red-700 text-xs font-black px-3 py-1 rounded-full uppercase" style={H9}>Requerido</span>
+                  ? <span className="bg-[#179150] text-white text-sm font-black px-4 py-1.5 rounded-full flex items-center gap-1" style={H9}><Check size={12} />OK</span>
+                  : <span className="bg-red-100 text-red-700 text-sm font-black px-4 py-1.5 rounded-full uppercase border border-red-200 shadow-sm" style={H9}>Requerido</span>
                 }
               </div>
 

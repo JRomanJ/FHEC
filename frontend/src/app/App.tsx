@@ -8,7 +8,6 @@ import {
   DEFAULT_SLIDES,
   DEMO_ACCOUNTS,
   DEMO_CONTACT,
-  DISCOUNT_CODES,
   VES_RATE,
 } from "./data";
 import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
@@ -461,8 +460,8 @@ export default function App() {
               onAuthRequired={() => setPage("login")}
             />
           )}
-          {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={products} discountCodes={DISCOUNT_CODES} />}
-          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={handleCreateOrder} sedes={branches} discountCodes={DISCOUNT_CODES} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
+          {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={products} />}
+          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={handleCreateOrder} sedes={branches} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
           {page === "preCheckout" && <PreCheckoutMedicalPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} orderId={activeRemoteOrder?.id_pedido ?? null} orderDetails={activeOrderDetails} />}
           {page === "checkout" && <CheckoutPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} discountApplied={cartDiscountApplied} deliveryMode={checkoutDeliveryMode} selectedSede={checkoutSede} user={user} remoteOrder={activeRemoteOrder} onPaymentConfirmed={(order) => { setActiveRemoteOrder(order); }} onClearCart={() => { if (activeOrderItems.length === 0) { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); } }} veAreas={VE_AREAS} docTypes={DOC_TYPES} veBanks={VE_BANKS} />}
           {page === "tracking" && (
@@ -489,7 +488,11 @@ export default function App() {
         </Suspense>
       </main>
       <Footer onNav={setPage} logoUrl={customLogoUrl} />
-      <Toaster position="top-right" />
+      <Toaster
+        position='top-center'
+        offset="5rem"
+        mobileOffset="5rem"
+      />
     </div>
   );
 }

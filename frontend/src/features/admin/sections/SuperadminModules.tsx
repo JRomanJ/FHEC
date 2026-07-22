@@ -21,7 +21,8 @@ import type { Page, Product, Slide } from "../../../app/types";
 import logoFarmahumana from "../../../imports/logo-farmahumana.png";
 import { toast } from "sonner";
 import { CATS, fmtUSD, H7, H9 } from "../../../app/data";
-import { annulRemoteTransaction, assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, getRemoteOrders, getRemoteTransactions, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, updateRemoteTransaction, uploadCustomLogo, uploadRemoteBannerImage, getStaff } from "../../../services";
+import { annulRemoteTransaction, assignRole, createInventoryEntry, createRemoteCoupon, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminMonitorOrderViewModels, getRemoteCoupons, getRemoteOrders, getRemoteTransactions, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, updateRemoteCoupon, updateRemoteTransaction, uploadCustomLogo, uploadRemoteBannerImage, getStaff } from "../../../services";
+import type { RemoteCoupon } from "../../../services";
 import type { RemoteOrder, RemoteTransaction } from "../../../services/orderService";
 import { BRANCH_IDS } from "../../../config/api";
 import { InventarioTab } from "./AdminInventorySection";
@@ -322,10 +323,11 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   });
 
   // ── Cupones state ──
-  interface Coupon { id: number; code: string; discount: number; startDate: string; endDate: string; userEmail?: string; }
-  const [coupons, setCoupons] = useState<Coupon[]>(getLegacyAdminCouponViewModels());
+  const [coupons, setCoupons] = useState<RemoteCoupon[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(true);
+  const [couponSaving, setCouponSaving] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
-  const [editCouponId, setEditCouponId] = useState<number | null>(null);
+  const [editCouponId, setEditCouponId] = useState<string | null>(null);
   const [couponForm, setCouponForm] = useState({ code: "", discount: 0, startDate: "", endDate: "", userEmail: "" });
   const [couponError, setCouponError] = useState("");
   const [couponFilter, setCouponFilter] = useState<"all" | "general" | "user">("all");
@@ -336,13 +338,23 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
     setCouponError("");
     setShowCouponForm(true);
   };
-  const openEditCoupon = (c: Coupon) => {
+  React.useEffect(() => {
+    let cancelled = false;
+    setCouponsLoading(true);
+    getRemoteCoupons()
+      .then(data => { if (!cancelled) setCoupons(data); })
+      .catch(error => { if (!cancelled) toast.error(error instanceof Error ? error.message : "No se pudieron cargar los cupones."); })
+      .finally(() => { if (!cancelled) setCouponsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const openEditCoupon = (c: RemoteCoupon) => {
     setEditCouponId(c.id);
     setCouponForm({ code: c.code, discount: c.discount, startDate: c.startDate, endDate: c.endDate, userEmail: c.userEmail ?? "" });
     setCouponError("");
     setShowCouponForm(true);
   };
-  const saveCoupon = () => {
+  const saveCoupon = async () => {
     const today = new Date().toISOString().split("T")[0];
     const duplicateVigente = coupons.some(c =>
       c.code.toUpperCase() === couponForm.code.trim().toUpperCase() &&
@@ -362,20 +374,30 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
       return;
     }
     setCouponError("");
-    const payload: Coupon = {
-      id: editCouponId ?? Math.max(...coupons.map(c => c.id), 0) + 1,
+    const payload = {
       code: normalizeCouponCode(couponForm.code),
       discount: couponForm.discount,
       startDate: couponForm.startDate,
       endDate: couponForm.endDate,
-      ...(couponForm.userEmail.trim() ? { userEmail: couponForm.userEmail.trim() } : {}),
+      userEmail: couponForm.userEmail.trim().toLowerCase(),
     };
-    if (editCouponId !== null) {
-      setCoupons(prev => prev.map(c => c.id === editCouponId ? payload : c));
-    } else {
-      setCoupons(prev => [...prev, payload]);
+    setCouponSaving(true);
+    try {
+      if (editCouponId !== null) {
+        const updated = await updateRemoteCoupon(editCouponId, payload);
+        setCoupons(prev => prev.map(c => c.id === editCouponId ? updated : c));
+        toast.success("Cupón actualizado.");
+      } else {
+        const created = await createRemoteCoupon(payload);
+        setCoupons(prev => [created, ...prev]);
+        toast.success("Cupón creado.");
+      }
+      setShowCouponForm(false);
+    } catch (error) {
+      setCouponError(error instanceof Error ? error.message : "No se pudo guardar el cupón.");
+    } finally {
+      setCouponSaving(false);
     }
-    setShowCouponForm(false);
   };
 
   const filteredCoupons = coupons.filter(c => {
@@ -1268,9 +1290,13 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCoupons.map((c, i) => {
+                  {couponsLoading && (
+                    <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Cargando cupones...</td></tr>
+                  )}
+                  {!couponsLoading && filteredCoupons.map((c, i) => {
                     const today = new Date().toISOString().split("T")[0];
-                    const vigente = !c.endDate || c.endDate >= today;
+                    const vigente = !c.usedAt && c.startDate <= today && c.endDate >= today;
+                    const status = c.usedAt ? "Usado" : vigente ? "Vigente" : "Vencido";
                     return (
                       <tr key={c.id} className={`border-b border-border/50 hover:bg-[#f9fdfe] transition-colors ${i % 2 !== 0 ? "bg-muted/10" : ""}`}>
                         <td className="px-4 py-3">
@@ -1287,8 +1313,8 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                         <td className="px-4 py-3 text-xs text-muted-foreground">{c.startDate || "—"}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">{c.endDate || "—"}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${vigente ? "bg-[#e0f5eb] text-[#179150]" : "bg-gray-100 text-gray-500"}`} style={H9}>
-                            {vigente ? "Vigente" : "Vencido"}
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${vigente ? "bg-[#e0f5eb] text-[#179150]" : c.usedAt ? "bg-[#50e9f8]/20 text-[#006064]" : "bg-gray-100 text-gray-500"}`} style={H9}>
+                            {status}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -1299,7 +1325,7 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                       </tr>
                     );
                   })}
-                  {filteredCoupons.length === 0 && (
+                  {!couponsLoading && filteredCoupons.length === 0 && (
                     <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">No hay cupones con este filtro.</td></tr>
                   )}
                 </tbody>
@@ -1366,10 +1392,10 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                   </p>
                 </div>
                 <div className="flex gap-3 mt-6">
-                  <button onClick={saveCoupon} disabled={!couponForm.code.trim()}
-                    className={`flex-1 py-3 rounded-xl transition-colors font-black uppercase ${couponForm.code.trim() ? "bg-[#179150] text-white hover:bg-green-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                  <button onClick={() => void saveCoupon()} disabled={!couponForm.code.trim() || couponSaving}
+                    className={`flex-1 py-3 rounded-xl transition-colors font-black uppercase ${couponForm.code.trim() && !couponSaving ? "bg-[#179150] text-white hover:bg-green-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
                     style={H7}>
-                    {editCouponId ? "Guardar cambios" : "Crear cupón"}
+                    {couponSaving ? "Guardando..." : editCouponId ? "Guardar cambios" : "Crear cupón"}
                   </button>
                   <button onClick={() => setShowCouponForm(false)} className="px-6 py-3 border border-border rounded-xl hover:bg-[#f0fdf7] transition-colors" style={H7}>Cancelar</button>
                 </div>

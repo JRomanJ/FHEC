@@ -3,7 +3,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import cors from 'cors';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { loginUser, refreshUserSession, registerUser, revokeUserSession, sessionPayload } from './authService.js';
-import { findUserAuth, findUserByCedula, updateOtherUserAuthEmail, updateUserAuthEmail, updateUserProfile, getStaffMembers } from './db/usuarios.js';
+import { findUserAuth, findUserByCedula, getAuthEmailsByIds, updateOtherUserAuthEmail, updateUserAuthEmail, updateUserProfile, getStaffMembers } from './db/usuarios.js';
 import { processInventoryEntry, getProducosWithFilters } from './db/inventario.js';
 import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js';
 import { findProduct } from './db/productos.js';
@@ -27,6 +27,7 @@ import { confirmarPagoPedido, crearPedido, expirarPedidos, listarPedidos, obtene
 import { actualizarTransaccion, anularTransaccion, listarTransacciones, obtenerTransaccion } from './db/transacciones.js';
 import { actualizarArchivoRecipe, auditarRecipe, crearRecipe, eliminarRecipe, listarRecipes } from './db/recipes.js';
 import { crearCargaFirmadaRecipe, eliminarArchivoRecipe } from './recipeStorage.js';
+import { actualizarCupon, eliminarCupon, insertarCupon, listarCupones, listarCuponesUsuario, obtenerCuponPorCodigo, type CuponInput } from './db/cupones.js';
 
 type AppRole = 'cliente' | 'repartidor' | 'auxiliar' | 'auditor' | 'superadmin';
 type Profile = Record<string, unknown> & { rol?: string | null };
@@ -133,6 +134,78 @@ const bannerPayload = (body: Record<string, unknown>, partial = false): Partial<
     if (Object.keys(payload).length === 0) throw Object.assign(new Error('No se enviaron campos editables.'), { status: 400 });
     return payload as Partial<BannerInput>;
 };
+
+const couponPayload = (body: Record<string, unknown>, partial = false): Partial<CuponInput> => {
+    if (!partial) requireFields(body, ['code', 'discount', 'startDate', 'endDate']);
+    const payload: Partial<CuponInput> = {};
+
+    if (body.code !== undefined) {
+        const code = String(body.code).trim().toUpperCase();
+        if (!/^[A-Z0-9_-]{3,50}$/.test(code)) {
+            throw Object.assign(new Error('El codigo debe tener entre 3 y 50 caracteres alfanumericos.'), { status: 400 });
+        }
+        payload.codigo_cupon = code;
+    }
+    if (body.discount !== undefined) {
+        const discount = Number(body.discount);
+        if (!Number.isFinite(discount) || discount <= 0 || discount > 100) {
+            throw Object.assign(new Error('El descuento debe estar entre 1 y 100.'), { status: 400 });
+        }
+        payload.descuento_porcentaje = discount;
+    }
+    const readDate = (value: unknown, field: string) => {
+        const date = String(value ?? '').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) {
+            throw Object.assign(new Error(`${field} debe ser una fecha valida.`), { status: 400 });
+        }
+        return date;
+    };
+    if (body.startDate !== undefined) payload.fecha_inicio = readDate(body.startDate, 'startDate');
+    if (body.endDate !== undefined) payload.fecha_vencimiento = readDate(body.endDate, 'endDate');
+    if (payload.fecha_inicio && payload.fecha_vencimiento && payload.fecha_vencimiento < payload.fecha_inicio) {
+        throw Object.assign(new Error('La fecha de vencimiento no puede ser anterior a la fecha de inicio.'), { status: 400 });
+    }
+    if (Object.keys(payload).length === 0 && body.userEmail === undefined) {
+        throw Object.assign(new Error('No se enviaron campos editables.'), { status: 400 });
+    }
+    return payload;
+};
+
+const couponRowsWithEmails = async (rows: Array<Record<string, unknown>>, req: AuthenticatedRequest) => {
+    const assignedIds = rows.map((row) => String(row.id_usuario ?? '')).filter(Boolean);
+    const emails = req.auth!.role === 'superadmin'
+        ? await getAuthEmailsByIds(assignedIds)
+        : new Map(req.auth!.user.email ? [[req.auth!.userId, req.auth!.user.email]] : []);
+    return rows.map((row) => {
+        const usages = Array.isArray(row.cupones_usuario)
+            ? row.cupones_usuario as Array<Record<string, unknown>>
+            : [];
+        const usageUserId = req.auth!.role === 'superadmin' ? row.id_usuario : req.auth!.userId;
+        const usage = usages.find((item) => item.id_usuario === usageUserId);
+        const { cupones_usuario: _usages, ...coupon } = row;
+        return {
+            ...coupon,
+            correo_usuario: row.id_usuario ? emails.get(String(row.id_usuario)) ?? null : null,
+            asignado_en: usage?.asignado_en ?? null,
+            usado_en: usage?.usado_en ?? null,
+            id_pedido_uso: usage?.id_pedido_uso ?? null,
+        };
+    });
+};
+
+const couponUserRowsToCoupons = (rows: Array<Record<string, unknown>>) => rows.flatMap((row) => {
+    const related = Array.isArray(row.cupones) ? row.cupones[0] : row.cupones;
+    if (!related || typeof related !== 'object') return [];
+    return [{
+        ...(related as Record<string, unknown>),
+        cupones_usuario: [{
+            id_usuario: row.id_usuario,
+            asignado_en: row.asignado_en,
+            usado_en: row.usado_en,
+            id_pedido_uso: row.id_pedido_uso,
+        }],
+    }];
+});
 
 const asyncRoute = (handler: (req: AuthenticatedRequest, res: Response) => Promise<void>) =>
     (req: Request, res: Response, next: NextFunction) => void handler(req as AuthenticatedRequest, res).catch(next);
@@ -655,6 +728,73 @@ app.delete('/notifications/:notificationId', authenticate, asyncRoute(async (req
     const eliminada = await eliminarNotificacion(getAuthedDb(req), req.auth!.userId, notificationId);
     if (!eliminada) throw Object.assign(new Error('Notificacion no encontrada.'), { status: 404 });
     res.json({ success: true, data: { eliminada: true, idNotificacion: notificationId } });
+}));
+
+app.get('/coupons', authenticate, asyncRoute(async (req, res) => {
+    const rows = await listarCupones(getAuthedDb(req)) as Array<Record<string, unknown>>;
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, data: await couponRowsWithEmails(rows, req) });
+}));
+
+app.get('/coupons/validate', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.query as Record<string, unknown>, ['code']);
+    const code = String(req.query.code).trim().toUpperCase();
+    const coupon = await obtenerCuponPorCodigo(getAuthedDb(req), code);
+    if (!coupon) throw Object.assign(new Error('El cupon no existe o no esta disponible para este usuario.'), { status: 404 });
+    const today = new Date().toISOString().slice(0, 10);
+    if (today < coupon.fecha_inicio || today > coupon.fecha_vencimiento) {
+        throw Object.assign(new Error('El cupon no esta vigente.'), { status: 400 });
+    }
+    if (coupon.id_usuario && coupon.usado_en) {
+        throw Object.assign(new Error('El cupon asignado ya fue usado.'), { status: 409 });
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, data: coupon });
+}));
+
+app.post('/coupons', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const payload = couponPayload(req.body) as CuponInput;
+    const userEmail = typeof req.body.userEmail === 'string' ? req.body.userEmail.trim().toLowerCase() : '';
+    if (userEmail) {
+        const user = await findUserAuth(userEmail);
+        if (!user) throw Object.assign(new Error('No existe un usuario con ese correo.'), { status: 404 });
+        payload.id_usuario = user.id;
+    } else {
+        payload.id_usuario = null;
+    }
+    const coupon = await insertarCupon(getAuthedDb(req), payload);
+    res.status(201).json({
+        success: true,
+        message: 'Cupon creado.',
+        data: { ...coupon, correo_usuario: userEmail || null },
+    });
+}));
+
+app.patch('/coupons/:couponId', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const couponId = validateUuid(req.params.couponId, 'couponId');
+    const payload = couponPayload(req.body, true);
+    let userEmail: string | null | undefined;
+    if (req.body.userEmail !== undefined) {
+        userEmail = String(req.body.userEmail ?? '').trim().toLowerCase() || null;
+        if (userEmail) {
+            const user = await findUserAuth(userEmail);
+            if (!user) throw Object.assign(new Error('No existe un usuario con ese correo.'), { status: 404 });
+            payload.id_usuario = user.id;
+        } else {
+            payload.id_usuario = null;
+        }
+    }
+    const coupon = await actualizarCupon(getAuthedDb(req), couponId, payload);
+    if (!coupon) throw Object.assign(new Error('Cupon no encontrado.'), { status: 404 });
+    const [resolved] = await couponRowsWithEmails([coupon as Record<string, unknown>], req);
+    res.json({ success: true, message: 'Cupon actualizado.', data: resolved });
+}));
+
+app.delete('/coupons/:couponId', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const couponId = validateUuid(req.params.couponId, 'couponId');
+    const eliminado = await eliminarCupon(getAuthedDb(req), couponId);
+    if (!eliminado) throw Object.assign(new Error('Cupon no encontrado.'), { status: 404 });
+    res.json({ success: true, message: 'Cupon eliminado.', data: { eliminado: true, idCupon: couponId } });
 }));
 
 app.get('/branches/by-name', asyncRoute(async (req, res) => {

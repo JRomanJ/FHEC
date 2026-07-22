@@ -237,7 +237,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
   const fpCodeComplete = validateOtpCode(fpCode, 6).valid;
   const fpPassMatch = fpNewPass.length >= 8 && fpNewPass === fpConfirmPass;
 
-  const sharedInput = "w-full pl-10 pr-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all";
+  const sharedInput = "w-full pl-10 pr-4 py-3 border-[1.5px] border-border rounded-xl text-sm bg-white focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all";
   const label = "text-sm font-semibold text-foreground mb-1.5 block";
   const linkBtn = "w-full text-center text-sm text-[#179150] hover:underline transition-colors";
 
@@ -531,8 +531,8 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
 
         {/* ══ LOGIN VIEW ══ */}
         {view === "login" && (
-          <div className="bg-white rounded-2xl border border-border p-8 shadow-sm">
-            <h2 className="text-2xl text-foreground mb-1" style={H9}>Iniciar Sesión</h2>
+          <div className="bg-[#F5F7F6] rounded-2xl border border-border p-8 shadow-sm">
+            <h2 className="text-3xl text-foreground mb-1" style={H9}>Iniciar Sesión</h2>
             <p className="text-sm text-muted-foreground mb-6">Ingresa tu correo electrónico y contraseña.</p>
 
             <div className="space-y-4">
@@ -558,7 +558,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                     value={loginPass}
                     onChange={e => { setLoginPass(e.target.value); setLoginError(""); }}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all"
+                    className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] focus:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all"
                   />
                   <button type="button" onClick={() => setShowLoginPass(v => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showLoginPass ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -576,9 +576,9 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                 {isLoading ? "Ingresando…" : "Ingresar"}
               </button>
 
-              {/* Crear una cuenta — identical style to ¿Olvidaste tu contraseña? */}
-              <button onClick={() => setView("register")} className={linkBtn}>
-                Crear una cuenta
+              {/* No tienes cuenta */}
+              <button onClick={() => setView("register")} className="w-full text-center text-sm text-muted-foreground">
+                ¿No tienes una cuenta? <span className="font-black text-[#179150]">Regístrate</span>
               </button>
 
               <button onClick={() => setFpStep("sendCode")} className={linkBtn}>
@@ -614,8 +614,8 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
 
         {/* ══ REGISTER VIEW ══ */}
         {view === "register" && (
-          <div className="bg-white rounded-2xl border border-border p-8 shadow-sm">
-            <h2 className="text-2xl text-foreground mb-1" style={H9}>Registrar Cuenta</h2>
+          <div className="bg-[#F5F7F6] rounded-2xl border border-border p-8 shadow-sm">
+            <h2 className="text-3xl text-foreground mb-1" style={H9}>Registrar Cuenta</h2>
             <p className="text-sm text-muted-foreground mb-6">Crea tu cuenta en segundos.</p>
 
             {regSuccess ? (
@@ -649,11 +649,20 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                     Cédula de Identidad
                     <span className="ml-1.5 text-xs font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Opcional</span>
                   </label>
-                  <div className="flex gap-2">
-                    <select value={regDocType} onChange={e => setRegDocType(e.target.value)} className="px-2 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-background">
+                  <div className="flex rounded-xl border-[1.5px] border-border bg-white overflow-hidden focus-within:border-[#179150] focus-within:shadow-[0_0_0_3px_rgba(80,233,248,0.12)] transition-all">
+                    <select
+                      value={regDocType}
+                      onChange={e => setRegDocType(e.target.value)}
+                      className="pl-3 pr-1 py-3 text-sm font-medium text-muted-foreground bg-transparent border-r border-border focus:outline-none shrink-0"
+                    >
                       {docTypes.map(t => <option key={t}>{t}</option>)}
                     </select>
-                    <input value={regCedula} onChange={e => setRegCedula(e.target.value)} placeholder="12345678" className={sharedInput + " flex-1"} />
+                    <input
+                      value={regCedula}
+                      onChange={e => setRegCedula(e.target.value)}
+                      placeholder="12345678"
+                      className="flex-1 pl-3 pr-4 py-3 text-sm bg-white focus:outline-none"
+                    />
                   </div>
                 </div>
 
@@ -668,7 +677,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={label}>Contraseña <span className="text-red-500">*</span></label>
                     <div className="relative">
@@ -678,15 +687,19 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                         value={regPass}
                         onChange={e => setRegPass(e.target.value)}
                         placeholder="Mín. 8 car."
-                        className="w-full pl-10 pr-10 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150]"
+                        className="w-full pl-10 pr-10 py-3 border-[1.5px] border-border rounded-xl text-sm bg-white focus:outline-none focus:border-[#179150]"
                       />
-                      <button type="button" onClick={() => setShowRegPass(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        {showRegPass ? <EyeOff size={14}/> : <Eye size={14}/>}
+                      <button
+                        type="button"
+                        onClick={() => { const n = !showRegPass; setShowRegPass(n); setShowRegConfirm(n); }}
+                        className="absolute right-0 top-0 h-full px-3.5 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showRegPass ? <EyeOff size={16}/> : <Eye size={16}/>}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className={label}>Confirmar <span className="text-red-500">*</span></label>
+                    <label className={label}>Confirmar contraseña <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input
@@ -694,11 +707,15 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                         value={regConfirmPass}
                         onChange={e => setRegConfirmPass(e.target.value)}
                         placeholder="••••••••"
-                        className={`w-full pl-10 pr-10 py-3 border rounded-xl text-sm focus:outline-none transition-all
+                        className={`w-full pl-10 pr-10 py-3 border-[1.5px] rounded-xl text-sm bg-white focus:outline-none transition-all
                           ${regConfirmPass && regConfirmPass !== regPass ? "border-red-400 focus:border-red-400" : "border-border focus:border-[#179150]"}`}
                       />
-                      <button type="button" onClick={() => setShowRegConfirm(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        {showRegConfirm ? <EyeOff size={14}/> : <Eye size={14}/>}
+                      <button
+                        type="button"
+                        onClick={() => { const n = !showRegConfirm; setShowRegPass(n); setShowRegConfirm(n); }}
+                        className="absolute right-0 top-0 h-full px-3.5 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showRegConfirm ? <EyeOff size={16}/> : <Eye size={16}/>}
                       </button>
                     </div>
                   </div>
@@ -707,26 +724,26 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                   <p className="text-red-500 text-xs -mt-1">Las contraseñas no coinciden.</p>
                 )}
 
-                <label className="flex items-start gap-2.5 cursor-pointer">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <div
                     onClick={() => setAcceptTerms(v => !v)}
-                    className={`w-4 h-4 mt-0.5 rounded flex-shrink-0 border transition-all flex items-center justify-center cursor-pointer
+                    className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center cursor-pointer
                       ${acceptTerms ? "bg-[#179150] border-[#179150]" : "border-border bg-white hover:border-[#179150]"}`}
                   >
-                    {acceptTerms && <Check size={10} className="text-white" />}
+                    {acceptTerms && <Check size={12} className="text-white" />}
                   </div>
                   <span className="text-sm text-foreground">
                     Acepto los <span className="text-[#179150] hover:underline cursor-pointer">términos y condiciones</span> y la <span className="text-[#179150] hover:underline cursor-pointer">política de privacidad</span> <span className="text-red-500">*</span>
                   </span>
                 </label>
 
-                <label className="flex items-start gap-2.5 cursor-pointer">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <div
                     onClick={() => setAcceptNotifications(v => !v)}
-                    className={`w-4 h-4 mt-0.5 rounded flex-shrink-0 border transition-all flex items-center justify-center cursor-pointer
+                    className={`w-5 h-5 mt-0.5 rounded flex-shrink-0 border-2 transition-all flex items-center justify-center cursor-pointer
                       ${acceptNotifications ? "bg-[#179150] border-[#179150]" : "border-border bg-white hover:border-[#179150]"}`}
                   >
-                    {acceptNotifications && <Check size={10} className="text-white" />}
+                    {acceptNotifications && <Check size={12} className="text-white" />}
                   </div>
                   <span className="text-sm text-foreground">
                     Suscripción voluntaria a notificaciones promocionales <span className="text-muted-foreground">(SMS/Correo)</span>
@@ -744,8 +761,8 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
                   Crear Cuenta
                 </button>
 
-                <button onClick={() => setView("login")} className={linkBtn}>
-                  ¿Ya tienes cuenta? Iniciar sesión
+                <button onClick={() => setView("login")} className="w-full text-center text-sm text-muted-foreground">
+                  ¿Ya tienes cuenta? <span className="font-black text-[#179150]">Iniciar sesión</span>
                 </button>
               </div>
             )}

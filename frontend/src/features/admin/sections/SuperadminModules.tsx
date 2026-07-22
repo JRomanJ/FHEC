@@ -21,7 +21,7 @@ import type { Page, Product, Slide } from "../../../app/types";
 import logoFarmahumana from "../../../imports/logo-farmahumana.png";
 import { toast } from "sonner";
 import { CATS, fmtUSD, H7, H9 } from "../../../app/data";
-import { assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, uploadCustomLogo, uploadRemoteBannerImage } from "../../../services";
+import { assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, uploadCustomLogo, uploadRemoteBannerImage, getStaff } from "../../../services";
 import { BRANCH_IDS } from "../../../config/api";
 import { InventarioTab } from "./AdminInventorySection";
 import {
@@ -199,8 +199,56 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   const [staffForm, setStaffForm] = useState({ docType: "V", document: "", role: "auxiliar" });
   const [staffFormError, setStaffFormError] = useState("");
   const [editStaffId, setEditStaffId] = useState<string | null>(null);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [staffSaving, setStaffSaving] = useState(false);
   const ROLE_OPTIONS = ["auxiliar", "repartidor", "auditor", "superadmin"];
+
+  React.useEffect(() => {
+  if (superTab !== "personal") return;
+
+  let isMounted = true;
+  async function fetchStaffList() {
+    try {
+      setStaffLoading(true);
+
+      const response = await getStaff<BackendUserProfile[]>();
+
+      if (!isMounted) return;
+
+      const rawData = (response as any)?.data ?? response;
+      console.log(response)
+
+      const rawList = Array.isArray(rawData) ? rawData : [];
+
+      const formattedRows: StaffRow[] = rawList.map((s: any) => ({
+        id: s.id || String(Math.random()),
+        name: s.nombre_completo || s.name || "Sin Nombre",
+        cedula: s.cedula || 
+          (s.tipo_documento_identidad && s.documento_identidad
+            ? `${s.tipo_documento_identidad}-${s.documento_identidad}`
+            : s.documento_identidad || "N/A"),
+        roles: Array.isArray(s.roles) 
+          ? s.roles 
+          : s.rol 
+          ? [s.rol] 
+          : ["auxiliar"],
+        createdAt: s.created_at || s.createdAt || new Date().toISOString(),
+      }));
+
+      setStaff(formattedRows);
+    } catch (err) {
+      console.error("Error al obtener personal operativo:", err);
+    } finally {
+      if (isMounted) setStaffLoading(false);
+    }
+  }
+
+  fetchStaffList();
+
+  return () => {
+    isMounted = false;
+  };
+}, [superTab]);
 
   // ── Monitor Global state ──
   const [monitorOrders] = useState(DEMO_GLOBAL_ORDERS);

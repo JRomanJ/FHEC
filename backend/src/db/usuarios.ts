@@ -97,3 +97,35 @@ export const updateUserProfile = async (client: SupabaseClient, userId: string, 
     if (error) throw new Error(`Error en actualizacion: ${error.message}`);
     return updated;
 };
+
+export const getStaffMembers = async (client: SupabaseClient) => {
+    const { data, error } = await client
+        .from('personal_operativo')
+        .select(`
+            id_usuario,
+            id_sede,
+            created_at,
+            usuarios!inner (
+                id,
+                nombre_completo,
+                tipo_documento_identidad,
+                documento_identidad,
+                rol
+            )
+        `);
+
+    if (error) throw error;
+
+    return (data || []).map((item: any) => {
+        const u = item.usuarios || {};
+        return {
+            id: item.id_usuario,
+            nombre_completo: u.nombre_completo,
+            tipo_documento_identidad: u.tipo_documento_identidad,
+            documento_identidad: u.documento_identidad,
+            rol: u.rol,
+            id_sede: item.id_sede,
+            created_at: item.created_at,
+        };
+    });
+};

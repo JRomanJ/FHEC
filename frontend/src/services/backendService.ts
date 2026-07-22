@@ -57,6 +57,9 @@ export const removeFavorite = <T>(productId: string) =>
 export const clearFavorites = <T>() =>
   requestJson<ApiEnvelope<T>>("/favorites", { method: "DELETE" });
 
+export const getStaff = <T>() =>
+  requestJson<ApiEnvelope<T>>("/staff");
+
 interface InventoryProductRow {
   id_inventario: string; id_producto: string; stock_disponible: number | null; precio_usd: number | null;
   principio_activo: string; marca_comercial: string; id_categoria: string;

@@ -3,7 +3,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import cors from 'cors';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { loginUser, refreshUserSession, registerUser, revokeUserSession, sessionPayload } from './authService.js';
-import { findUserAuth, findUserByCedula, updateOtherUserAuthEmail, updateUserAuthEmail, updateUserProfile } from './db/usuarios.js';
+import { findUserAuth, findUserByCedula, updateOtherUserAuthEmail, updateUserAuthEmail, updateUserProfile, getStaffMembers } from './db/usuarios.js';
 import { processInventoryEntry, getProducosWithFilters } from './db/inventario.js';
 import { updateBranchPrice, getBranchByName, createBranch } from './db/sedes.js';
 import { findProduct } from './db/productos.js';
@@ -593,6 +593,11 @@ app.patch('/users/:userId/role', authenticate, authorize(SUPERADMIN), asyncRoute
     const role = String(req.body.rol).trim().toLowerCase();
     if (!VALID_ROLES.has(role)) throw Object.assign(new Error('Rol no valido.'), { status: 400 });
     res.json({ success: true, data: await assingnRole(getAuthedDb(req), userId, databaseRole(role)) });
+}));
+
+app.get('/staff', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const data = await getStaffMembers(getAuthedDb(req));
+    res.json({ success: true, data });
 }));
 
 app.post('/inventory/seed', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {

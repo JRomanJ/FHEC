@@ -6,7 +6,7 @@ export interface CrearPedidoInput {
     ttlMinutes?: number;
 }
 
-const ORDER_COLUMNS = 'id_pedido, id_usuario, id_sede, id_transaccion, id_cupon, metodo_entrega, nombre_receptor, codigo_area_receptor, telefono_receptor, direccion_entrega, coordenadas_entrega, nombre_factura, codigo_area_factura, telefono_factura, tipo_documento_fiscal, documento_fiscal, direccion_fiscal, codigo_cupon, subtotal, iva, costo_entrega, descuento_aplicado, total_pedido, tasa_bcv, estado_pedido, fecha_creacion, fecha_limite, fecha_completado, fecha_expiracion, stock_restaurado';
+const ORDER_COLUMNS = 'id_pedido, id_usuario, id_sede, id_transaccion, metodo_entrega, nombre_receptor, codigo_area_receptor, telefono_receptor, direccion_entrega, coordenadas_entrega, nombre_factura, codigo_area_factura, telefono_factura, tipo_documento_fiscal, documento_fiscal, direccion_fiscal, codigo_cupon, subtotal, iva, costo_entrega, descuento_aplicado, total_pedido, tasa_bcv, estado_pedido, fecha_creacion, fecha_limite, fecha_completado, fecha_expiracion, stock_restaurado';
 const ORDER_RELATIONS = 'detalles_pedidos(*, productos(principio_activo, concentracion, marca_comercial)), entregas_delivery(*), entregas_pickup(*)';
 
 const throwDbError = (message: string, error: { message: string; code?: string }): never => {

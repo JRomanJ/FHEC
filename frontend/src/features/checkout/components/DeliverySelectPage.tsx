@@ -4,7 +4,6 @@ import type { AuthUser, CartItem, Page } from "../../../app/types";
 import { effectivePrice, fmtUSD, fmtVES, H7, H9 } from "../../../app/data";
 import { GpsMapWidget } from "../../../components/order";
 import { firstError, normalizeCouponCode, validateCouponCodeInput, validateDeliverySelection } from "../../../validation";
-import { validateRemoteCoupon } from "../../../services";
 
 interface LegacySede {
   id: string;
@@ -15,7 +14,7 @@ interface LegacySede {
 }
 
 // ─── DeliverySelectPage ───────────────────────────────────────────────────────
-export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDeliveryMode, selectedSede, setSelectedSede, deliveryAddress, setDeliveryAddress, discountApplied, discountCode, setDiscountApplied, setDiscountCode, user, onConfirmOrder, sedes, demoContact, veAreas }: {
+export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDeliveryMode, selectedSede, setSelectedSede, deliveryAddress, setDeliveryAddress, discountApplied, discountCode, setDiscountApplied, setDiscountCode, user, onConfirmOrder, sedes, discountCodes, demoContact, veAreas }: {
   cartItems: CartItem[]; onNav: (p: Page) => void;
   deliveryMode: "delivery"|"pickup"; setDeliveryMode: (m: "delivery"|"pickup") => void;
   selectedSede: string; setSelectedSede: (s: string) => void;
@@ -25,6 +24,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   user?: AuthUser | null;
   onConfirmOrder?: (input: { receiverName: string; receiverPhoneArea: string; receiverPhone: string; deliveryAddress: string; deliveryMode: "delivery" | "pickup"; selectedSede: string; discountCode: string }) => Promise<{ ok: boolean; error?: string }>;
   sedes: LegacySede[];
+  discountCodes: Record<string, number>;
   demoContact: Record<string, { phone: string; address: string }>;
   veAreas: string[];
 }) {
@@ -52,11 +52,10 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   const [discInput, setDiscInput] = useState(discountCode);
   const [discErr,   setDiscErr]   = useState("");
   const [discOk,    setDiscOk]    = useState(discountApplied > 0 ? `${discountApplied}% aplicado` : "");
-  const [discValidating, setDiscValidating] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
   const [orderSaving, setOrderSaving] = useState(false);
 
-  const applyDisc = async () => {
+  const applyDisc = () => {
     const codeValidation = validateCouponCodeInput(discInput);
     if (!codeValidation.valid) {
       setDiscErr(firstError(codeValidation));
@@ -65,21 +64,9 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
       return;
     }
     const normalizedCode = normalizeCouponCode(discInput);
-    setDiscValidating(true);
-    try {
-      const coupon = await validateRemoteCoupon(normalizedCode);
-      setDiscountApplied(coupon.discount);
-      setDiscountCode(normalizedCode);
-      setDiscOk(`¡${coupon.discount}% de descuento aplicado!`);
-      setDiscErr("");
-    } catch (error) {
-      setDiscErr(error instanceof Error ? error.message : "El cupón no existe o no está vigente.");
-      setDiscOk("");
-      setDiscountApplied(0);
-      setDiscountCode("");
-    } finally {
-      setDiscValidating(false);
-    }
+    const pct = discountCodes[normalizedCode];
+    if (pct) { setDiscountApplied(pct); setDiscountCode(normalizedCode); setDiscOk(`¡${pct}% de descuento aplicado!`); setDiscErr(""); }
+    else      { setDiscErr("El cupón no existe o no está vigente."); setDiscOk(""); setDiscountApplied(0); }
   };
 
   // Force pickup for psychotropics
@@ -260,17 +247,17 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Código de Descuento</label>
               <div className="flex gap-2">
                 <input value={discInput} onChange={e => { setDiscInput(e.target.value); setDiscErr(""); setDiscOk(""); }}
-                  onKeyDown={e => { if (e.key === "Enter") void applyDisc(); }}
+                  onKeyDown={e => e.key === "Enter" && applyDisc()}
                   placeholder="Ej: FHEC10"
                   className="flex-1 px-3 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-[#179150] uppercase" />
-                <button onClick={() => void applyDisc()} disabled={discValidating}
+                <button onClick={applyDisc}
                   className="px-3 py-2 bg-[#50e9f8] text-[#006064] rounded-xl text-xs font-black uppercase hover:bg-[#2dd8e8] transition-colors" style={H7}>
-                  {discValidating ? "Validando..." : "Aplicar"}
+                  Aplicar
                 </button>
               </div>
               {discErr && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><X size={10} />{discErr}</p>}
               {discOk  && <p className="text-[#179150] text-xs mt-1 flex items-center gap-1"><Check size={10} />{discOk}</p>}
-              {!discountApplied && !discErr && <p className="text-[10px] text-muted-foreground mt-1">El cupón se valida con tu cuenta antes de aplicarse.</p>}
+              {!discountApplied && !discErr && <p className="text-[10px] text-muted-foreground mt-1">Prueba: FHEC10 · SALUD15</p>}
             </div>
 
             {/* Totals */}

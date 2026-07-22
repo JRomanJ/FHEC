@@ -27,17 +27,6 @@ export const findUserAuth = async (email: string) => {
     return user ? { id: user.id, correo: user.email ?? normalizedEmail } : null;
 };
 
-export const getAuthEmailsByIds = async (userIds: string[]) => {
-    const ids = new Set(userIds);
-    if (ids.size === 0) return new Map<string, string>();
-    const data = await adminAuthRequest<{ users: Array<{ id: string; email?: string }> }>('/users?page=1&per_page=1000');
-    return new Map(
-        data.users
-            .filter((user) => ids.has(user.id) && user.email)
-            .map((user) => [user.id, String(user.email)]),
-    );
-};
-
 export const findUserByCedula = async (client: SupabaseClient, documentType: string, document: string) => {
     const { data, error } = await client
         .from('usuarios')

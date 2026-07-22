@@ -11,10 +11,9 @@ import {
   validateCartItemQuantity,
   validateCouponCodeInput,
 } from "../../../validation";
-import { validateRemoteCoupon } from "../../../services";
 
 // ─── CartPage ─────────────────────────────────────────────────────────────────
-export function CartPage({ cartItems, setCartItems, onNav, discountApplied, discountCode, setDiscountApplied, setDiscountCode, user, hasActiveOrder = false, selectedSede = "principal", products }: {
+export function CartPage({ cartItems, setCartItems, onNav, discountApplied, discountCode, setDiscountApplied, setDiscountCode, user, hasActiveOrder = false, selectedSede = "principal", products, discountCodes }: {
   cartItems: CartItem[]; setCartItems: (items: CartItem[]) => void; onNav: (p: Page) => void;
   discountApplied: number; discountCode: string;
   setDiscountApplied: (n: number) => void; setDiscountCode: (s: string) => void;
@@ -22,11 +21,11 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
   hasActiveOrder?: boolean;
   selectedSede?: string;
   products: Product[];
+  discountCodes: Record<string, number>;
 }) {
   const [discountInput, setDiscountInput] = useState(discountCode);
   const [discountError, setDiscountError] = useState("");
   const [discountSuccess, setDiscountSuccess] = useState(discountApplied > 0 ? `¡Código aplicado! ${discountApplied}% de descuento` : "");
-  const [discountValidating, setDiscountValidating] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [stockModal, setStockModal] = useState<{ product: Product; available: number; similar: Product[] } | null>(null);
 
@@ -40,7 +39,7 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
     }).filter(i => i.quantity > 0));
   };
 
-  const applyDiscount = async () => {
+  const applyDiscount = () => {
     const codeValidation = validateCouponCodeInput(discountInput);
     if (!codeValidation.valid) {
       setDiscountError(firstError(codeValidation));
@@ -49,27 +48,16 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
       return;
     }
     const normalizedCode = normalizeCouponCode(discountInput);
-    if (!user) {
-      setDiscountError("Inicia sesión para validar y aplicar un cupón.");
-      setDiscountSuccess("");
-      setDiscountApplied(0);
-      return;
-    }
-    setDiscountValidating(true);
-    try {
-      const coupon = await validateRemoteCoupon(normalizedCode);
-      const pct = coupon.discount;
+    const pct = discountCodes[normalizedCode];
+    if (pct) {
       setDiscountApplied(pct);
       setDiscountCode(normalizedCode);
       setDiscountSuccess(`¡Código aplicado! ${pct}% de descuento`);
       setDiscountError("");
-    } catch (error) {
-      setDiscountError(error instanceof Error ? error.message : "El cupón no existe o no está vigente.");
+    } else {
+      setDiscountError("El cupón no existe o no está vigente.");
       setDiscountSuccess("");
       setDiscountApplied(0);
-      setDiscountCode("");
-    } finally {
-      setDiscountValidating(false);
     }
   };
 
@@ -353,20 +341,20 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
                 <input
                   value={discountInput}
                   onChange={e => { setDiscountInput(e.target.value); setDiscountError(""); setDiscountSuccess(""); }}
-                  onKeyDown={e => { if (e.key === "Enter") void applyDiscount(); }}
+                  onKeyDown={e => e.key === "Enter" && applyDiscount()}
                   placeholder="Código de descuento"
                   className="flex-1 px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white uppercase"
                 />
-                <button onClick={() => void applyDiscount()} disabled={discountValidating}
+                <button onClick={applyDiscount}
                   className="px-4 py-2 bg-[#50e9f8] text-[#006064] rounded-xl text-sm font-black uppercase hover:bg-[#2dd8e8] transition-colors flex-shrink-0"
                   style={H7}>
-                  {discountValidating ? "Validando..." : "Aplicar"}
+                  Aplicar
                 </button>
               </div>
               {discountError && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><X size={10} />{discountError}</p>}
               {discountSuccess && <p className="text-[#179150] text-xs mt-1 flex items-center gap-1"><Check size={10} />{discountSuccess}</p>}
               {!discountApplied && !discountError && (
-                <p className="text-muted-foreground text-[10px] mt-1">Usa un cupón vigente disponible para tu cuenta.</p>
+                <p className="text-muted-foreground text-[10px] mt-1">Prueba: FHEC10 · SALUD15 · BIENVENIDO · FHEC2024</p>
               )}
             </div>
 

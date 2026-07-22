@@ -456,15 +456,8 @@ app.use((error: HttpError, _req: Request, res: Response, _next: NextFunction) =>
     });
 });
 
-export { app };
-
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
-    // Esto imprimirá todas las rutas activas en la consola de Render
-    console.log("Rutas registradas:");
-    app._router.stack.forEach((r: any) => {
-        if (r.route && r.route.path) {
-            console.log(`${Object.keys(r.route.methods)[0].toUpperCase()} ${r.route.path}`);
-        }
-    });
 });
+
+export { app };

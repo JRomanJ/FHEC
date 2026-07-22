@@ -30,10 +30,11 @@ import codigoQrUsuario from "../../../imports/codigoqr-usuario.jpg";
 import { H7, H9 } from "../../../app/data";
 import type { AuthUser, Page } from "../../../app/types";
 import {
-  getLegacyOrderHistoryViewModels,
+  getRemoteOrderHistory,
   getLegacyProfileCouponViewModels,
   getLegacyProfileRefundViewModels,
 } from "../../../services";
+import type { DatabaseOrderHistoryViewModel } from "../../../data/selectors";
 import {
   firstError,
   validateProfileEmail,
@@ -49,7 +50,6 @@ export interface ProfilePageProps {
   onNav: (p: Page) => void;
   onLogout: () => void;
   onUpdateUser?: (user: AuthUser) => void;
-  demoOrders: ReturnType<typeof getLegacyOrderHistoryViewModels>;
   demoContact: Record<string, { phone: string; address: string }>;
   veAreas: string[];
   docTypes: string[];
@@ -59,7 +59,7 @@ export interface RefundRequest {
   id: string; method: string; bank: string; reference: string; amount: string; status: "Pendiente" | "En revisión" | "Aprobado" | "Rechazado";
 }
 
-export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, demoContact, veAreas, docTypes }: ProfilePageProps) {
+export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoContact, veAreas, docTypes }: ProfilePageProps) {
   const mockContact = demoContact[user.email] ?? { phone: "", address: "" };
   const defaultContact = {
     phone: user.phone ? (user.phone.startsWith("+") ? user.phone : `${user.areaCode ?? ""}-${user.phone}`.replace(/^-/, "")) : mockContact.phone,
@@ -262,15 +262,41 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
   };
 
   // ── Order history ──
+  const [orders, setOrders] = useState<DatabaseOrderHistoryViewModel[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState("");
   const [orderPage, setOrderPage] = useState(1);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const ordersPerPage = 5;
-  const totalPages = Math.ceil(demoOrders.length / ordersPerPage);
-  const paginatedOrders = demoOrders.slice((orderPage - 1) * ordersPerPage, orderPage * ordersPerPage);
+  const totalPages = Math.max(1, Math.ceil(orders.length / ordersPerPage));
+  const paginatedOrders = orders.slice((orderPage - 1) * ordersPerPage, orderPage * ordersPerPage);
+
+  useEffect(() => {
+    let cancelled = false;
+    setOrdersLoading(true);
+    setOrdersError("");
+    setOrderPage(1);
+    setExpandedOrder(null);
+
+    getRemoteOrderHistory(user.id)
+      .then((history) => {
+        if (!cancelled) setOrders(history);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setOrders([]);
+        setOrdersError(error instanceof Error ? error.message : "No se pudo cargar el historial de pedidos.");
+      })
+      .finally(() => {
+        if (!cancelled) setOrdersLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [user.id]);
 
   const statusColor = (s: string) => {
-    if (s === "Entregado") return "bg-[#179150] text-white";
-    if (s === "Cancelado") return "bg-red-500 text-white";
+    if (s === "Entregado" || s === "Completado") return "bg-[#179150] text-white";
+    if (s === "Cancelado" || s === "Expirado") return "bg-red-500 text-white";
     if (s === "En camino") return "bg-[#50e9f8] text-[#006064]";
     if (s === "Pendiente pago" || s === "Pendiente por pago") return "bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30 !text-xs !px-3 !py-1 animate-pulse";
     return "bg-amber-400 text-[#006064]";
@@ -790,6 +816,27 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
                       </tr>
                     </thead>
                     <tbody>
+                      {ordersLoading && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                            Cargando pedidos...
+                          </td>
+                        </tr>
+                      )}
+                      {!ordersLoading && ordersError && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-10 text-center text-sm text-red-600">
+                            {ordersError}
+                          </td>
+                        </tr>
+                      )}
+                      {!ordersLoading && !ordersError && paginatedOrders.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                            No tienes pedidos registrados aún.
+                          </td>
+                        </tr>
+                      )}
                       {paginatedOrders.map((order, i) => (
                         <React.Fragment key={order.id}>
                           <tr className={`border-b border-border hover:bg-muted/20 transition-colors ${i % 2 === 0 ? "" : "bg-muted/10"}`}>

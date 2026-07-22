@@ -7,6 +7,7 @@ export interface CrearPedidoInput {
 }
 
 const ORDER_COLUMNS = 'id_pedido, id_usuario, id_sede, id_transaccion, metodo_entrega, nombre_receptor, codigo_area_receptor, telefono_receptor, direccion_entrega, coordenadas_entrega, nombre_factura, codigo_area_factura, telefono_factura, tipo_documento_fiscal, documento_fiscal, direccion_fiscal, codigo_cupon, subtotal, iva, costo_entrega, descuento_aplicado, total_pedido, tasa_bcv, estado_pedido, fecha_creacion, fecha_limite, fecha_completado, fecha_expiracion, stock_restaurado';
+const ORDER_RELATIONS = 'detalles_pedidos(*, productos(principio_activo, concentracion, marca_comercial)), entregas_delivery(*), entregas_pickup(*)';
 
 const throwDbError = (message: string, error: { message: string; code?: string }): never => {
     const statusByCode: Record<string, number> = { '22023': 400, '23505': 409, '23514': 409, '42501': 403, P0002: 404 };
@@ -30,7 +31,7 @@ export const expirarPedidos = async (adminClient: SupabaseClient) => {
 };
 
 export const listarPedidos = async (client: SupabaseClient, userId?: string) => {
-    let query = client.from('pedidos').select(`${ORDER_COLUMNS}, detalles_pedidos(*), entregas_delivery(*), entregas_pickup(*)`).order('fecha_creacion', { ascending: false });
+    let query = client.from('pedidos').select(`${ORDER_COLUMNS}, ${ORDER_RELATIONS}`).order('fecha_creacion', { ascending: false });
     if (userId) query = query.eq('id_usuario', userId);
     const { data, error } = await query;
     if (error) throwDbError('No se pudieron consultar los pedidos', error);
@@ -38,7 +39,7 @@ export const listarPedidos = async (client: SupabaseClient, userId?: string) => 
 };
 
 export const obtenerPedido = async (client: SupabaseClient, orderId: string) => {
-    const { data, error } = await client.from('pedidos').select(`${ORDER_COLUMNS}, detalles_pedidos(*), entregas_delivery(*), entregas_pickup(*)`).eq('id_pedido', orderId).maybeSingle();
+    const { data, error } = await client.from('pedidos').select(`${ORDER_COLUMNS}, ${ORDER_RELATIONS}`).eq('id_pedido', orderId).maybeSingle();
     if (error) throwDbError('No se pudo consultar el pedido', error);
     return data;
 };

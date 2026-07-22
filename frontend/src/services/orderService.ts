@@ -10,6 +10,8 @@ import {
 } from "../data";
 import { EstadoPedido, esPickupObligatorio, requiereRecipeDigital, requiereRecipeFisico } from "../domain";
 import type { EstadoPedido as EstadoPedidoType } from "../domain";
+import { selectDatabaseOrderHistory } from "../data/selectors";
+import type { DatabaseOrderHistoryViewModel } from "../data/selectors";
 import { requestJson } from "./httpClient";
 
 interface ApiEnvelope<T> { success: boolean; message?: string; data: T }
@@ -25,6 +27,11 @@ export interface RemoteOrderDetail {
   subtotal_linea: number;
   requiere_recipe: boolean;
   nivel_control: string | null;
+  productos?: {
+    principio_activo: string | null;
+    concentracion: string | number | null;
+    marca_comercial: string | null;
+  } | null;
 }
 
 export interface RemoteOrder {
@@ -64,6 +71,10 @@ export async function createRemoteOrder(input: CreateRemoteOrderInput): Promise<
 export async function getRemoteOrders(): Promise<RemoteOrder[]> {
   const response = await requestJson<ApiEnvelope<RemoteOrder[]>>("/orders");
   return response.data;
+}
+
+export async function getRemoteOrderHistory(userId: string): Promise<DatabaseOrderHistoryViewModel[]> {
+  return selectDatabaseOrderHistory(await getRemoteOrders(), userId);
 }
 
 export async function getRemoteOrder(orderId: string): Promise<RemoteOrder> {

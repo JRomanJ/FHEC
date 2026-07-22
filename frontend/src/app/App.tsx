@@ -8,7 +8,6 @@ import {
   DEFAULT_SLIDES,
   DEMO_ACCOUNTS,
   DEMO_CONTACT,
-  DEMO_ORDERS,
   DISCOUNT_CODES,
   VES_RATE,
 } from "./data";
@@ -483,7 +482,7 @@ export default function App() {
               onRemoteOrderChange={setActiveRemoteOrder}
             />
           )}
-          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { void handleLogout(); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
+          {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { void handleLogout(); }} onUpdateUser={setUser} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
           {page === "delivery" && <DeliveryPanel onNav={setPage} userSede={staffSede} />}
           {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} customLogoUrl={customLogoUrl} onLogoChange={setCustomLogoUrl} />}
           {page === "notifications" && <NotificationsPage onNav={setPage} notifs={appNotifs} setNotifs={setAppNotifs} />}

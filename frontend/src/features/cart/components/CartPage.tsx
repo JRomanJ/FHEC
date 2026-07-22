@@ -228,7 +228,11 @@ export function CartPage({ cartItems, setCartItems, onNav, discountApplied, disc
 
       <div className="flex items-start gap-3 mb-6">
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-3xl uppercase text-foreground" style={H9}>Mi Carrito ({cartItems.length} ítem{cartItems.length !== 1 ? "s" : ""})</h1>
+          <h1 className="text-xl sm:text-3xl uppercase text-foreground mb-1" style={H9}>Mi Carrito</h1>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Package size={14} />
+            <span className="text-sm font-semibold lowercase">{cartItems.length} ítem{cartItems.length !== 1 ? "s" : ""}</span>
+          </div>
         </div>
         <button
           onClick={clearCart}

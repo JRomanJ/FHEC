@@ -238,6 +238,7 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
     if (s === "Entregado") return "bg-[#179150] text-white";
     if (s === "Cancelado") return "bg-red-500 text-white";
     if (s === "En camino") return "bg-[#50e9f8] text-[#006064]";
+    if (s === "Pendiente pago" || s === "Pendiente por pago") return "bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30 !text-xs !px-3 !py-1 animate-pulse";
     return "bg-amber-400 text-[#006064]";
   };
 

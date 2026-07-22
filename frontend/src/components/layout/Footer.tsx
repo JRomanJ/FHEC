@@ -4,7 +4,7 @@ import type { Page } from "../../app/types";
 import { CATS, H9 } from "./layoutShared";
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
-export function Footer({ onNav }: { onNav: (p: Page) => void }) {
+export function Footer({ onNav, logoUrl }: { onNav: (p: Page) => void; logoUrl?: string | null }) {
   const SOCIAL_LINKS = [
     { href: "https://www.instagram.com/farmahumana?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==", icon: <Instagram size={20} />, title: "Instagram" },
     { href: "https://www.facebook.com/farmahumana", icon: <Facebook size={20} />, title: "Facebook" },
@@ -26,7 +26,7 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
           {/* Col 1: Brand + Social */}
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-3">
-              <img src={logoFarmahumana} alt="FHEC" className="w-12 h-12 object-contain" />
+              <img src={logoUrl ?? logoFarmahumana} alt="FHEC" className="w-12 h-12 object-contain" />
               <div>
                 <div className="text-white text-lg font-black leading-none uppercase tracking-[0.05em]" style={H9}>FARMAHUMANA</div>
                 <div className="text-[#50e9f8] text-[10px] font-bold tracking-[0.2em] mt-1">FHEC</div>
@@ -110,7 +110,7 @@ export function Footer({ onNav }: { onNav: (p: Page) => void }) {
           {/* Header (Logo + Social) */}
           <div className="mb-8 flex flex-col items-center text-center">
             <div className="flex items-center gap-3 mb-4">
-              <img src={logoFarmahumana} alt="FHEC" className="w-14 h-14 object-contain" />
+              <img src={logoUrl ?? logoFarmahumana} alt="FHEC" className="w-14 h-14 object-contain" />
               <div className="text-left">
                 <div className="text-white text-xl font-black leading-none uppercase tracking-[0.05em]" style={H9}>FARMAHUMANA</div>
                 <div className="text-[#50e9f8] text-[10px] font-bold tracking-[0.2em] mt-1.5">FHEC</div>

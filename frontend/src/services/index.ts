@@ -1,6 +1,7 @@
 export * from "./adminService";
 export * from "./authService";
 export * from "./bannerService";
+export * from "./brandingService";
 export * from "./backendService";
 export * from "./cartService";
 export * from "./categoryService";

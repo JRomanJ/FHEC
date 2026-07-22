@@ -38,13 +38,15 @@ const DEMO_RECIPES = getLegacyRecipeAuditViewModels();
 
 const DEMO_ADMIN_ORDERS = getLegacyAdminOrderViewModels();
 
-export function AdminPanel({ user, onNav, products, setProducts, slides, setSlides }: {
+export function AdminPanel({ user, onNav, products, setProducts, slides, setSlides, customLogoUrl, onLogoChange }: {
   user: AuthUser;
   onNav: (p: Page) => void;
   products: Product[];
   setProducts: (p: Product[]) => void;
   slides: Slide[];
   setSlides: (s: Slide[]) => void;
+  customLogoUrl: string | null;
+  onLogoChange: (url: string | null) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"auditor" | "auxiliar" | "contenido" | "catalogo" | "personal" | "monitor" | "inventario" | "cupones" | "reembolsos">("auditor");
 
@@ -832,7 +834,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
 
         {/* SUPERADMIN MODULES — flat, one per tab */}
         {(["contenido", "catalogo", "personal", "monitor", "cupones"] as const).includes(activeTab as any) && isSuperadmin && (
-          <SuperadminModules onNav={onNav} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} forcedTab={activeTab as "contenido" | "catalogo" | "personal" | "monitor" | "cupones"} />
+          <SuperadminModules onNav={onNav} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} customLogoUrl={customLogoUrl} onLogoChange={onLogoChange} forcedTab={activeTab as "contenido" | "catalogo" | "personal" | "monitor" | "cupones"} />
         )}
       </div>
     </div>

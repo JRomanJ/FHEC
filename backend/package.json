@@ -8,6 +8,8 @@
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck",
+    "test:integration:banners-notifications": "tsx src/scripts/testBannersNotifications.ts",
+    "setup:banner-storage": "tsx src/scripts/setupBannerStorage.ts",
     "seed:test-accounts": "tsx src/scripts/seedTestAccounts.ts"
   },
   "keywords": [],

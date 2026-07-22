@@ -202,12 +202,45 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
   };
 
   // ── Notifications ──
-  const [notifPromo,       setNotifPromo]       = useState(true);
-  const [notifPromoSms,    setNotifPromoSms]    = useState(false);
-  const [notifPromoEmail,  setNotifPromoEmail]  = useState(true);
-  const [notifOrders,      setNotifOrders]      = useState(true);
-  const [notifOrdersSms,   setNotifOrdersSms]   = useState(true);
-  const [notifOrdersEmail, setNotifOrdersEmail] = useState(true);
+  const [notifPromo,       setNotifPromo]       = useState(user.acepta_promociones);
+  const [notifPromoSms,    setNotifPromoSms]    = useState(user.acepta_promociones_sms);
+  const [notifPromoEmail,  setNotifPromoEmail]  = useState(user.acepta_promociones_correo);
+  const [notifOrders,      setNotifOrders]      = useState(user.acepta_notificaciones);
+  const [notifOrdersSms,   setNotifOrdersSms]   = useState(user.acepta_notificaciones_sms);
+  const [notifOrdersEmail, setNotifOrdersEmail] = useState(user.acepta_notificaciones_correo);
+  const [preferenceSaving, setPreferenceSaving] = useState(false);
+
+  useEffect(() => {
+    setNotifPromo(user.acepta_promociones);
+    setNotifPromoSms(user.acepta_promociones_sms);
+    setNotifPromoEmail(user.acepta_promociones_correo);
+    setNotifOrders(user.acepta_notificaciones);
+    setNotifOrdersSms(user.acepta_notificaciones_sms);
+    setNotifOrdersEmail(user.acepta_notificaciones_correo);
+  }, [user]);
+
+  type PreferenceField =
+    | "acepta_promociones"
+    | "acepta_promociones_sms"
+    | "acepta_promociones_correo"
+    | "acepta_notificaciones"
+    | "acepta_notificaciones_sms"
+    | "acepta_notificaciones_correo";
+
+  const updatePreference = async (field: PreferenceField, value: boolean, setter: (next: boolean) => void) => {
+    setter(value);
+    setPreferenceSaving(true);
+    try {
+      const updatedUser = await updateUser(user.id, { [field]: value });
+      onUpdateUser?.(updatedUser);
+      toast.success("Preferencia guardada.");
+    } catch {
+      setter(!value);
+      toast.error("No se pudo guardar la preferencia.");
+    } finally {
+      setPreferenceSaving(false);
+    }
+  };
 
   // ── Change password ──
   const [curPass,     setCurPass]     = useState("");
@@ -641,17 +674,18 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
                     <div className="text-xs font-black uppercase tracking-wider text-[#006064] mb-3" style={H9}>Notificaciones Promocionales</div>
                     <div className="space-y-3">
                       {([
-                        { label: "Activar notificaciones promocionales", sub: "Recibe alertas sobre ofertas y descuentos", value: notifPromo, set: setNotifPromo },
-                        { label: "Promociones por SMS", sub: "Mensajes de texto con ofertas especiales", value: notifPromoSms, set: setNotifPromoSms },
-                        { label: "Promociones por correo", sub: "Boletín de ofertas enviado a tu email", value: notifPromoEmail, set: setNotifPromoEmail },
-                      ] as { label: string; sub: string; value: boolean; set: (v: boolean) => void }[]).map(item => (
+                        { label: "Activar notificaciones promocionales", sub: "Recibe alertas sobre ofertas y descuentos", value: notifPromo, set: setNotifPromo, field: "acepta_promociones" },
+                        { label: "Promociones por SMS", sub: "Mensajes de texto con ofertas especiales", value: notifPromoSms, set: setNotifPromoSms, field: "acepta_promociones_sms" },
+                        { label: "Promociones por correo", sub: "Boletín de ofertas enviado a tu email", value: notifPromoEmail, set: setNotifPromoEmail, field: "acepta_promociones_correo" },
+                      ] as { label: string; sub: string; value: boolean; set: (v: boolean) => void; field: PreferenceField }[]).map(item => (
                         <div key={item.label} className="flex items-center justify-between gap-4 bg-muted rounded-xl px-4 py-3">
                           <div className="flex-1">
                             <div className="text-sm font-semibold text-foreground">{item.label}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>
                           </div>
                           <button
-                            onClick={() => item.set(!item.value)}
+                            onClick={() => { void updatePreference(item.field, !item.value, item.set); }}
+                            disabled={preferenceSaving}
                             className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${item.value ? "bg-[#179150]" : "bg-gray-300"}`}
                           >
                             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${item.value ? "translate-x-5" : "translate-x-0"}`} />
@@ -668,17 +702,18 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoOrders, d
                     <div className="text-xs font-black uppercase tracking-wider text-[#006064] mb-3" style={H9}>Notificaciones Generales de Pedidos</div>
                     <div className="space-y-3">
                       {([
-                        { label: "Activar notificaciones de pedidos", sub: "Estado de tu pedido en tiempo real", value: notifOrders, set: setNotifOrders },
-                        { label: "Notificaciones de pedidos por SMS", sub: "Alertas de pedido por mensaje de texto", value: notifOrdersSms, set: setNotifOrdersSms },
-                        { label: "Notificaciones de pedidos por correo", sub: "Confirmaciones y actualizaciones por email", value: notifOrdersEmail, set: setNotifOrdersEmail },
-                      ] as { label: string; sub: string; value: boolean; set: (v: boolean) => void }[]).map(item => (
+                        { label: "Activar notificaciones de pedidos", sub: "Estado de tu pedido en tiempo real", value: notifOrders, set: setNotifOrders, field: "acepta_notificaciones" },
+                        { label: "Notificaciones de pedidos por SMS", sub: "Alertas de pedido por mensaje de texto", value: notifOrdersSms, set: setNotifOrdersSms, field: "acepta_notificaciones_sms" },
+                        { label: "Notificaciones de pedidos por correo", sub: "Confirmaciones y actualizaciones por email", value: notifOrdersEmail, set: setNotifOrdersEmail, field: "acepta_notificaciones_correo" },
+                      ] as { label: string; sub: string; value: boolean; set: (v: boolean) => void; field: PreferenceField }[]).map(item => (
                         <div key={item.label} className="flex items-center justify-between gap-4 bg-muted rounded-xl px-4 py-3">
                           <div className="flex-1">
                             <div className="text-sm font-semibold text-foreground">{item.label}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>
                           </div>
                           <button
-                            onClick={() => item.set(!item.value)}
+                            onClick={() => { void updatePreference(item.field, !item.value, item.set); }}
+                            disabled={preferenceSaving}
                             className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${item.value ? "bg-[#179150]" : "bg-gray-300"}`}
                           >
                             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${item.value ? "translate-x-5" : "translate-x-0"}`} />

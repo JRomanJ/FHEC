@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeft, Check, X } from "lucide-react";
 import type { Page } from "../../../app/types";
 import type { NotificationViewModel as AppNotification } from "../../../viewModels/notificationViewModels";
+import { deleteRemoteNotification, markAllRemoteNotificationsRead, markRemoteNotificationRead } from "../../../services/notificationService";
 
 const H9: React.CSSProperties = { fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900 };
 
@@ -14,9 +15,9 @@ export function NotificationsPage({ onNav, notifs, setNotifs }: {
   const [selected, setSelected]   = useState<AppNotification | null>(null);
   const unread = notifs.filter(n => !n.read).length;
 
-  const markRead    = (id: number) => setNotifs(p => p.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAllRead = ()           => setNotifs(p => p.map(n => ({ ...n, read: true })));
-  const dismiss     = (id: number, e: React.MouseEvent) => { e.stopPropagation(); setNotifs(p => p.filter(n => n.id !== id)); };
+  const markRead    = (id: number) => { setNotifs(p => p.map(n => n.id === id ? { ...n, read: true } : n)); void markRemoteNotificationRead(id).catch(console.error); };
+  const markAllRead = ()           => { setNotifs(p => p.map(n => ({ ...n, read: true }))); void markAllRemoteNotificationsRead().catch(console.error); };
+  const dismiss     = (id: number, e: React.MouseEvent) => { e.stopPropagation(); setNotifs(p => p.filter(n => n.id !== id)); void deleteRemoteNotification(id).catch(console.error); };
   const open        = (n: AppNotification) => { markRead(n.id); setSelected(n); };
 
   const accent: Record<string, string> = {

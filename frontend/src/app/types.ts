@@ -1,7 +1,7 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type Page = "home" | "catalog" | "product" | "cart" | "deliverySelect" | "preCheckout" | "checkout" | "orderComplete" | "tracking" | "favorites" | "login" | "register" | "banners" | "profile" | "delivery" | "admin" | "notifications";
 
-export interface Slide { title: string; subtitle: string; badge: string; from: string; via: string; to: string; img: string; cta: string; ctaLink?: string; }
+export interface Slide { id?: number; title: string; subtitle: string; badge: string; from: string; via: string; to: string; img: string; cta: string; ctaLink?: string; }
 
 export type UserRole = "cliente" | "repartidor" | "auxiliar" | "auditor" | "superadmin";
 
@@ -14,6 +14,12 @@ export interface AuthUser {
   phone?: string;
   areaCode?: string;
   address?: string;
+  acepta_promociones: boolean;
+  acepta_promociones_sms: boolean;
+  acepta_promociones_correo: boolean;
+  acepta_notificaciones: boolean;
+  acepta_notificaciones_sms: boolean;
+  acepta_notificaciones_correo: boolean;
 }
 
 export interface Branch {

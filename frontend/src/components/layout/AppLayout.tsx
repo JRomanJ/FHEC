@@ -11,10 +11,11 @@ import { SmartSearch } from "../../features/search";
 import { ProductBox } from "../product";
 import type { AuthUser, Branch, CartItem, Page, Product } from "../../app/types";
 import type { NotificationViewModel as AppNotification } from "../../viewModels/notificationViewModels";
+import { deleteRemoteNotification, markRemoteNotificationRead } from "../../services/notificationService";
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, user, onLogout, onCategorySelect,
-  cartItems, onUpdateCartQuantity, onRemoveFromCart, hasActiveOrder = false, appNotifs, setAppNotifs, selectedSede, onSedeChange, products, branches, categories, brandSynonyms }: {
+  cartItems, onUpdateCartQuantity, onRemoveFromCart, hasActiveOrder = false, appNotifs, setAppNotifs, selectedSede, onSedeChange, products, branches, categories, brandSynonyms, logoUrl }: {
   cartCount: number; onNav: (p: Page) => void; page: Page;
   searchQuery: string; setSearchQuery: (q: string) => void;
   user: AuthUser | null; onLogout: () => void;
@@ -31,6 +32,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
   branches: Branch[];
   categories: typeof CATS;
   brandSynonyms: typeof BRAND_SYNONYMS;
+  logoUrl?: string | null;
 }) {
   const [menuOpen,  setMenuOpen]  = useState(false);
   const [cartOpen,  setCartOpen]  = useState(false);
@@ -60,7 +62,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
         <div className="flex items-center h-16 gap-4">
           {/* Logo */}
           <button onClick={() => onNav("home")} className="flex items-center gap-2.5 flex-shrink-0">
-            <img src={logoFarmahumana} alt="Farmahumana FHEC" className="w-10 h-10 object-contain" />
+            <img src={logoUrl ?? logoFarmahumana} alt="Farmahumana FHEC" className="w-10 h-10 object-contain" />
             <div className="hidden sm:block">
               <div className="text-[#179150] text-xl leading-none uppercase" style={H9}>FARMAHUMANA</div>
               <div className="text-[#179150] text-sm font-black tracking-[0.25em] leading-none mt-0.5" style={H9}>FHEC</div>
@@ -104,8 +106,9 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-border" style={{ scrollbarWidth: "thin" }}>
                     {appNotifs.slice(0, 5).map(n => (
-                      <button key={n.id} onClick={() => setAppNotifs(p => p.map(x => x.id === n.id ? { ...x, read: true } : x))}
-                        className={`w-full flex items-start gap-3 px-4 py-3 transition-colors text-left hover:bg-muted/40 ${!n.read ? "bg-[#f0fdf7]" : ""}`}>
+                      <div key={n.id} className={`relative flex items-start transition-colors hover:bg-muted/40 ${!n.read ? "bg-[#f0fdf7]" : ""}`}>
+                      <button onClick={() => { setAppNotifs(p => p.map(x => x.id === n.id ? { ...x, read: true } : x)); void markRemoteNotificationRead(n.id).catch(console.error); }}
+                        className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 pr-9 text-left">
                         <div className="text-xl flex-shrink-0 mt-0.5">{n.icon}</div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-bold text-gray-900 truncate">{n.title}</div>
@@ -114,6 +117,23 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
                         </div>
                         {!n.read && <div className="w-2 h-2 rounded-full bg-[#179150] flex-shrink-0 mt-1" />}
                       </button>
+                      <button
+                        type="button"
+                        title="Eliminar notificación"
+                        aria-label={`Eliminar ${n.title}`}
+                        onClick={() => {
+                          const removed = n;
+                          setAppNotifs(current => current.filter(item => item.id !== n.id));
+                          void deleteRemoteNotification(n.id).catch((error) => {
+                            console.error(error);
+                            setAppNotifs(current => current.some(item => item.id === removed.id) ? current : [removed, ...current]);
+                          });
+                        }}
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X size={13} />
+                      </button>
+                      </div>
                     ))}
                   </div>
                   <div className="px-4 py-3 border-t border-border">
@@ -136,7 +156,17 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
 
             {/* 3. Carrito — en móvil con sesión activa lo cubre MobileUserMenu */}
             <div className={`relative ${user ? "hidden sm:block" : ""}`} ref={cartRef}>
-              <button onClick={() => setCartOpen(o => !o)} className="relative p-2 rounded-xl hover:bg-muted transition-colors">
+              <button
+                onClick={() => {
+                  if (!user) {
+                    setCartOpen(false);
+                    onNav("login");
+                    return;
+                  }
+                  setCartOpen(o => !o);
+                }}
+                className="relative p-2 rounded-xl hover:bg-muted transition-colors"
+              >
                 <ShoppingCart size={20} className="text-[#006064]" />
                 {cartCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-[#50e9f8] text-[#006064] text-[10px] font-black rounded-full flex items-center justify-center leading-none">

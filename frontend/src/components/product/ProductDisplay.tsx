@@ -68,7 +68,7 @@ export function ProductBox({ product, size = "md" }: { product: Product; size?: 
 }
 
 // ─── ProductCard ──────────────────────────────────────────────────────────────
-export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity = 0, onUpdateQuantity, isFavorite = false, onToggleFavorite, selectedSede = "principal" }: {
+export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity = 0, onUpdateQuantity, isFavorite = false, onToggleFavorite, selectedSede = "principal", isAuthenticated = true, onAuthRequired }: {
   product: Product;
   onProductClick: (id: number) => void;
   onAddToCart: (p: Product) => void;
@@ -77,6 +77,8 @@ export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity
   isFavorite?: boolean;
   onToggleFavorite?: (productId: number) => void;
   selectedSede?: string;
+  isAuthenticated?: boolean;
+  onAuthRequired?: () => void;
 }) {
   const [showCardRecipeModal, setShowCardRecipeModal] = useState(false);
   // Stock según la sede seleccionada globalmente
@@ -87,6 +89,7 @@ export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (product.stock === 0) return;
+    if (!isAuthenticated) { onAuthRequired?.(); return; }
     if (product.needsRecipe) { setShowCardRecipeModal(true); return; }
     onAddToCart(product);
   };
@@ -115,6 +118,7 @@ export function ProductCard({ product, onProductClick, onAddToCart, cartQuantity
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isAuthenticated) { onAuthRequired?.(); return; }
     if (onToggleFavorite) {
       onToggleFavorite(product.id);
     }

@@ -23,6 +23,12 @@ interface BackendUser {
   phone?: string;
   areaCode?: string;
   address?: string;
+  acepta_promociones: boolean;
+  acepta_promociones_sms: boolean;
+  acepta_promociones_correo: boolean;
+  acepta_notificaciones: boolean;
+  acepta_notificaciones_sms: boolean;
+  acepta_notificaciones_correo: boolean;
 }
 
 interface BackendSession {
@@ -46,6 +52,12 @@ const mapUser = (user: BackendUser): AuthUser => ({
   phone: user.phone,
   areaCode: user.areaCode,
   address: user.address ?? "",
+  acepta_promociones: user.acepta_promociones,
+  acepta_promociones_sms: user.acepta_promociones_sms,
+  acepta_promociones_correo: user.acepta_promociones_correo,
+  acepta_notificaciones: user.acepta_notificaciones,
+  acepta_notificaciones_sms: user.acepta_notificaciones_sms,
+  acepta_notificaciones_correo: user.acepta_notificaciones_correo,
 });
 
 export async function registerUser(userData: Record<string, unknown>) {

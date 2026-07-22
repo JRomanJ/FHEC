@@ -71,11 +71,12 @@ export interface LoginPageProps {
   demoAccounts: DemoAccount[];
   veAreas: string[];
   docTypes: string[];
+  logoUrl?: string | null;
 }
 
 interface DemoAccount extends AuthUser { password: string; }
 
-export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts, veAreas, docTypes }: LoginPageProps) {
+export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts, veAreas, docTypes, logoUrl }: LoginPageProps) {
   type View = "login" | "register";
   const [view, setView] = useState<View>(initialView);
 
@@ -514,7 +515,7 @@ export function LoginPage({ onLogin, onNav, initialView = "login", demoAccounts,
       {/* Header */}
       <div className="relative overflow-hidden px-4 py-8" style={{ background: "linear-gradient(135deg, #50e9f8 0%, #179150 100%)" }}>
         <div className="flex items-center gap-4 pl-1">
-          <img src={logoFarmahumana} alt="Farmahumana" className="w-14 h-14 object-contain drop-shadow-lg" />
+          <img src={logoUrl ?? logoFarmahumana} alt="Farmahumana" className="w-14 h-14 object-contain drop-shadow-lg" />
           <div>
             <div className="text-white text-4xl leading-none uppercase" style={H9}>Farmahumana</div>
             <div className="text-white/80 text-sm mt-1">Servicio con calidad humana</div>

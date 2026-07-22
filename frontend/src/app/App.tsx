@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { Footer, Navbar } from "../components/layout";
-import { getLegacyNotificationViewModels } from "../viewModels/notificationViewModels";
 import type { NotificationViewModel as AppNotification } from "../viewModels/notificationViewModels";
 import {
   BRAND_SYNONYMS,
@@ -15,6 +14,9 @@ import {
 import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
 import { getCurrentUser, hasSession, logout } from "../services/authService";
 import { addFavorite, getAvailableBranches, getCatalogProducts, getFavorites, removeFavorite } from "../services/backendService";
+import { getRemoteBanners } from "../services/bannerService";
+import { getCustomLogoUrl } from "../services/brandingService";
+import { getRemoteNotifications } from "../services/notificationService";
 import { BRANCH_IDS } from "../config/api";
 
 const LoginPage = lazy(() => import("../features/auth/components/LoginPage").then((module) => ({ default: module.LoginPage })));
@@ -32,7 +34,6 @@ const DeliveryPanel = lazy(() => import("../features/delivery/components/Deliver
 const FavoritesPage = lazy(() => import("../features/favorites/components/FavoritesPage").then((module) => ({ default: module.FavoritesPage })));
 const NotificationsPage = lazy(() => import("../features/notifications/components/NotificationsPage").then((module) => ({ default: module.NotificationsPage })));
 const TrackingPage = lazy(() => import("../features/orders/components/TrackingPage").then((module) => ({ default: module.TrackingPage })));
-const INITIAL_NOTIFICATIONS = getLegacyNotificationViewModels();
 
 const DEFAULT_PAGE_BY_ROLE: Record<AuthUser["role"], Page> = {
   cliente: "home",
@@ -42,13 +43,13 @@ const DEFAULT_PAGE_BY_ROLE: Record<AuthUser["role"], Page> = {
   superadmin: "admin",
 };
 
-const PUBLIC_PAGES = new Set<Page>(["home", "catalog", "product", "cart", "login", "register"]);
+const PUBLIC_PAGES = new Set<Page>(["home", "catalog", "product", "login", "register"]);
 const PAGES_BY_ROLE: Record<AuthUser["role"], Set<Page>> = {
   cliente: new Set(["home", "catalog", "product", "cart", "deliverySelect", "preCheckout", "checkout", "orderComplete", "tracking", "favorites", "profile", "notifications"]),
   repartidor: new Set(["delivery", "profile", "notifications"]),
   auxiliar: new Set(["admin", "profile", "notifications"]),
   auditor: new Set(["admin", "profile", "notifications"]),
-  superadmin: new Set(["admin", "banners", "profile", "notifications"]),
+  superadmin: new Set(["home", "catalog", "product", "cart", "favorites", "admin", "banners", "profile", "notifications"]),
 };
 
 const resolvePageAccess = (requested: Page, user: AuthUser | null): Page => {
@@ -78,13 +79,14 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
   const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
   const [cartDiscountApplied, setCartDiscountApplied] = useState(0);
   const [activeOrderItems, setActiveOrderItems] = useState<CartItem[]>([]);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [displaySede, setDisplaySede] = useState(BRANCH_IDS.principal);
   // Shared notifications state — lifted so Navbar badge and NotificationsPage share it
-  const [appNotifs, setAppNotifs] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [appNotifs, setAppNotifs] = useState<AppNotification[]>([]);
   const [cartDiscountCode, setCartDiscountCode] = useState("");
   // Shared checkout delivery state lifted to App so it persists across checkout screens
   const [checkoutDeliveryMode, setCheckoutDeliveryMode] = useState<"delivery"|"pickup">("delivery");
@@ -92,6 +94,24 @@ export default function App() {
   const [checkoutAddress, setCheckoutAddress] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRemoteBanners()
+      .then((remoteSlides) => {
+        if (!cancelled && remoteSlides.length > 0) setSlides(remoteSlides);
+      })
+      .catch((error) => console.error("No se pudieron cargar los banners:", error));
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCustomLogoUrl()
+      .then((url) => { if (!cancelled) setCustomLogoUrl(url); })
+      .catch((error) => console.error("No se pudo cargar el logotipo personalizado:", error));
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +181,27 @@ export default function App() {
   }, [products, user]);
 
   useEffect(() => {
+    if (!user) {
+      setAppNotifs([]);
+      return;
+    }
+    let cancelled = false;
+    const refreshNotifications = () => {
+      getRemoteNotifications()
+        .then((notifications) => { if (!cancelled) setAppNotifs(notifications); })
+        .catch((error) => { if (!cancelled) console.error("No se pudieron cargar las notificaciones:", error); });
+    };
+    refreshNotifications();
+    const interval = window.setInterval(refreshNotifications, 30_000);
+    window.addEventListener("focus", refreshNotifications);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshNotifications);
+    };
+  }, [user]);
+
+  useEffect(() => {
     if (!authReady) return;
     const allowedPage = resolvePageAccess(page, user);
     if (allowedPage !== page) setPageRaw(allowedPage);
@@ -201,7 +242,15 @@ export default function App() {
     setPreselectedCategory(category);
   };
 
+  const requireAuthenticatedUser = () => {
+    if (user) return true;
+    window.scrollTo({ top: 0 });
+    setPageRaw("login");
+    return false;
+  };
+
   const addToCart = (product: Product, qty = 1) => {
+    if (!requireAuthenticatedUser()) return;
     setCartItems(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i);
@@ -210,6 +259,7 @@ export default function App() {
   };
 
   const updateQuantity = (productId: number, delta: number) => {
+    if (!requireAuthenticatedUser()) return;
     setCartItems(prev => {
       return prev.map(i => {
         if (i.product.id === productId) {
@@ -222,6 +272,7 @@ export default function App() {
   };
 
   const toggleFavorite = async (productId: number) => {
+    if (!requireAuthenticatedUser()) return;
     const product = products.find((item) => item.id === productId);
     if (!product?.backendId) {
       return;
@@ -238,10 +289,6 @@ export default function App() {
       }
       return next;
     });
-
-    if (!user) {
-      return;
-    }
 
     try {
       if (isFavorite) {
@@ -279,7 +326,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: "'Barlow', sans-serif" }}>
         <Suspense fallback={null}>
-          <LoginPage onLogin={handleAuthenticated} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} />
+          <LoginPage onLogin={handleAuthenticated} onNav={setPage} initialView={page === "register" ? "register" : "login"} demoAccounts={DEMO_ACCOUNTS} veAreas={VE_AREAS} docTypes={DOC_TYPES} logoUrl={customLogoUrl} />
         </Suspense>
       </div>
     );
@@ -308,12 +355,13 @@ export default function App() {
         branches={branches}
         categories={CATS}
         brandSynonyms={BRAND_SYNONYMS}
+        logoUrl={customLogoUrl}
       />
       <main>
         <Suspense fallback={null}>
-          {page === "home" && <HomePage products={products} onProductClick={goToProduct} onAddToCart={addToCart} onNav={setPage} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} slides={slides} selectedSede={displaySede} />}
+          {page === "home" && <HomePage products={products} onProductClick={goToProduct} onAddToCart={addToCart} onNav={setPage} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} slides={slides} selectedSede={displaySede} isAuthenticated={Boolean(user)} onAuthRequired={() => setPage("login")} />}
           {page === "banners" && <BannerManagementPage slides={slides} setSlides={setSlides} onNav={setPage} />}
-          {page === "catalog" && <CatalogPage products={products} searchQuery={searchQuery} onProductClick={goToProduct} onAddToCart={addToCart} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} preselectedCategory={preselectedCategory} />}
+          {page === "catalog" && <CatalogPage products={products} searchQuery={searchQuery} onProductClick={goToProduct} onAddToCart={addToCart} cartItems={cartItems} onUpdateQuantity={updateQuantity} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} preselectedCategory={preselectedCategory} isAuthenticated={Boolean(user)} onAuthRequired={() => setPage("login")} />}
           {page === "favorites" && <FavoritesPage products={products} favoriteIds={favoriteIds} onProductClick={goToProduct} onAddToCart={addToCart} onToggleFavorite={toggleFavorite} cartItems={cartItems} onUpdateQuantity={updateQuantity} onNav={setPage} />}
           {page === "product" && selectedProduct && (
             <ProductDetailPage
@@ -328,6 +376,8 @@ export default function App() {
               cartItems={cartItems}
               onUpdateQuantity={updateQuantity}
               selectedSede={displaySede}
+              isAuthenticated={Boolean(user)}
+              onAuthRequired={() => setPage("login")}
             />
           )}
           {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={products} discountCodes={DISCOUNT_CODES} />}
@@ -345,11 +395,11 @@ export default function App() {
           )}
           {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { void handleLogout(); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}
           {page === "delivery" && <DeliveryPanel onNav={setPage} userSede={staffSede} />}
-          {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} />}
+          {page === "admin" && user && <AdminPanel user={user} onNav={setPage} products={products} setProducts={setProducts} slides={slides} setSlides={setSlides} customLogoUrl={customLogoUrl} onLogoChange={setCustomLogoUrl} />}
           {page === "notifications" && <NotificationsPage onNav={setPage} notifs={appNotifs} setNotifs={setAppNotifs} />}
         </Suspense>
       </main>
-      <Footer onNav={setPage} />
+      <Footer onNav={setPage} logoUrl={customLogoUrl} />
       <Toaster position="top-right" />
     </div>
   );

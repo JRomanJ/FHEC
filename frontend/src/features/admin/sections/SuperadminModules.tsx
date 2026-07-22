@@ -18,8 +18,10 @@ import {
   X,
 } from "lucide-react";
 import type { Page, Product, Slide } from "../../../app/types";
+import logoFarmahumana from "../../../imports/logo-farmahumana.png";
+import { toast } from "sonner";
 import { CATS, fmtUSD, H7, H9 } from "../../../app/data";
-import { assignRole, createInventoryEntry, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, updateInventoryPrice } from "../../../services";
+import { assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, uploadCustomLogo, uploadRemoteBannerImage } from "../../../services";
 import { BRANCH_IDS } from "../../../config/api";
 import { InventarioTab } from "./AdminInventorySection";
 import {
@@ -63,12 +65,14 @@ const STATUS_COLORS: Record<string, string> = {
   "Cancelado": "bg-red-100 text-red-800",
 };
 
-export function SuperadminModules({ onNav, products, setProducts, slides, setSlides, forcedTab }: {
+export function SuperadminModules({ onNav, products, setProducts, slides, setSlides, customLogoUrl, onLogoChange, forcedTab }: {
   onNav: (p: Page) => void;
   products: Product[];
   setProducts: (p: Product[]) => void;
   slides: Slide[];
   setSlides: (s: Slide[]) => void;
+  customLogoUrl: string | null;
+  onLogoChange: (url: string | null) => void;
   forcedTab?: SuperTab;
 }) {
   const [superTab, setSuperTab] = useState<SuperTab>(forcedTab ?? "contenido");
@@ -77,20 +81,104 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   // ── Gestor Contenido state ──
   const [slideEditing, setSlideEditing] = useState<number | null>(null);
   const [slideDraft, setSlideDraft] = useState<Slide | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [slideSaving, setSlideSaving] = useState(false);
+  const [slideImageUploading, setSlideImageUploading] = useState(false);
+  const [slideUploadedPath, setSlideUploadedPath] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(customLogoUrl);
+  const [logoSaving, setLogoSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  React.useEffect(() => setLogoPreview(customLogoUrl), [customLogoUrl]);
 
-  const startEditSlide = (i: number) => { setSlideEditing(i); setSlideDraft({ ...slides[i] }); };
-  const saveSlide = () => {
-    if (slideEditing === null || !slideDraft) return;
-    const next = [...slides]; next[slideEditing] = slideDraft;
-    setSlides(next); setSlideEditing(null); setSlideDraft(null);
+  const uploadLogo = async (file: File) => {
+    const temporaryUrl = URL.createObjectURL(file);
+    setLogoPreview(temporaryUrl);
+    setLogoSaving(true);
+    try {
+      const url = await uploadCustomLogo(file);
+      setLogoPreview(url);
+      onLogoChange(url);
+      toast.success("Logotipo actualizado.");
+    } catch (error) {
+      setLogoPreview(customLogoUrl);
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el logotipo.");
+    } finally {
+      URL.revokeObjectURL(temporaryUrl);
+      setLogoSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
-  const removeSlide = (i: number) => setSlides(slides.filter((_, idx) => idx !== i));
+
+  const restoreLogo = async () => {
+    setLogoSaving(true);
+    try {
+      await restoreOriginalLogo();
+      setLogoPreview(null);
+      onLogoChange(null);
+      toast.success("Logotipo original restaurado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo restaurar el logotipo.");
+    } finally {
+      setLogoSaving(false);
+    }
+  };
+
+  const startEditSlide = (i: number) => { setSlideEditing(i); setSlideDraft({ ...slides[i] }); setSlideUploadedPath(null); };
+  const saveSlide = async () => {
+    if (slideEditing === null || !slideDraft) return;
+    setSlideSaving(true);
+    try {
+      const saved = await updateRemoteBanner(slideDraft);
+      const next = [...slides]; next[slideEditing] = saved;
+      setSlides(next); setSlideEditing(null); setSlideDraft(null);
+      setSlideUploadedPath(null);
+      toast.success(slideDraft.id == null ? "Banner creado." : "Banner actualizado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el banner.");
+    } finally {
+      setSlideSaving(false);
+    }
+  };
+  const removeSlide = async (i: number) => {
+    const banner = slides[i];
+    if (!banner) return;
+    try {
+      if (banner.id != null) await deleteRemoteBanner(banner.id);
+      else if (slideEditing === i && slideUploadedPath) await deleteRemoteBannerImage(slideUploadedPath);
+      setSlides(slides.filter((_, idx) => idx !== i));
+      if (slideEditing === i) { setSlideEditing(null); setSlideDraft(null); setSlideUploadedPath(null); }
+      toast.success("Banner eliminado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el banner.");
+    }
+  };
   const addNewSlide = () => {
     const blank: Slide = { title: "Nuevo Banner", subtitle: "Descripción del banner", badge: "NUEVO", from: "#031b24", via: "#00546a", to: "#50e9f8", img: "https://images.unsplash.com/photo-1550572017-efe56097ef4a?w=900&h=500&fit=crop&auto=format", cta: "Ver más →" };
     setSlides([...slides, blank]);
+    setSlideUploadedPath(null);
     setSlideEditing(slides.length); setSlideDraft(blank);
+  };
+
+  const uploadSlideImage = async (file: File) => {
+    setSlideImageUploading(true);
+    try {
+      const uploaded = await uploadRemoteBannerImage(file);
+      if (slideUploadedPath) await deleteRemoteBannerImage(slideUploadedPath).catch(console.error);
+      setSlideUploadedPath(uploaded.path);
+      setSlideDraft(current => current ? { ...current, img: uploaded.publicUrl } : current);
+      toast.success("Imagen cargada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar la imagen.");
+    } finally {
+      setSlideImageUploading(false);
+    }
+  };
+
+  const cancelSlideEdit = async (index: number) => {
+    if (slideUploadedPath) await deleteRemoteBannerImage(slideUploadedPath).catch(console.error);
+    if (slides[index]?.id == null) setSlides(slides.filter((_, idx) => idx !== index));
+    setSlideUploadedPath(null);
+    setSlideEditing(null);
+    setSlideDraft(null);
   };
 
   // ── Gestor Catálogo state ──
@@ -345,35 +433,34 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
             <p className="text-sm text-muted-foreground mb-4">Carga una imagen JPG/PNG para reemplazar el logo principal de la plataforma.</p>
             <div className="flex items-center gap-6">
               <div className="w-32 h-16 border-2 border-dashed border-border rounded-xl flex items-center justify-center bg-[#f0fdf7] overflow-hidden">
-                {logoPreview
-                  ? <img src={logoPreview} alt="Logo preview" className="w-full h-full object-contain" />
-                  : <span className="text-xs text-muted-foreground text-center px-2">Vista previa</span>
-                }
+                <img src={logoPreview ?? logoFarmahumana} alt="Vista previa del logotipo" className="w-full h-full object-contain" />
               </div>
               <div className="flex-1">
                 <input
                   type="file"
-                  accept="image/png,image/jpeg"
+                  accept="image/png,image/jpeg,image/webp,image/avif"
                   ref={fileInputRef}
                   className="hidden"
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) setLogoPreview(URL.createObjectURL(f));
+                    if (f) void uploadLogo(f);
                   }}
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={logoSaving}
                   className="flex items-center gap-2 px-4 py-2 bg-[#50e9f8] text-[#006064] rounded-xl text-sm hover:bg-[#2dd8e8] transition-colors"
                   style={H7}
                 >
                   <Upload size={14} />
-                  Subir imagen
+                  {logoSaving ? "Guardando..." : "Subir imagen"}
                 </button>
                 <p className="text-xs text-muted-foreground mt-2">Formatos: JPG, PNG. Tamaño recomendado: 240×80 px.</p>
               </div>
-              {logoPreview && (
+              {customLogoUrl && (
                 <button
-                  onClick={() => { setLogoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                  onClick={() => { void restoreLogo(); }}
+                  disabled={logoSaving}
                   className="px-4 py-2 border border-red-200 text-red-600 rounded-xl text-sm hover:bg-red-50 transition-colors"
                   style={H7}
                 >
@@ -385,37 +472,42 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
 
           {/* Gestión de Banners del Carrusel */}
           <div className="bg-white border border-border rounded-2xl p-6">
-            <div className="mb-4">
-              <h3 className="text-xl uppercase text-foreground" style={H9}>Banners del Carrusel Principal</h3>
-              <p className="text-sm text-muted-foreground">Edita título, gradiente, imagen y texto de cada banner. Los cambios se reflejan en tiempo real.</p>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-xl uppercase text-foreground" style={H9}>Banners del Carrusel Principal</h3>
+                <p className="text-sm text-muted-foreground">Edita título, gradiente, imagen y texto de cada banner. Los cambios se reflejan en tiempo real.</p>
+              </div>
+              <button onClick={() => onNav("home")} className="flex items-center gap-2 rounded-xl border border-[#179150] px-4 py-2 text-sm font-semibold text-[#179150] transition-colors hover:bg-[#f0fdf7]">
+                <Eye size={14} /> Ver página de inicio
+              </button>
             </div>
             <div className="space-y-4 mb-4">
               {slides.map((s, i) => (
                 <div key={i} className="border border-border rounded-2xl overflow-hidden">
                   {/* Preview */}
-                  <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.via}, ${s.to})` }}>
-                    {s.img && (
-                      <img src={s.img} alt={s.title} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${slideEditing === i && slideDraft ? slideDraft.from : s.from}, ${slideEditing === i && slideDraft ? slideDraft.via : s.via}, ${slideEditing === i && slideDraft ? slideDraft.to : s.to})` }}>
+                    {(slideEditing === i && slideDraft ? slideDraft.img : s.img) && (
+                      <img src={slideEditing === i && slideDraft ? slideDraft.img : s.img} alt={slideEditing === i && slideDraft ? slideDraft.title : s.title} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                     )}
                     <div className="absolute inset-0 bg-black/30" />
                     <div className="absolute inset-0 flex items-center px-6 gap-4">
                       <div className="flex-1">
-                        <div className="inline-block bg-[#50e9f8] text-[#006064] text-[9px] font-black px-2 py-0.5 rounded-full mb-1 uppercase" style={H9}>{s.badge}</div>
-                        <div className="text-white text-xl uppercase leading-tight" style={H9}>{s.title}</div>
-                        <div className="text-white/70 text-xs mt-0.5 line-clamp-1">{s.subtitle}</div>
+                        <div className="inline-block bg-[#50e9f8] text-[#006064] text-[9px] font-black px-2 py-0.5 rounded-full mb-1 uppercase" style={H9}>{slideEditing === i && slideDraft ? slideDraft.badge : s.badge}</div>
+                        <div className="text-white text-xl uppercase leading-tight" style={H9}>{slideEditing === i && slideDraft ? slideDraft.title : s.title}</div>
+                        <div className="text-white/70 text-xs mt-0.5 line-clamp-1">{slideEditing === i && slideDraft ? slideDraft.subtitle : s.subtitle}</div>
                       </div>
-                      <div className="text-xs font-semibold text-white/80 bg-white/10 px-3 py-1 rounded-lg border border-white/20">{s.cta}</div>
+                      <div className="text-xs font-semibold text-white/80 bg-white/10 px-3 py-1 rounded-lg border border-white/20">{slideEditing === i && slideDraft ? slideDraft.cta : s.cta}</div>
                     </div>
                     <span className="absolute top-2 right-2 text-[10px] bg-black/30 text-white px-2 py-0.5 rounded-full font-semibold">Banner {i + 1}</span>
                   </div>
                   {/* Controls */}
                   <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
-                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{s.img}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[200px]">{slideEditing === i && slideDraft ? slideDraft.img : s.img}</div>
                     <div className="flex gap-2">
                       <button onClick={() => startEditSlide(i)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-border rounded-xl hover:bg-muted transition-colors">
                         <Settings size={12} />Editar
                       </button>
-                      <button onClick={() => removeSlide(i)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition-colors">
+                      <button onClick={() => { void removeSlide(i); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition-colors">
                         <Trash2 size={12} />Eliminar
                       </button>
                     </div>
@@ -439,31 +531,48 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
                       ))}
                       {/* Imagen del banner */}
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Imagen del banner</label>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">URL pública de la imagen</label>
                         <div className="flex items-center gap-4">
                           {slideDraft.img && (
                             <img src={slideDraft.img} alt="Preview" className="w-24 h-14 object-cover rounded-xl border border-border flex-shrink-0" />
                           )}
                           <div className="flex-1">
-                            <label className="flex items-center gap-2 cursor-pointer px-4 py-2 border border-border rounded-xl hover:bg-muted transition-colors w-fit text-sm font-semibold">
-                              <Upload size={14} /> Subir imagen del banner
-                              <input type="file" accept="image/*" className="hidden"
+                            <label className="mb-2 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold transition-colors hover:bg-muted">
+                              <Upload size={14} /> {slideImageUploading ? "Cargando..." : "Subir archivo local"}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/avif"
+                                className="hidden"
+                                disabled={slideImageUploading}
                                 onChange={e => {
-                                  const f = e.target.files?.[0];
-                                  if (f) setSlideDraft({ ...slideDraft, img: URL.createObjectURL(f) });
-                                }} />
+                                  const file = e.target.files?.[0];
+                                  if (file) void uploadSlideImage(file);
+                                  e.target.value = "";
+                                }}
+                              />
                             </label>
-                            <p className="text-[10px] text-muted-foreground mt-1">JPG, PNG, WEBP. Recomendado: 900×500 px.</p>
+                            <input
+                              type="url"
+                              value={slideDraft.img}
+                              onChange={e => {
+                                if (slideUploadedPath) void deleteRemoteBannerImage(slideUploadedPath).catch(console.error);
+                                setSlideUploadedPath(null);
+                                setSlideDraft({ ...slideDraft, img: e.target.value });
+                              }}
+                              placeholder="https://..."
+                              className="w-full px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150]"
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1">Usa una URL HTTPS permanente. Recomendado: 900×500 px.</p>
                           </div>
                         </div>
                       </div>
                       <div className="sm:col-span-2 flex gap-2 pt-2">
-                        <button onClick={saveSlide}
-                          className="flex-1 bg-[#179150] text-white py-2.5 rounded-xl text-sm font-black uppercase hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        <button onClick={() => { void saveSlide(); }} disabled={slideSaving || slideImageUploading}
+                          className="flex-1 bg-[#179150] text-white py-2.5 rounded-xl text-sm font-black uppercase hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                           style={H7}>
                           <Check size={14} />Guardar cambios
                         </button>
-                        <button onClick={() => { setSlideEditing(null); setSlideDraft(null); }}
+                        <button onClick={() => { void cancelSlideEdit(i); }} disabled={slideImageUploading}
                           className="px-4 border border-border rounded-xl text-sm hover:bg-muted transition-colors">
                           Cancelar
                         </button>

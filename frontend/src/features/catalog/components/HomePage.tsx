@@ -5,13 +5,15 @@ import { H7, H9 } from "../../../app/data";
 import { ProductCard } from "../../../components/product";
 
 // ─── HomePage ─────────────────────────────────────────────────────────────────
-export function HomePage({ products, onProductClick, onAddToCart, onNav, cartItems, onUpdateQuantity, favoriteIds, onToggleFavorite, slides, selectedSede = "principal" }: {
+export function HomePage({ products, onProductClick, onAddToCart, onNav, cartItems, onUpdateQuantity, favoriteIds, onToggleFavorite, slides, selectedSede = "principal", isAuthenticated, onAuthRequired }: {
   products: Product[]; onProductClick: (id: number) => void;
   onAddToCart: (p: Product) => void; onNav: (p: Page) => void;
   cartItems: CartItem[]; onUpdateQuantity: (productId: number, delta: number) => void;
   favoriteIds: Set<number>; onToggleFavorite: (productId: number) => void;
   slides: Slide[];
   selectedSede?: string;
+  isAuthenticated: boolean;
+  onAuthRequired: () => void;
 }) {
   const [active, setActive] = useState(0);
 
@@ -101,6 +103,8 @@ export function HomePage({ products, onProductClick, onAddToCart, onNav, cartIte
                   isFavorite={favoriteIds.has(p.id)}
                   onToggleFavorite={onToggleFavorite}
                   selectedSede={selectedSede}
+                  isAuthenticated={isAuthenticated}
+                  onAuthRequired={onAuthRequired}
                 />
               );
             })}

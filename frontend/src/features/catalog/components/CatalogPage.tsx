@@ -5,12 +5,14 @@ import { effectivePrice, H7, H9 } from "../../../app/data";
 import { ProductCard } from "../../../components/product";
 
 // ─── CatalogPage ──────────────────────────────────────────────────────────────
-export function CatalogPage({ products, searchQuery, onProductClick, onAddToCart, cartItems, onUpdateQuantity, favoriteIds, onToggleFavorite, preselectedCategory }: {
+export function CatalogPage({ products, searchQuery, onProductClick, onAddToCart, cartItems, onUpdateQuantity, favoriteIds, onToggleFavorite, preselectedCategory, isAuthenticated, onAuthRequired }: {
   products: Product[]; searchQuery: string;
   onProductClick: (id: number) => void; onAddToCart: (p: Product) => void;
   cartItems: CartItem[]; onUpdateQuantity: (productId: number, delta: number) => void;
   favoriteIds: Set<number>; onToggleFavorite: (productId: number) => void;
   preselectedCategory?: string;
+  isAuthenticated: boolean;
+  onAuthRequired: () => void;
 }) {
   const [openSection, setOpenSection] = useState<string | null>("Categoría");
   const [selCats, setSelCats] = useState<Set<string>>(preselectedCategory ? new Set([preselectedCategory]) : new Set());
@@ -158,6 +160,8 @@ export function CatalogPage({ products, searchQuery, onProductClick, onAddToCart
                       onUpdateQuantity={onUpdateQuantity}
                       isFavorite={favoriteIds.has(p.id)}
                       onToggleFavorite={onToggleFavorite}
+                      isAuthenticated={isAuthenticated}
+                      onAuthRequired={onAuthRequired}
                     />
                   );
                 })}

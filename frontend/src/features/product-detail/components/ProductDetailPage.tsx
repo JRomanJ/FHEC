@@ -5,12 +5,14 @@ import { effectivePrice, fmtUSD, fmtVES, H7, H9 } from "../../../app/data";
 import { ProductBox, ProductCard } from "../../../components/product";
 
 // ─── ProductDetailPage ─────────────────────────────────────────────────────────
-export function ProductDetailPage({ product, products, onAddToCart, onBack, onProductClick, onNav, favoriteIds, onToggleFavorite, cartItems, onUpdateQuantity, selectedSede = "principal" }: {
+export function ProductDetailPage({ product, products, onAddToCart, onBack, onProductClick, onNav, favoriteIds, onToggleFavorite, cartItems, onUpdateQuantity, selectedSede = "principal", isAuthenticated, onAuthRequired }: {
   product: Product; products: Product[]; onAddToCart: (p: Product, qty: number) => void;
   onBack: () => void; onProductClick: (id: number) => void; onNav: (p: Page) => void;
   favoriteIds: Set<number>; onToggleFavorite: (id: number) => void;
   cartItems: CartItem[]; onUpdateQuantity: (productId: number, delta: number) => void;
   selectedSede?: string;
+  isAuthenticated: boolean;
+  onAuthRequired: () => void;
 }) {
   const cartEntry = cartItems.find(i => i.product.id === product.id);
   const cartQty = cartEntry?.quantity ?? 0;
@@ -28,6 +30,7 @@ export function ProductDetailPage({ product, products, onAddToCart, onBack, onPr
 
   const handleAdd = () => {
     if (sedeStock === 0) return;
+    if (!isAuthenticated) { onAuthRequired(); return; }
     if (product.needsRecipe) { setShowRecipeModal(true); return; }
     onAddToCart(product, 1);
   };
@@ -49,6 +52,8 @@ export function ProductDetailPage({ product, products, onAddToCart, onBack, onPr
         isFavorite={favoriteIds.has(p.id)}
         onToggleFavorite={onToggleFavorite}
         selectedSede={selectedSede}
+        isAuthenticated={isAuthenticated}
+        onAuthRequired={onAuthRequired}
       />
     </div>
   );

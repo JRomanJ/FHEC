@@ -18,7 +18,7 @@ interface UserData {
     acepta_notificaciones_correo: boolean;
 }
 
-const SAFE_PROFILE_COLUMNS = 'id, nombre_completo, rol, tipo_documento_identidad, documento_identidad, telefono, codigo_area, direccion_fiscal';
+const SAFE_PROFILE_COLUMNS = 'id, nombre_completo, rol, tipo_documento_identidad, documento_identidad, telefono, codigo_area, direccion_fiscal, acepta_promociones, acepta_promociones_sms, acepta_promociones_correo, acepta_notificaciones, acepta_notificaciones_sms, acepta_notificaciones_correo';
 
 export const findUserAuth = async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();

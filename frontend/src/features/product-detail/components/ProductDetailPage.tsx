@@ -6,7 +6,7 @@ import { ProductBox, ProductCard } from "../../../components/product";
 
 // ─── ProductDetailPage ─────────────────────────────────────────────────────────
 export function ProductDetailPage({ product, products, onAddToCart, onBack, onProductClick, onNav, favoriteIds, onToggleFavorite, cartItems, onUpdateQuantity, selectedSede = "principal", isAuthenticated, onAuthRequired }: {
-  product: Product; products: Product[]; onAddToCart: (p: Product, qty: number) => void;
+  product: Product; products: Product[]; onAddToCart: (p: Product, qty?: number) => void;
   onBack: () => void; onProductClick: (id: number) => void; onNav: (p: Page) => void;
   favoriteIds: Set<number>; onToggleFavorite: (id: number) => void;
   cartItems: CartItem[]; onUpdateQuantity: (productId: number, delta: number) => void;

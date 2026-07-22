@@ -23,6 +23,10 @@ import { actualizarBanner, eliminarBanner, insertarBanner, listarBanners, obtene
 import { eliminarNotificacion, listarNotificacionesUsuario, marcarNotificacionLeida, marcarTodasLeidas } from './db/notificaciones.js';
 import { enviarNotificacionesBanner } from './notificationDelivery.js';
 import { bannerPathFromPublicUrl, crearCargaFirmadaBanner, crearCargaFirmadaLogo, eliminarImagenBanner, eliminarLogoPersonalizado, obtenerLogoPersonalizado } from './bannerStorage.js';
+import { confirmarPagoPedido, crearPedido, expirarPedidos, listarPedidos, obtenerPedido } from './db/pedidos.js';
+import { actualizarTransaccion, anularTransaccion, listarTransacciones, obtenerTransaccion } from './db/transacciones.js';
+import { actualizarArchivoRecipe, auditarRecipe, crearRecipe, eliminarRecipe, listarRecipes } from './db/recipes.js';
+import { crearCargaFirmadaRecipe, eliminarArchivoRecipe } from './recipeStorage.js';
 
 type AppRole = 'cliente' | 'repartidor' | 'auxiliar' | 'auditor' | 'superadmin';
 type Profile = Record<string, unknown> & { rol?: string | null };
@@ -44,6 +48,7 @@ const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPERADMIN = new Set<AppRole>(['superadmin']);
+const RECIPE_AUDITORS = new Set<AppRole>(['auditor', 'superadmin']);
 const INVENTORY_EDITORS = new Set<AppRole>(['auxiliar', 'superadmin']);
 const VALID_ROLES = new Set(['cliente', 'repartidor', 'auxiliar', 'auditor', 'superadmin', 'super_admin']);
 const PROFILE_COLUMNS = 'id, nombre_completo, rol, tipo_documento_identidad, documento_identidad, telefono, codigo_area, direccion_fiscal, acepta_promociones, acepta_promociones_sms, acepta_promociones_correo, acepta_notificaciones, acepta_notificaciones_sms, acepta_notificaciones_correo';
@@ -440,6 +445,116 @@ app.delete('/favorites', authenticate, asyncRoute(async (req, res) => {
     res.json({ success: true, data: { productosEliminados: await vaciarFavoritos(getAuthedDb(req)) } });
 }));
 
+app.post('/orders', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['pedido', 'items']);
+    if (!Array.isArray(req.body.items)) throw Object.assign(new Error('items debe ser una lista.'), { status: 400 });
+    await expirarPedidos(createAdminClient());
+    const ttlMinutes = parsePositiveInteger(process.env.ORDER_PAYMENT_TTL_MINUTES, 15);
+    const data = await crearPedido(getAuthedDb(req), { pedido: req.body.pedido, items: req.body.items, ttlMinutes });
+    res.status(201).json({ success: true, message: 'Pedido creado y stock reservado.', data });
+}));
+
+app.get('/orders', authenticate, asyncRoute(async (req, res) => {
+    await expirarPedidos(createAdminClient());
+    const userId = req.auth!.role === 'cliente' ? req.auth!.userId : undefined;
+    res.json({ success: true, data: await listarPedidos(getAuthedDb(req), userId) });
+}));
+
+app.get('/orders/:orderId', authenticate, asyncRoute(async (req, res) => {
+    const orderId = validateUuid(req.params.orderId, 'orderId');
+    await expirarPedidos(createAdminClient());
+    const order = await obtenerPedido(getAuthedDb(req), orderId);
+    if (!order) throw Object.assign(new Error('Pedido no encontrado.'), { status: 404 });
+    res.json({ success: true, data: order });
+}));
+
+app.post('/orders/:orderId/transactions', authenticate, asyncRoute(async (req, res) => {
+    const orderId = validateUuid(req.params.orderId, 'orderId');
+    await expirarPedidos(createAdminClient());
+    const data = await confirmarPagoPedido(getAuthedDb(req), orderId, req.body ?? {});
+    res.status(201).json({ success: true, message: 'Transaccion confirmada y pedido completado.', data });
+}));
+
+app.get('/transactions', authenticate, asyncRoute(async (req, res) => {
+    const userId = req.auth!.role === 'cliente' ? req.auth!.userId : undefined;
+    res.json({ success: true, data: await listarTransacciones(getAuthedDb(req), userId) });
+}));
+
+app.get('/transactions/:transactionId', authenticate, asyncRoute(async (req, res) => {
+    const transactionId = validateUuid(req.params.transactionId, 'transactionId');
+    const transaction = await obtenerTransaccion(getAuthedDb(req), transactionId);
+    if (!transaction) throw Object.assign(new Error('Transaccion no encontrada.'), { status: 404 });
+    res.json({ success: true, data: transaction });
+}));
+
+app.patch('/transactions/:transactionId', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const transactionId = validateUuid(req.params.transactionId, 'transactionId');
+    const transaction = await actualizarTransaccion(createAdminClient(), transactionId, req.body ?? {});
+    if (!transaction) throw Object.assign(new Error('Transaccion no encontrada.'), { status: 404 });
+    res.json({ success: true, message: 'Transaccion actualizada.', data: transaction });
+}));
+
+app.delete('/transactions/:transactionId', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
+    const transactionId = validateUuid(req.params.transactionId, 'transactionId');
+    requireFields(req.body, ['motivo']);
+    const transaction = await anularTransaccion(createAdminClient(), transactionId, req.auth!.userId, String(req.body.motivo));
+    if (!transaction) throw Object.assign(new Error('Transaccion no encontrada o ya anulada.'), { status: 404 });
+    res.json({ success: true, message: 'Transaccion anulada sin destruir el historial.', data: transaction });
+}));
+
+app.get('/recipes', authenticate, asyncRoute(async (req, res) => {
+    res.json({ success: true, data: await listarRecipes(getAuthedDb(req), createAdminClient()) });
+}));
+
+app.post('/recipes/upload-url', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['orderId', 'mimeType', 'size']);
+    const orderId = validateUuid(req.body.orderId, 'orderId');
+    const order = await obtenerPedido(getAuthedDb(req), orderId);
+    if (!order || String(order.id_usuario) !== req.auth!.userId || order.estado_pedido !== 'pendiente') throw Object.assign(new Error('Pedido pendiente no encontrado.'), { status: 404 });
+    const data = await crearCargaFirmadaRecipe(createAdminClient(), req.auth!.userId, orderId, { mimeType: req.body.mimeType, size: req.body.size });
+    res.status(201).json({ success: true, message: 'Carga de recipe autorizada.', data });
+}));
+
+app.post('/recipes', authenticate, asyncRoute(async (req, res) => {
+    requireFields(req.body, ['id_detalle_pedido', 'archivo_path', 'nombre_archivo', 'mime_type', 'tamano_bytes']);
+    const data = await crearRecipe(getAuthedDb(req), req.auth!.userId, req.body);
+    res.status(201).json({ success: true, message: 'Recipe registrado.', data });
+}));
+
+app.patch('/recipes/:recipeId/file', authenticate, asyncRoute(async (req, res) => {
+    const recipeId = validateUuid(req.params.recipeId, 'recipeId');
+    requireFields(req.body, ['archivo_path', 'nombre_archivo', 'mime_type', 'tamano_bytes']);
+    if (!String(req.body.archivo_path).startsWith(`${req.auth!.userId}/`)) throw Object.assign(new Error('La ruta del recipe no pertenece al usuario.'), { status: 403 });
+    const admin = createAdminClient();
+    const { data: previous } = await admin.from('recipes').select('id_usuario, archivo_path').eq('id_recipe', recipeId).is('eliminado_en', null).maybeSingle();
+    if (!previous || previous.id_usuario !== req.auth!.userId) throw Object.assign(new Error('Recipe no encontrado.'), { status: 404 });
+    const updated = await actualizarArchivoRecipe(getAuthedDb(req), recipeId, req.body);
+    if (!updated) throw Object.assign(new Error('Recipe no encontrado o no editable.'), { status: 404 });
+    if (previous.archivo_path !== req.body.archivo_path) await eliminarArchivoRecipe(admin, previous.archivo_path).catch(console.error);
+    res.json({ success: true, message: 'Recipe reemplazado y reenviado a auditoria.', data: updated });
+}));
+
+app.patch('/recipes/:recipeId/audit', authenticate, authorize(RECIPE_AUDITORS), asyncRoute(async (req, res) => {
+    const recipeId = validateUuid(req.params.recipeId, 'recipeId');
+    requireFields(req.body, ['estado']);
+    const data = await auditarRecipe(getAuthedDb(req), recipeId, { estado: String(req.body.estado), razones: Array.isArray(req.body.razones) ? req.body.razones.map(String) : undefined, comentario: typeof req.body.comentario === 'string' ? req.body.comentario : undefined });
+    if (!data) throw Object.assign(new Error('Recipe no encontrado.'), { status: 404 });
+    res.json({ success: true, message: 'Recipe auditado y auditoria registrada.', data });
+}));
+
+app.delete('/recipes/:recipeId', authenticate, asyncRoute(async (req, res) => {
+    const recipeId = validateUuid(req.params.recipeId, 'recipeId');
+    const admin = createAdminClient();
+    const { data: existing } = await admin.from('recipes').select('id_usuario, archivo_path').eq('id_recipe', recipeId).is('eliminado_en', null).maybeSingle();
+    if (!existing || (existing.id_usuario !== req.auth!.userId && req.auth!.role !== 'superadmin')) throw Object.assign(new Error('Recipe no encontrado.'), { status: 404 });
+    const deleted = req.auth!.role === 'superadmin'
+        ? (await admin.from('recipes').update({ eliminado_en: new Date().toISOString(), eliminado_por: req.auth!.userId }).eq('id_recipe', recipeId).is('eliminado_en', null).select('id_recipe, archivo_path').maybeSingle()).data
+        : await eliminarRecipe(getAuthedDb(req), recipeId, req.auth!.userId);
+    if (!deleted) throw Object.assign(new Error('Recipe no encontrado o no eliminable.'), { status: 404 });
+    await eliminarArchivoRecipe(admin, String(deleted.archivo_path)).catch(console.error);
+    res.json({ success: true, message: 'Recipe eliminado.', data: { eliminado: true, idRecipe: recipeId } });
+}));
+
 app.post('/banners', authenticate, authorize(SUPERADMIN), asyncRoute(async (req, res) => {
     const banner = await insertarBanner(getAuthedDb(req), bannerPayload(req.body) as BannerInput);
     let envios: Awaited<ReturnType<typeof enviarNotificacionesBanner>> | null = null;
@@ -623,5 +738,11 @@ app.use((error: HttpError, _req: Request, res: Response, _next: NextFunction) =>
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });
+
+const expirationInterval = setInterval(() => {
+    expirarPedidos(createAdminClient()).catch((error) => console.error('No se pudieron expirar pedidos:', error));
+}, 60_000);
+expirationInterval.unref();
+expirarPedidos(createAdminClient()).catch((error) => console.error('No se pudieron expirar pedidos al iniciar:', error));
 
 export { app };

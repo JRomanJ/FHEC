@@ -10,6 +10,7 @@ import {
   DEMO_CONTACT,
   DEMO_ORDERS,
   DISCOUNT_CODES,
+  VES_RATE,
 } from "./data";
 import type { AuthUser, Branch, CartItem, Page, Product, Slide } from "./types";
 import { getCurrentUser, hasSession, logout } from "../services/authService";
@@ -18,6 +19,7 @@ import { getRemoteBanners } from "../services/bannerService";
 import { getCustomLogoUrl } from "../services/brandingService";
 import { getRemoteNotifications } from "../services/notificationService";
 import { BRANCH_IDS } from "../config/api";
+import { createRemoteOrder, getRemoteOrders, type RemoteOrder, type RemoteOrderDetail } from "../services/orderService";
 
 const LoginPage = lazy(() => import("../features/auth/components/LoginPage").then((module) => ({ default: module.LoginPage })));
 const ProfilePage = lazy(() => import("../features/profile/components/ProfilePage").then((module) => ({ default: module.ProfilePage })));
@@ -83,14 +85,16 @@ export default function App() {
   const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
   const [cartDiscountApplied, setCartDiscountApplied] = useState(0);
   const [activeOrderItems, setActiveOrderItems] = useState<CartItem[]>([]);
+  const [activeRemoteOrder, setActiveRemoteOrder] = useState<RemoteOrder | null>(null);
+  const [activeOrderDetails, setActiveOrderDetails] = useState<RemoteOrderDetail[]>([]);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
-  const [displaySede, setDisplaySede] = useState(BRANCH_IDS.principal);
+  const [displaySede, setDisplaySede] = useState<string>(BRANCH_IDS.principal);
   // Shared notifications state — lifted so Navbar badge and NotificationsPage share it
   const [appNotifs, setAppNotifs] = useState<AppNotification[]>([]);
   const [cartDiscountCode, setCartDiscountCode] = useState("");
   // Shared checkout delivery state lifted to App so it persists across checkout screens
   const [checkoutDeliveryMode, setCheckoutDeliveryMode] = useState<"delivery"|"pickup">("delivery");
-  const [checkoutSede, setCheckoutSede] = useState(BRANCH_IDS.principal);
+  const [checkoutSede, setCheckoutSede] = useState<string>(BRANCH_IDS.principal);
   const [checkoutAddress, setCheckoutAddress] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -181,6 +185,37 @@ export default function App() {
   }, [products, user]);
 
   useEffect(() => {
+    if (!user || user.role !== "cliente" || products.length === 0) return;
+    let cancelled = false;
+    getRemoteOrders()
+      .then((orders) => {
+        if (cancelled) return;
+        const pending = orders.find(order => order.estado_pedido === "pendiente");
+        if (!pending) return;
+        const details = pending.detalles_pedidos ?? [];
+        const restoredItems = details.flatMap(detail => {
+          const product = products.find(item => item.backendId === detail.id_producto || item.inventoryId === detail.id_inventario);
+          return product ? [{ product, quantity: detail.cantidad }] : [];
+        });
+        setActiveRemoteOrder(pending);
+        setActiveOrderDetails(details);
+        setActiveOrderItems(restoredItems);
+        setHasActiveOrder(true);
+      })
+      .catch(error => console.error("No se pudo restaurar el pedido pendiente:", error));
+    return () => { cancelled = true; };
+  }, [products, user]);
+
+  useEffect(() => {
+    if (activeRemoteOrder?.estado_pedido !== "expirado") return;
+    let cancelled = false;
+    getCatalogProducts(displaySede)
+      .then(items => { if (!cancelled) setProducts(items); })
+      .catch(error => console.error("No se pudo refrescar el stock restaurado:", error));
+    return () => { cancelled = true; };
+  }, [activeRemoteOrder?.estado_pedido, displaySede]);
+
+  useEffect(() => {
     if (!user) {
       setAppNotifs([]);
       return;
@@ -230,6 +265,8 @@ export default function App() {
       setFavoriteIds(new Set());
       setHasActiveOrder(false);
       setActiveOrderItems([]);
+      setActiveRemoteOrder(null);
+      setActiveOrderDetails([]);
       setPageRaw("home");
     }
   };
@@ -317,6 +354,51 @@ export default function App() {
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
+  const handleCreateOrder = async (input: { receiverName: string; receiverPhoneArea: string; receiverPhone: string; deliveryAddress: string; deliveryMode: "delivery" | "pickup"; selectedSede: string; discountCode: string }) => {
+    if (!user) return { ok: false, error: "Debes iniciar sesión." };
+    try {
+      const items = cartItems.map(item => {
+        if (!item.product.inventoryId) throw new Error(`El producto ${item.product.name} no tiene inventario asociado.`);
+        return { id_inventario: item.product.inventoryId, cantidad: item.quantity };
+      });
+      const created = await createRemoteOrder({
+        pedido: {
+          id_sede: input.selectedSede,
+          metodo_entrega: input.deliveryMode,
+          nombre_receptor: input.receiverName,
+          codigo_area_receptor: input.receiverPhoneArea,
+          telefono_receptor: input.receiverPhone,
+          direccion_entrega: input.deliveryMode === "delivery" ? input.deliveryAddress : null,
+          nombre_factura: user.name,
+          codigo_area_factura: user.areaCode ?? null,
+          telefono_factura: user.phone ?? null,
+          tipo_documento_fiscal: user.cedula?.split("-")[0] ?? "V",
+          documento_fiscal: user.cedula?.replace(/^[A-Za-z]-/, "") ?? "",
+          direccion_fiscal: user.address ?? null,
+          codigo_cupon: input.discountCode || null,
+          tasa_bcv: VES_RATE,
+        },
+        items,
+      });
+      setActiveOrderItems(cartItems);
+      setActiveRemoteOrder({ ...created.pedido, detalles_pedidos: created.detalles });
+      setActiveOrderDetails(created.detalles);
+      setHasActiveOrder(true);
+      const reserved = new Map(cartItems.map(item => [item.product.id, item.quantity]));
+      setProducts(current => current.map(product => {
+        const quantity = reserved.get(product.id) ?? 0;
+        return quantity > 0 ? { ...product, stock: Math.max(0, product.stock - quantity) } : product;
+      }));
+      void getCatalogProducts(displaySede)
+        .then(setProducts)
+        .catch(error => console.error("No se pudo confirmar el stock actualizado:", error));
+      setCartItems([]);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "No se pudo crear el pedido." };
+    }
+  };
+
   if (!authReady) {
     return <div className="min-h-screen bg-[#f0fdf7] flex items-center justify-center text-[#006064] font-semibold">Restaurando sesion...</div>;
   }
@@ -381,9 +463,9 @@ export default function App() {
             />
           )}
           {page === "cart" && <CartPage cartItems={cartItems} setCartItems={setCartItems} onNav={setPage} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} hasActiveOrder={hasActiveOrder} selectedSede={checkoutSede} products={products} discountCodes={DISCOUNT_CODES} />}
-          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={() => { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); }} sedes={branches} discountCodes={DISCOUNT_CODES} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
-          {page === "preCheckout" && <PreCheckoutMedicalPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} />}
-          {page === "checkout" && <CheckoutPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} discountApplied={cartDiscountApplied} deliveryMode={checkoutDeliveryMode} selectedSede={checkoutSede} user={user} onClearCart={() => { if (activeOrderItems.length === 0) { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); } }} veAreas={VE_AREAS} docTypes={DOC_TYPES} veBanks={VE_BANKS} />}
+          {page === "deliverySelect" && <DeliverySelectPage cartItems={cartItems} onNav={setPage} deliveryMode={checkoutDeliveryMode} setDeliveryMode={setCheckoutDeliveryMode} selectedSede={checkoutSede} setSelectedSede={setCheckoutSede} deliveryAddress={checkoutAddress} setDeliveryAddress={setCheckoutAddress} discountApplied={cartDiscountApplied} discountCode={cartDiscountCode} setDiscountApplied={setCartDiscountApplied} setDiscountCode={setCartDiscountCode} user={user} onConfirmOrder={handleCreateOrder} sedes={branches} discountCodes={DISCOUNT_CODES} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} />}
+          {page === "preCheckout" && <PreCheckoutMedicalPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} orderId={activeRemoteOrder?.id_pedido ?? null} orderDetails={activeOrderDetails} />}
+          {page === "checkout" && <CheckoutPage cartItems={activeOrderItems.length > 0 ? activeOrderItems : cartItems} onNav={setPage} discountApplied={cartDiscountApplied} deliveryMode={checkoutDeliveryMode} selectedSede={checkoutSede} user={user} remoteOrder={activeRemoteOrder} onPaymentConfirmed={(order) => { setActiveRemoteOrder(order); }} onClearCart={() => { if (activeOrderItems.length === 0) { setActiveOrderItems(cartItems); setHasActiveOrder(true); setCartItems([]); } }} veAreas={VE_AREAS} docTypes={DOC_TYPES} veBanks={VE_BANKS} />}
           {page === "tracking" && (
             <TrackingPage
               onNav={setPage}
@@ -391,6 +473,14 @@ export default function App() {
               deliveryMode={checkoutDeliveryMode}
               discountPct={cartDiscountApplied}
               onOrderComplete={() => { setHasActiveOrder(false); }}
+              onOrderExpired={() => {
+                setHasActiveOrder(false);
+                setActiveRemoteOrder(null);
+                setActiveOrderDetails([]);
+                setActiveOrderItems([]);
+              }}
+              remoteOrder={activeRemoteOrder}
+              onRemoteOrderChange={setActiveRemoteOrder}
             />
           )}
           {page === "profile" && user && <ProfilePage user={user} onNav={setPage} onLogout={() => { void handleLogout(); }} onUpdateUser={setUser} demoOrders={DEMO_ORDERS} demoContact={DEMO_CONTACT} veAreas={VE_AREAS} docTypes={DOC_TYPES} />}

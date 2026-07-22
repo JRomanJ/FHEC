@@ -22,7 +22,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   discountApplied: number; discountCode: string;
   setDiscountApplied: (n: number) => void; setDiscountCode: (s: string) => void;
   user?: AuthUser | null;
-  onConfirmOrder?: () => void;
+  onConfirmOrder?: (input: { receiverName: string; receiverPhoneArea: string; receiverPhone: string; deliveryAddress: string; deliveryMode: "delivery" | "pickup"; selectedSede: string; discountCode: string }) => Promise<{ ok: boolean; error?: string }>;
   sedes: LegacySede[];
   discountCodes: Record<string, number>;
   demoContact: Record<string, { phone: string; address: string }>;
@@ -53,6 +53,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
   const [discErr,   setDiscErr]   = useState("");
   const [discOk,    setDiscOk]    = useState(discountApplied > 0 ? `${discountApplied}% aplicado` : "");
   const [deliveryError, setDeliveryError] = useState("");
+  const [orderSaving, setOrderSaving] = useState(false);
 
   const applyDisc = () => {
     const codeValidation = validateCouponCodeInput(discInput);
@@ -183,7 +184,8 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
                     setDeliveryError("");
                     setDeliveryAddress(e.target.value);
                     const a = e.target.value.toLowerCase();
-                    setSelectedSede(a.includes("clinica") || a.includes("gumilla") ? "clinica" : "principal");
+                    const inferred = a.includes("clinica") || a.includes("gumilla") ? sedes[1] : sedes[0];
+                    if (inferred) setSelectedSede(inferred.id);
                   }}
                     placeholder="Ej: Calle 07, Manzana 04, Ciudad Guayana"
                     className="w-full pl-10 pr-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-[#179150] bg-white" />
@@ -284,7 +286,7 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
               </p>
             )}
 
-            <button onClick={() => {
+            <button onClick={async () => {
               const validation = validateDeliverySelection({
                 mode: deliveryMode,
                 hasPickupOnlyItems: hasControlled,
@@ -298,13 +300,19 @@ export function DeliverySelectPage({ cartItems, onNav, deliveryMode, setDelivery
                 setDeliveryError(firstError(validation));
                 return;
               }
-              onConfirmOrder?.();
+              setOrderSaving(true);
+              const result = await onConfirmOrder?.({ receiverName, receiverPhoneArea, receiverPhone, deliveryAddress, deliveryMode, selectedSede, discountCode });
+              setOrderSaving(false);
+              if (result && !result.ok) {
+                setDeliveryError(result.error ?? "No se pudo crear el pedido.");
+                return;
+              }
               onNav(hasRecipe ? "preCheckout" : "tracking");
             }}
-              disabled={!canPay}
+              disabled={!canPay || orderSaving}
               className="w-full py-3.5 bg-[#179150] text-white rounded-xl font-black uppercase flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={H7}>
-              <Package size={16} /> Confirmar Pedido
+              <Package size={16} /> {orderSaving ? "Creando pedido..." : "Confirmar Pedido"}
             </button>
             {hasRecipe && <p className="text-[10px] text-muted-foreground text-center">Se solicitará validación médica antes del pago.</p>}
             <p className="text-[10px] text-muted-foreground text-center">Podrás completar el pago desde "Mi Pedido".</p>

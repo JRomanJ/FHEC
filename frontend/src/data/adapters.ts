@@ -139,6 +139,7 @@ export function toLegacySede(id_sede: number): LegacySede {
 
 export function toLegacyAuthUser(usuario: Usuario): LegacyAuthUser {
   return {
+    id: String(usuario.id_usuario),
     name: usuario.nombre_completo,
     email: usuario.correo ?? "",
     password: usuario.contrasena,
@@ -147,6 +148,12 @@ export function toLegacyAuthUser(usuario: Usuario): LegacyAuthUser {
       usuario.tipo_documento_identidad && usuario.documento_identidad
         ? `${usuario.tipo_documento_identidad}-${usuario.documento_identidad}`
         : "",
+    acepta_promociones: usuario.acepta_promociones,
+    acepta_promociones_sms: usuario.acepta_promociones_sms,
+    acepta_promociones_correo: usuario.acepta_promociones_correo,
+    acepta_notificaciones: usuario.acepta_notificaciones,
+    acepta_notificaciones_sms: usuario.acepta_notificaciones_sms,
+    acepta_notificaciones_correo: usuario.acepta_notificaciones_correo,
   };
 }
 

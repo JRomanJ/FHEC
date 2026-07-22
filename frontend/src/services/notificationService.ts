@@ -85,11 +85,11 @@ export function getNotificacionesPromocionalesByUsuario(id_usuario: number) {
 
 export function getNotificacionesPedidoByUsuario(id_usuario: number) {
   return getNotificacionesByUsuario(id_usuario).filter((notificacion) =>
-    [
+    ([
       TipoNotificacion.PedidoPorPagar,
       TipoNotificacion.PedidoPorRetirar,
       TipoNotificacion.PedidoEnCamino,
       TipoNotificacion.PedidoEntregado,
-    ].includes(notificacion.tipo_notificacion),
+    ] as string[]).includes(notificacion.tipo_notificacion),
   );
 }

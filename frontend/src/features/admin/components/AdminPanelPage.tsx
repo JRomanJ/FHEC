@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Store,
   Truck,
+  Trash2,
   User,
   X,
   Clock,
@@ -29,6 +30,9 @@ import {
   getLegacyAdminOrderViewModels,
   getLegacyAdminRefundViewModels,
   getLegacyRecipeAuditViewModels,
+  getRemoteRecipeAuditViewModels,
+  auditRemoteRecipe,
+  deleteRemoteRecipe,
 } from "../../../services";
 import { InventarioTab, SuperadminModules } from "../sections";
 
@@ -92,7 +96,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
 
   // Determine available tabs based on role
   const isSuperadmin = user.role === "superadmin";
-  const isAuditor = user.role === "auditor";
+  const isAuditor = user.role === "auditor" || isSuperadmin;
   const isAuxiliar = user.role === "auxiliar";
 
   // Auto-select first available tab
@@ -102,21 +106,52 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
     else if (isAuxiliar) setActiveTab("auxiliar");
   }, [isAuditor, isAuxiliar, isSuperadmin]);
 
-  const handleApproveRecipe = (recipeId: number) => {
-    setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, status: "approved" as const } : r));
-    setSelectedRecipe(null);
-    toast.success("Récipe aprobado", { description: "El cliente ha sido notificado para proceder al pago.", icon: "✅" });
+  React.useEffect(() => {
+    if (!isAuditor) return;
+    let cancelled = false;
+    getRemoteRecipeAuditViewModels()
+      .then(data => { if (!cancelled) setRecipes(data); })
+      .catch(error => { if (!cancelled) toast.error(error instanceof Error ? error.message : "No se pudieron cargar los recipes."); });
+    return () => { cancelled = true; };
+  }, [isAuditor]);
+
+  const handleApproveRecipe = async (recipeId: number | string) => {
+    try {
+      await auditRemoteRecipe(String(recipeId), "aprobado");
+      setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, status: "approved" as const } : r));
+      setSelectedRecipe(null);
+      toast.success("Récipe aprobado", { description: "El cliente ya puede proceder al pago.", icon: "✅" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo aprobar el récipe.");
+    }
   };
 
-  const handleRejectRecipe = () => {
+  const handleRejectRecipe = async () => {
     if (!selectedRecipe || rejectReasons.size === 0) return;
-    const reasons = Array.from(rejectReasons).join(", ");
-    const fullReason = rejectComment ? `${reasons}. Nota: ${rejectComment}` : reasons;
-    toast.error("Récipe rechazado", { description: `Motivo: ${fullReason}`, icon: "❌" });
-    setRecipes(prev => prev.map(r => r.id === selectedRecipe.id ? { ...r, status: "rejected" as const } : r));
-    setSelectedRecipe(null);
-    setRejectReasons(new Set());
-    setRejectComment("");
+    try {
+      await auditRemoteRecipe(String(selectedRecipe.id), "rechazado", Array.from(rejectReasons), rejectComment);
+      const reasons = Array.from(rejectReasons).join(", ");
+      const fullReason = rejectComment ? `${reasons}. Nota: ${rejectComment}` : reasons;
+      toast.error("Récipe rechazado", { description: `Motivo: ${fullReason}`, icon: "❌" });
+      setRecipes(prev => prev.map(r => r.id === selectedRecipe.id ? { ...r, status: "rejected" as const } : r));
+      setSelectedRecipe(null);
+      setRejectReasons(new Set());
+      setRejectComment("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo rechazar el récipe.");
+    }
+  };
+
+  const handleDeleteRecipe = async (recipeId: number | string) => {
+    if (!isSuperadmin || !window.confirm("¿Eliminar este récipe? El registro se conservará como eliminación lógica.")) return;
+    try {
+      await deleteRemoteRecipe(String(recipeId));
+      setRecipes(current => current.filter(recipe => recipe.id !== recipeId));
+      setSelectedRecipe(null);
+      toast.success("Récipe eliminado; la auditoría fue conservada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el récipe.");
+    }
   };
 
   const toggleRejectReason = (reason: string) => {
@@ -305,6 +340,15 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                             </div>
                           </details>
                         </div>
+                      )}
+                      {isSuperadmin && (
+                        <button
+                          onClick={() => { void handleDeleteRecipe(selectedRecipe.id); }}
+                          className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-red-200 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors font-black uppercase text-xs"
+                          style={H7}
+                        >
+                          <Trash2 size={14} /> Eliminar récipe
+                        </button>
                       )}
                     </div>
 

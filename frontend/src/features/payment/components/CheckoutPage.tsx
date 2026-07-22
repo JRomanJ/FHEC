@@ -4,8 +4,9 @@ import type { AuthUser, CartItem, Page } from "../../../app/types";
 import { effectivePrice, fmtUSD, fmtVES, H7, H9, VES_RATE } from "../../../app/data";
 import { ProductBox } from "../../../components/product";
 import { firstError, validatePaymentForm } from "../../../validation";
+import { confirmRemoteOrderPayment, type RemoteOrder } from "../../../services/orderService";
 
-export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMode = "delivery", selectedSede = "principal", onClearCart = () => {}, user = null, veAreas, docTypes, veBanks }: {
+export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMode = "delivery", selectedSede = "principal", onClearCart = () => {}, user = null, veAreas, docTypes, veBanks, remoteOrder, onPaymentConfirmed }: {
   cartItems: CartItem[]; onNav: (p: Page) => void;
   discountApplied?: number; deliveryMode?: "delivery"|"pickup"; selectedSede?: string;
   onClearCart?: () => void;
@@ -13,6 +14,8 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
   veAreas: string[];
   docTypes: string[];
   veBanks: string[];
+  remoteOrder: RemoteOrder | null;
+  onPaymentConfirmed: (order: RemoteOrder) => void;
 }) {
   const hasControlled = cartItems.some(i => i.product.controlledSubstance);
   const subtotal   = cartItems.reduce((s, i) => s + effectivePrice(i.product) * i.quantity, 0);
@@ -29,7 +32,8 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
   const [payBank,       setPayBank]       = useState(""); // banco emisor
   const [payAmt,        setPayAmt]        = useState("");
   const [copied,        setCopied]        = useState(false);
-  const [timeLeft,      setTimeLeft]      = useState(900);
+  const initialTimeLeft = remoteOrder ? Math.max(0, Math.floor((new Date(remoteOrder.fecha_limite).getTime() - Date.now()) / 1000)) : 0;
+  const [timeLeft,      setTimeLeft]      = useState(initialTimeLeft);
   const [timeExpired,   setTimeExpired]   = useState(false);
 
   // Billing — auto-filled from profile
@@ -42,6 +46,7 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
 
   // Validation error
   const [confirmError, setConfirmError] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTimeLeft(p => {
@@ -53,7 +58,7 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
 
   const fmt = (s: number) => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setConfirmError("");
     const paidBs  = parseFloat(payAmt.replace(/,/g, ".")) || 0;
     const paidUSD = +(paidBs / VES_RATE).toFixed(2);
@@ -70,9 +75,9 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
       phone: payPhone,
       billingName: billName,
       billingDocument: billCedula,
-      billingPhoneArea,
-      billingPhone,
-      billingAddress,
+      billingPhoneArea: billPhoneArea,
+      billingPhone: billPhone,
+      billingAddress: billAddress,
     });
 
     if (!validation.valid) {
@@ -83,8 +88,37 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
       }
       return;
     }
-    onClearCart();
-    onNav("tracking");
+    if (!remoteOrder) {
+      setConfirmError("No hay un pedido pendiente asociado a este pago.");
+      return;
+    }
+    setConfirming(true);
+    try {
+      const result = await confirmRemoteOrderPayment(remoteOrder.id_pedido, {
+        metodo_pago: payMethod,
+        banco_emisor: payBank,
+        codigo_area_emisor: payMethod === "pago_movil" ? payPhoneArea : null,
+        telefono_emisor: payMethod === "pago_movil" ? payPhone : null,
+        tipo_documento_emisor: billDocType,
+        documento_emisor: billCedula,
+        referencia_bancaria: payRef,
+        monto_bs: paidBs,
+        tasa_bcv: VES_RATE,
+        nombre_factura: billName,
+        codigo_area_factura: billPhoneArea,
+        telefono_factura: billPhone,
+        tipo_documento_fiscal: billDocType,
+        documento_fiscal: billCedula,
+        direccion_fiscal: billAddress,
+      });
+      onPaymentConfirmed(result.pedido);
+      onClearCart();
+      onNav("tracking");
+    } catch (error) {
+      setConfirmError(error instanceof Error ? error.message : "No se pudo confirmar el pago.");
+    } finally {
+      setConfirming(false);
+    }
   };
 
   // Timer expired screen
@@ -281,10 +315,10 @@ export function CheckoutPage({ cartItems, onNav, discountApplied = 0, deliveryMo
             </div>
           )}
 
-          <button onClick={handleConfirm}
+          <button onClick={() => { void handleConfirm(); }} disabled={confirming || !remoteOrder}
             className="w-full py-4 bg-[#179150] text-white rounded-xl uppercase flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
             style={H7}>
-            <CheckCircle size={18} /> Confirmar Pago
+            <CheckCircle size={18} /> {confirming ? "Confirmando..." : "Confirmar Pago"}
           </button>
         </div>
 

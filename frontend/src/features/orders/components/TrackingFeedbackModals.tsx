@@ -2,17 +2,17 @@ import { ArrowLeft, CheckCircle, Star, X } from "lucide-react";
 import type { Page } from "../../../app/types";
 import { H7, H9 } from "./trackingShared";
 
-export function OrderCancelledScreen({ onNav }: { onNav: (p: Page) => void }) {
+export function OrderCancelledScreen({ onNav, onDismiss }: { onNav: (p: Page) => void; onDismiss?: () => void }) {
   return (
     <div className="max-w-md mx-auto px-4 py-20 text-center">
       <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-5">
         <X size={38} className="text-red-500" />
       </div>
-      <h2 className="text-3xl uppercase text-foreground mb-2" style={H9}>Pedido Cancelado</h2>
+      <h2 className="text-3xl uppercase text-foreground mb-2" style={H9}>Pedido Expirado</h2>
       <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-        Tu pedido fue cancelado. El reembolso será procesado en los próximos días hábiles.
+        El tiempo para confirmar el pago terminó. La reserva fue liberada y el stock de los productos se restauró.
       </p>
-      <button onClick={() => onNav("home")} className="w-full bg-[#179150] text-white py-3.5 rounded-xl uppercase hover:bg-green-700 transition-colors" style={H7}>
+      <button onClick={() => { onDismiss?.(); onNav("home"); }} className="w-full bg-[#179150] text-white py-3.5 rounded-xl uppercase hover:bg-green-700 transition-colors" style={H7}>
         Volver al Inicio
       </button>
     </div>

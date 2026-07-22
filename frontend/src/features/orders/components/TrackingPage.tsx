@@ -11,6 +11,8 @@ import { OrderReviewForm } from "./OrderReviewForm";
 import { OrderTrackingTimeline, type TrackingStep } from "./OrderTrackingTimeline";
 import { H7, H9, effectivePrice } from "./trackingShared";
 import { OrderCancelledScreen, ThanksPopup, TrackingHeader } from "./TrackingFeedbackModals";
+import { getRemoteOrder, type RemoteOrder } from "../../../services/orderService";
+import { getRemoteRecipes, replaceRemoteRecipe, type RemoteRecipe } from "../../../services/recipeService";
 
 const PRODUCTS: Product[] = getAppProductViewModels();
 
@@ -21,18 +23,25 @@ export function TrackingPage({
   deliveryMode: initialDeliveryMode = "delivery",
   discountPct = 0,
   onOrderComplete,
+  onOrderExpired,
+  remoteOrder,
+  onRemoteOrderChange,
 }: {
   onNav: (p: Page) => void;
   orderItems?: CartItem[];
   deliveryMode?: "delivery" | "pickup";
   discountPct?: number;
   onOrderComplete?: () => void;
+  onOrderExpired?: () => void;
+  remoteOrder: RemoteOrder | null;
+  onRemoteOrderChange: (order: RemoteOrder) => void;
 }) {
   // ── Demo controls ──
   const [demoDeliveryMode, setDemoDeliveryMode] = useState<"delivery" | "pickup">(initialDeliveryMode);
   const [demoHasRecipe, setDemoHasRecipe] = useState(orderItems.some(i => i.product.needsRecipe || i.product.controlledSubstance));
 
   const [orderCancelled, setOrderCancelled] = useState(false);
+  const [remoteRecipes, setRemoteRecipes] = useState<RemoteRecipe[]>([]);
 
   // ── Steps computed from demo options ──
   const steps: TrackingStep[] = [
@@ -91,13 +100,24 @@ export function TrackingPage({
 
   // ── Recipe rejection ──
   const [recipeRejected, setRecipeRejected] = useState(false);
-  const [reuploadedRecipes, setReuploadedRecipes] = useState<Set<number>>(new Set());
-  const rejectedProducts = [
+  const [reuploadedRecipes, setReuploadedRecipes] = useState<Set<number | string>>(new Set());
+  const [recipeUploadError, setRecipeUploadError] = useState("");
+  const [recipeUploadingId, setRecipeUploadingId] = useState<string | null>(null);
+  const demoRejectedProducts = [
     { id: 2, name: "Losartán 50mg", reason: "El récipe no tiene sello del médico visible" },
     { id: 3, name: "Amoxicilina 500mg", reason: "Récipe fuera de vigencia (más de 30 días)" },
   ];
 
   // ── Rating ──
+  const rejectedProducts = remoteOrder
+    ? remoteRecipes.filter(recipe => recipe.estado_recipe === "rechazado").map(recipe => ({
+        id: recipe.id_recipe,
+        recipeId: recipe.id_recipe,
+        name: [recipe.detalles_pedidos.productos.principio_activo, recipe.detalles_pedidos.productos.concentracion].filter(Boolean).join(" "),
+        reason: [...(recipe.razones_rechazo ?? []), recipe.comentario_auditoria ?? ""].filter(Boolean).join(". ") || "El recipe requiere correcciones.",
+      }))
+    : demoRejectedProducts.map(product => ({ ...product, recipeId: null }));
+
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
@@ -141,13 +161,75 @@ export function TrackingPage({
   const paymentIdx = steps.findIndex(s => s.id === "payment");
   const transitIdx = steps.findIndex(s => s.id === "transit");
 
+  useEffect(() => {
+    if (!remoteOrder) return;
+    setDemoDeliveryMode(remoteOrder.metodo_entrega);
+    setDemoHasRecipe((remoteOrder.detalles_pedidos ?? []).some(detail => detail.requiere_recipe));
+    const refresh = async () => {
+      try {
+        const [order, recipes] = await Promise.all([getRemoteOrder(remoteOrder.id_pedido), getRemoteRecipes()]);
+        onRemoteOrderChange(order);
+        setRemoteRecipes(recipes.filter(recipe => recipe.detalles_pedidos.id_pedido === order.id_pedido));
+      } catch (error) {
+        console.error("No se pudo actualizar el pedido:", error);
+      }
+    };
+    void refresh();
+    const interval = window.setInterval(() => { void refresh(); }, 10_000);
+    return () => window.clearInterval(interval);
+  }, [remoteOrder?.id_pedido]);
+
+  useEffect(() => {
+    if (remoteOrder) setRecipeRejected(remoteRecipes.some(recipe => recipe.estado_recipe === "rechazado"));
+  }, [remoteOrder, remoteRecipes]);
+
+  useEffect(() => {
+    if (!remoteOrder) return;
+    setTimeLeft(current => ({
+      ...current,
+      payment: Math.max(0, Math.floor((new Date(remoteOrder.fecha_limite).getTime() - Date.now()) / 1000)),
+    }));
+  }, [remoteOrder?.fecha_limite]);
+
+  const reuploadRejectedRecipe = async (recipeId: string, file: File) => {
+    if (!remoteOrder) return;
+    setRecipeUploadingId(recipeId);
+    setRecipeUploadError("");
+    try {
+      const updated = await replaceRemoteRecipe(remoteOrder.id_pedido, recipeId, file);
+      setRemoteRecipes(current => current.map(recipe => recipe.id_recipe === recipeId ? { ...recipe, ...updated } : recipe));
+      setReuploadedRecipes(current => new Set(current).add(recipeId));
+    } catch (error) {
+      setRecipeUploadError(error instanceof Error ? error.message : "No se pudo reemplazar el recipe.");
+    } finally {
+      setRecipeUploadingId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!remoteOrder) return;
+    if (remoteOrder.estado_pedido === "expirado") {
+      setOrderCancelled(true);
+      return;
+    }
+    setOrderCancelled(false);
+    if (remoteOrder.estado_pedido === "completado") {
+      if (prepIndex >= 0) setStatus(prepIndex);
+      return;
+    }
+    const requiredDetails = (remoteOrder.detalles_pedidos ?? []).filter(detail => detail.requiere_recipe);
+    const allApproved = requiredDetails.length === 0 || requiredDetails.every(detail => remoteRecipes.some(recipe => recipe.id_detalle_pedido === detail.id_detalle_pedido && recipe.estado_recipe === "aprobado"));
+    const target = allApproved ? paymentIdx : medicalIdx;
+    if (target >= 0) setStatus(target);
+  }, [medicalIdx, paymentIdx, prepIndex, remoteOrder, remoteRecipes]);
+
   return (
     <div className="min-h-screen bg-[#f0fdf7]">
 
 
       {/* ── Order cancelled screen ── */}
       {orderCancelled && (
-        <OrderCancelledScreen onNav={onNav} />
+        <OrderCancelledScreen onNav={onNav} onDismiss={onOrderExpired} />
       )}
 
       {!orderCancelled && <>
@@ -258,7 +340,12 @@ export function TrackingPage({
                         <div className="text-[10px] text-red-700 mb-2">{product.reason}</div>
                         {!reuploaded && (
                           <label className="flex items-center justify-center gap-1.5 border-2 border-dashed border-red-300 rounded-xl p-2 cursor-pointer hover:border-red-400 transition-all">
-                            <input type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) setReuploadedRecipes(prev => new Set(prev).add(product.id)); }} />
+                            <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" disabled={recipeUploadingId === product.recipeId} onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (remoteOrder && product.recipeId) void reuploadRejectedRecipe(product.recipeId, file);
+                              else setReuploadedRecipes(prev => new Set(prev).add(product.id));
+                            }} />
                             <Upload size={12} className="text-red-600" />
                             <span className="text-[10px] font-black uppercase text-red-700" style={H9}>Cargar Récipe</span>
                           </label>
@@ -267,7 +354,8 @@ export function TrackingPage({
                     );
                   })}
                 </div>
-                {reuploadedRecipes.size === rejectedProducts.length && (
+                {recipeUploadError && <div className="mt-3 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs text-red-700">{recipeUploadError}</div>}
+                {!remoteOrder && reuploadedRecipes.size === rejectedProducts.length && (
                   <button onClick={() => { setRecipeRejected(false); setReuploadedRecipes(new Set()); }} className="w-full mt-4 bg-[#179150] text-white py-2.5 rounded-xl font-black uppercase hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm" style={H7}>
                     <CheckCircle size={14} /> Reenviar a Auditoría
                   </button>
@@ -289,7 +377,7 @@ export function TrackingPage({
             )}
 
             {/* Demo controls */}
-            <div className="bg-muted rounded-2xl p-4">
+            {!remoteOrder && <div className="bg-muted rounded-2xl p-4">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-3">Demo: Controles de Visualización</div>
 
               {/* Delivery type */}
@@ -343,7 +431,7 @@ export function TrackingPage({
                   }
                 </div>
               )}
-            </div>
+            </div>}
 
           </div>
         </div>

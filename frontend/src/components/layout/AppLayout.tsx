@@ -31,7 +31,7 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
   products: Product[];
   branches: Branch[];
   categories: typeof CATS;
-  brandSynonyms: typeof BRAND_SYNONYMS;
+  brandSynonyms: Record<string, string[]>;
   logoUrl?: string | null;
 }) {
   const [menuOpen,  setMenuOpen]  = useState(false);

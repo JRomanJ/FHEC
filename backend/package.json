@@ -10,6 +10,7 @@
     "check": "npm run typecheck",
     "test:integration:banners-notifications": "tsx src/scripts/testBannersNotifications.ts",
     "setup:banner-storage": "tsx src/scripts/setupBannerStorage.ts",
+    "setup:recipe-storage": "tsx src/scripts/setupRecipeStorage.ts",
     "seed:test-accounts": "tsx src/scripts/seedTestAccounts.ts"
   },
   "keywords": [],

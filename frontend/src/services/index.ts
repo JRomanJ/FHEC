@@ -14,6 +14,7 @@ export * from "./orderService";
 export * from "./productService";
 export * from "./profileService";
 export * from "./recipeService";
+export * from "./transactionService";
 export * from "./refundService";
 export * from "./sedeService";
 export * from "./userService";

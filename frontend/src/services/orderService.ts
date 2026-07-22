@@ -10,6 +10,83 @@ import {
 } from "../data";
 import { EstadoPedido, esPickupObligatorio, requiereRecipeDigital, requiereRecipeFisico } from "../domain";
 import type { EstadoPedido as EstadoPedidoType } from "../domain";
+import { requestJson } from "./httpClient";
+
+interface ApiEnvelope<T> { success: boolean; message?: string; data: T }
+
+export interface RemoteOrderDetail {
+  id_detalle_pedido: string;
+  id_pedido: string;
+  id_inventario: string;
+  id_producto: string;
+  cantidad: number;
+  precio_unitario: number;
+  descuento_porcentaje: number;
+  subtotal_linea: number;
+  requiere_recipe: boolean;
+  nivel_control: string | null;
+}
+
+export interface RemoteOrder {
+  id_pedido: string;
+  id_usuario: string;
+  id_sede: string;
+  id_transaccion: string | null;
+  metodo_entrega: "delivery" | "pickup";
+  nombre_receptor: string;
+  codigo_area_receptor: string;
+  telefono_receptor: string;
+  direccion_entrega: string | null;
+  subtotal: number;
+  iva: number;
+  costo_entrega: number;
+  descuento_aplicado: number;
+  total_pedido: number;
+  tasa_bcv: number;
+  estado_pedido: "pendiente" | "completado" | "expirado";
+  fecha_creacion: string;
+  fecha_limite: string;
+  fecha_completado: string | null;
+  detalles_pedidos?: RemoteOrderDetail[];
+  detalles?: RemoteOrderDetail[];
+}
+
+export interface CreateRemoteOrderInput {
+  pedido: Record<string, unknown>;
+  items: Array<{ id_inventario: string; cantidad: number }>;
+}
+
+export async function createRemoteOrder(input: CreateRemoteOrderInput): Promise<{ pedido: RemoteOrder; detalles: RemoteOrderDetail[] }> {
+  const response = await requestJson<ApiEnvelope<{ pedido: RemoteOrder; detalles: RemoteOrderDetail[] }>>("/orders", { method: "POST", body: input });
+  return response.data;
+}
+
+export async function getRemoteOrders(): Promise<RemoteOrder[]> {
+  const response = await requestJson<ApiEnvelope<RemoteOrder[]>>("/orders");
+  return response.data;
+}
+
+export async function getRemoteOrder(orderId: string): Promise<RemoteOrder> {
+  const response = await requestJson<ApiEnvelope<RemoteOrder>>(`/orders/${encodeURIComponent(orderId)}`);
+  return response.data;
+}
+
+export async function confirmRemoteOrderPayment(orderId: string, payment: Record<string, unknown>): Promise<{ pedido: RemoteOrder; transaccion: RemoteTransaction }> {
+  const response = await requestJson<ApiEnvelope<{ pedido: RemoteOrder; transaccion: RemoteTransaction }>>(`/orders/${encodeURIComponent(orderId)}/transactions`, { method: "POST", body: payment });
+  return response.data;
+}
+
+export interface RemoteTransaction {
+  id_transaccion: string;
+  id_pedido: string;
+  metodo_pago: string;
+  banco_emisor: string;
+  referencia_bancaria: string;
+  monto_confirmado_usd: number;
+  monto_confirmado_bs: number;
+  estado_transaccion: "confirmada" | "anulada";
+  fecha_confirmacion: string;
+}
 
 export {
   getActiveOrderViewModel,

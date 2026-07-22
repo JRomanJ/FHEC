@@ -21,7 +21,8 @@ import type { Page, Product, Slide } from "../../../app/types";
 import logoFarmahumana from "../../../imports/logo-farmahumana.png";
 import { toast } from "sonner";
 import { CATS, fmtUSD, H7, H9 } from "../../../app/data";
-import { assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, uploadCustomLogo, uploadRemoteBannerImage, getStaff } from "../../../services";
+import { annulRemoteTransaction, assignRole, createInventoryEntry, deleteRemoteBanner, deleteRemoteBannerImage, findUserByDocument, getCatalogProducts, getLegacyAdminCouponViewModels, getLegacyAdminMonitorOrderViewModels, getRemoteOrders, getRemoteTransactions, restoreOriginalLogo, updateInventoryPrice, updateRemoteBanner, updateRemoteTransaction, uploadCustomLogo, uploadRemoteBannerImage, getStaff } from "../../../services";
+import type { RemoteOrder, RemoteTransaction } from "../../../services/orderService";
 import { BRANCH_IDS } from "../../../config/api";
 import { InventarioTab } from "./AdminInventorySection";
 import {
@@ -256,6 +257,52 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
   const [monitorDateTo, setMonitorDateTo] = useState("");
   const [monitorStatus, setMonitorStatus] = useState("Todos");
   const [monitorSede, setMonitorSede] = useState("Todas");
+  const [transactions, setTransactions] = useState<RemoteTransaction[]>([]);
+  const [remoteOrders, setRemoteOrders] = useState<RemoteOrder[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+
+  const refreshTransactions = async () => {
+    setTransactionsLoading(true);
+    try {
+      const [nextTransactions, nextOrders] = await Promise.all([getRemoteTransactions(), getRemoteOrders()]);
+      setTransactions(nextTransactions);
+      setRemoteOrders(nextOrders);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron cargar las transacciones.");
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (superTab === "monitor") void refreshTransactions();
+  }, [superTab]);
+
+  const editTransaction = async (transaction: RemoteTransaction) => {
+    const bank = window.prompt("Banco emisor", transaction.banco_emisor);
+    if (bank === null) return;
+    const reference = window.prompt("Referencia bancaria", transaction.referencia_bancaria);
+    if (reference === null) return;
+    try {
+      const updated = await updateRemoteTransaction(transaction.id_transaccion, { banco_emisor: bank, referencia_bancaria: reference });
+      setTransactions(current => current.map(item => item.id_transaccion === updated.id_transaccion ? updated : item));
+      toast.success("Transacción actualizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la transacción.");
+    }
+  };
+
+  const annulTransaction = async (transaction: RemoteTransaction) => {
+    const reason = window.prompt("Motivo obligatorio de la anulación");
+    if (!reason?.trim()) return;
+    try {
+      const updated = await annulRemoteTransaction(transaction.id_transaccion, reason);
+      setTransactions(current => current.map(item => item.id_transaccion === updated.id_transaccion ? updated : item));
+      toast.success("Transacción anulada; el historial fue conservado.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo anular la transacción.");
+    }
+  };
 
   const kpiData = [
     { label: "En validación médica", count: monitorOrders.filter(o => o.status === "En validación médica").length, color: "bg-amber-500" },
@@ -1004,6 +1051,76 @@ export function SuperadminModules({ onNav, products, setProducts, slides, setSli
           <div>
             <h3 className="text-xl uppercase text-foreground" style={H9}>Monitor Global</h3>
             <p className="text-sm text-muted-foreground">Historial completo de transacciones con trazabilidad de auditoría.</p>
+          </div>
+
+          <div className="bg-white border border-border rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div>
+                <h4 className="text-lg uppercase text-foreground" style={H9}>Pedidos reales</h4>
+                <p className="text-xs text-muted-foreground">Incluye pedidos pendientes, completados y expirados.</p>
+              </div>
+              <button onClick={() => { void refreshTransactions(); }} className="rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted">Actualizar</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-[#f0fdf7] border-b border-border">
+                  {['Fecha', 'Pedido', 'Entrega', 'Productos', 'Total', 'Vence', 'Estado'].map(label => <th key={label} className="px-4 py-3 text-left text-xs uppercase text-muted-foreground" style={H9}>{label}</th>)}
+                </tr></thead>
+                <tbody>
+                  {remoteOrders.map(order => (
+                    <tr key={order.id_pedido} className="border-b border-border/50">
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{new Date(order.fecha_creacion).toLocaleString('es-VE')}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{order.id_pedido.slice(0, 8)}</td>
+                      <td className="px-4 py-3 text-xs capitalize">{order.metodo_entrega}</td>
+                      <td className="px-4 py-3 text-xs">{order.detalles_pedidos?.reduce((sum, detail) => sum + detail.cantidad, 0) ?? 0}</td>
+                      <td className="px-4 py-3 font-bold text-[#179150]">{fmtUSD(Number(order.total_pedido))}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{new Date(order.fecha_limite).toLocaleString('es-VE')}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${order.estado_pedido === 'completado' ? 'bg-green-100 text-green-700' : order.estado_pedido === 'expirado' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{order.estado_pedido}</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {!transactionsLoading && remoteOrders.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">No hay pedidos registrados.</td></tr>}
+                  {transactionsLoading && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Consultando pedidos...</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-white border border-border rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div>
+                <h4 className="text-lg uppercase text-foreground" style={H9}>Transacciones reales</h4>
+                <p className="text-xs text-muted-foreground">Los pagos se crean al confirmar un pedido. Anular conserva la evidencia contable.</p>
+              </div>
+              <button onClick={() => { void refreshTransactions(); }} className="rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted">Actualizar</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-[#f0fdf7] border-b border-border">
+                  {['Fecha', 'Pedido', 'Método', 'Banco', 'Referencia', 'Monto', 'Estado', 'Acciones'].map(label => <th key={label} className="px-4 py-3 text-left text-xs uppercase text-muted-foreground" style={H9}>{label}</th>)}
+                </tr></thead>
+                <tbody>
+                  {transactions.map(transaction => (
+                    <tr key={transaction.id_transaccion} className="border-b border-border/50">
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{new Date(transaction.fecha_confirmacion).toLocaleString('es-VE')}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{transaction.id_pedido.slice(0, 8)}</td>
+                      <td className="px-4 py-3 text-xs">{transaction.metodo_pago}</td>
+                      <td className="px-4 py-3 text-xs">{transaction.banco_emisor}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{transaction.referencia_bancaria}</td>
+                      <td className="px-4 py-3 font-bold text-[#179150]">{fmtUSD(Number(transaction.monto_confirmado_usd))}</td>
+                      <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${transaction.estado_transaccion === 'confirmada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{transaction.estado_transaccion}</span></td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <button onClick={() => { void editTransaction(transaction); }} className="mr-2 text-xs font-semibold text-[#006064] hover:underline">Editar</button>
+                        {transaction.estado_transaccion === 'confirmada' && <button onClick={() => { void annulTransaction(transaction); }} className="text-xs font-semibold text-red-600 hover:underline">Anular</button>}
+                      </td>
+                    </tr>
+                  ))}
+                  {!transactionsLoading && transactions.length === 0 && <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">No hay transacciones registradas.</td></tr>}
+                  {transactionsLoading && <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">Consultando transacciones…</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* KPI row */}

@@ -25,7 +25,7 @@ export interface RecipeOrderContextViewModel {
 }
 
 export interface RecipeAuditViewModel {
-  id: number;
+  id: number | string;
   orderId: string;
   clientName: string;
   product: string;

@@ -19,6 +19,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Package,
   Plus,
   Shield,
   Star,

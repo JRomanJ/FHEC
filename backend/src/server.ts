@@ -64,7 +64,7 @@ app.use(cors({
     'http://localhost:5173',              // Puerto común de Vite 
     'http://localhost:3000'               // Por si el frontend corre aquí
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  ethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 

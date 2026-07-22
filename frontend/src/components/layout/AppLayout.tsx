@@ -12,6 +12,7 @@ import { ProductBox } from "../product";
 import type { AuthUser, Branch, CartItem, Page, Product } from "../../app/types";
 import type { NotificationViewModel as AppNotification } from "../../viewModels/notificationViewModels";
 import { deleteRemoteNotification, markRemoteNotificationRead } from "../../services/notificationService";
+import { toast } from "sonner";
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, user, onLogout, onCategorySelect,
@@ -82,6 +83,10 @@ export function Navbar({ cartCount, onNav, page, searchQuery, setSearchQuery, us
                 unreadCount={unreadCount}
                 cartCount={cartCount}
                 onNav={onNav}
+                onLogout={() => {
+                  onLogout();
+                  toast.success("Sesión cerrada", { description: "Has salido de tu cuenta correctamente.", icon: "👋" });
+                }}
               />
             )}
 

@@ -467,7 +467,7 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoContact, 
                 onLogout();
                 toast.success("Sesión cerrada", { description: "Has salido de tu cuenta correctamente.", icon: "👋" });
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 border-2 border-red-200 text-red-600 rounded-2xl hover:bg-red-100 transition-colors text-sm font-black uppercase"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-red-50 border-2 border-red-200 text-red-600 rounded-2xl hover:bg-red-100 transition-colors text-sm font-black uppercase mt-4"
               style={H7}
             >
               <LogOut size={15} /> Cerrar Sesión
@@ -508,15 +508,14 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoContact, 
                       <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Nombre Completo</label>
                       <div className="relative"><User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={name} onChange={e => setName(e.target.value)} readOnly={!editingInfo} className={fieldClass} /></div>
                     </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Tipo de documento</label>
-                      <select value={profDocType} onChange={e => setProfDocType(e.target.value)} disabled={!editingInfo} className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#179150] ${editingInfo ? "border-[#50e9f8] bg-white" : "border-border bg-[#f8fafc] opacity-70"}`}>
-                        {docTypes.map(t => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Número de documento</label>
-                      <div className="relative"><FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={cedula} onChange={e => setCedula(e.target.value)} readOnly={!editingInfo} placeholder="12345678" className={fieldClass} /></div>
+                    <div className="sm:col-span-2">
+                      <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Tipo y número de documento</label>
+                      <div className="flex gap-2">
+                        <select value={profDocType} onChange={e => setProfDocType(e.target.value)} disabled={!editingInfo} className={`w-24 px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#179150] ${editingInfo ? "border-[#50e9f8] bg-white" : "border-border bg-[#f8fafc] opacity-70"}`}>
+                          {docTypes.map(t => <option key={t}>{t}</option>)}
+                        </select>
+                        <div className="relative flex-1"><FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" /><input value={cedula} onChange={e => setCedula(e.target.value)} readOnly={!editingInfo} placeholder="12345678" className={fieldClass} /></div>
+                      </div>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Dirección Fiscal</label>
@@ -1037,15 +1036,15 @@ export function ProfilePage({ user, onNav, onLogout, onUpdateUser, demoContact, 
               <div className="flex items-center gap-2 px-6 pt-5 pb-1">
                 {[1, 2].map(n => (
                   <React.Fragment key={n}>
-                    <div className={`flex items-center gap-1.5 ${refundStep >= n ? "text-[#179150]" : "text-muted-foreground"}`}>
-                      <div className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center ${refundStep > n ? "bg-[#179150] text-white" : refundStep === n ? "bg-[#179150] text-white" : "bg-muted text-muted-foreground"}`} style={H9}>
+                    <div className={`flex items-center gap-1.5 ${refundStep >= n ? "text-[#006064]" : "text-muted-foreground"}`}>
+                      <div className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center ${refundStep > n ? "bg-[#006064] text-white" : refundStep === n ? "bg-[#50e9f8] text-[#006064]" : "bg-muted text-muted-foreground"}`} style={H9}>
                         {refundStep > n ? <Check size={12} /> : n}
                       </div>
                       <span className="text-xs font-semibold hidden sm:block">
                         {n === 1 ? "Transacción realizada" : "Datos para reembolso"}
                       </span>
                     </div>
-                    {n < 2 && <div className={`flex-1 h-0.5 rounded-full ${refundStep > 1 ? "bg-[#179150]" : "bg-muted"}`} />}
+                    {n < 2 && <div className={`flex-1 h-0.5 rounded-full ${refundStep > 1 ? "bg-[#006064]" : "bg-muted"}`} />}
                   </React.Fragment>
                 ))}
               </div>

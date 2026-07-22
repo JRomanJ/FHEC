@@ -266,13 +266,13 @@ export function TrackingPage({
               </div>
             )}
             {safeStatus === paymentIdx && paymentIdx >= 0 && (
-              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-6">
+                <AlertTriangle size={24} className="text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <div className="text-amber-900 font-black text-xs uppercase mb-0.5" style={H9}>Pago Pendiente</div>
-                  <p className="text-amber-700 text-xs mb-2">Expira en: <strong>{fmt(timeLeft.payment)}</strong></p>
-                  <button onClick={() => onNav("checkout")} className="w-full flex items-center justify-center gap-1.5 bg-[#179150] text-white px-3 py-2 rounded-xl text-xs font-black uppercase hover:bg-green-700 transition-colors" style={H7}>
-                    <CreditCard size={11} /> Pagar Ahora
+                  <div className="text-amber-900 text-2xl uppercase mb-2" style={H9}>Pago Pendiente</div>
+                  <p className="text-amber-700 text-sm mb-4">Expira en: <strong>{fmt(timeLeft.payment)}</strong></p>
+                  <button onClick={() => onNav("checkout")} className="w-full flex items-center justify-center gap-1.5 bg-[#179150] text-white px-4 py-3 rounded-xl text-sm sm:text-base font-black uppercase hover:bg-green-700 transition-colors shadow-sm" style={H7}>
+                    <CreditCard size={16} /> Pagar Ahora
                   </button>
                 </div>
               </div>

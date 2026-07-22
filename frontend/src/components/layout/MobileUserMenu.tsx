@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, ChevronDown, Heart, ShoppingCart, User } from "lucide-react";
+import { Bell, ChevronDown, Heart, LogOut, ShoppingCart, User } from "lucide-react";
 import type { Page } from "../../app/types";
 
 // ─── MobileUserMenu ───────────────────────────────────────────────────────────
-export function MobileUserMenu({ userName, unreadCount, cartCount, onNav }: {
-  userName: string; unreadCount: number; cartCount: number; onNav: (p: Page) => void;
+export function MobileUserMenu({ userName, unreadCount, cartCount, onNav, onLogout }: {
+  userName: string; unreadCount: number; cartCount: number; onNav: (p: Page) => void; onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -39,7 +39,7 @@ export function MobileUserMenu({ userName, unreadCount, cartCount, onNav }: {
             <button
               key={item.label}
               onClick={() => { setOpen(false); onNav(item.page); }}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-muted transition-colors border-b border-border/40 last:border-0"
+              className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-muted transition-colors border-b border-border/40"
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-muted-foreground">{item.icon}</span>
@@ -52,6 +52,13 @@ export function MobileUserMenu({ userName, unreadCount, cartCount, onNav }: {
               )}
             </button>
           ))}
+          <button
+            onClick={() => { setOpen(false); onLogout(); }}
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition-colors"
+          >
+            <LogOut size={14} />
+            <span className="font-medium">Cerrar Sesión</span>
+          </button>
         </div>
       )}
     </div>

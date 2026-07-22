@@ -42,7 +42,7 @@ export function TrackingHeader({
             Carlos A. Rodríguez · 4 dic. 2024 · {deliveryMode === "delivery" ? "Delivery" : "Pickup"} · Ciudad Guayana
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
           <button
             onClick={() => document.getElementById("tracking-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase cursor-pointer hover:opacity-90 transition-opacity

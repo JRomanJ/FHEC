@@ -21,7 +21,7 @@ export function OrderItemsSummary({
 }) {
   return (
     <div className="bg-white rounded-2xl border border-border shadow-sm p-4">
-      <div className="text-base font-black uppercase text-foreground mb-3" style={H9}>Productos del Pedido</div>
+      <div className="text-2xl uppercase text-foreground mb-6" style={H9}>Productos del Pedido</div>
       <div className="space-y-2.5 mb-3">
         {items.map(({ product: p, quantity }) => (
           <div key={p.id} className="flex items-center gap-2.5">

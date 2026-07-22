@@ -55,6 +55,7 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
   const [activeTab, setActiveTab] = useState<"auditor" | "auxiliar" | "contenido" | "catalogo" | "personal" | "monitor" | "inventario" | "cupones" | "reembolsos">("auditor");
 
   // Auditor state
+  const [recipeTab, setRecipeTab] = useState<"pending" | "history">("pending");
   const [recipes, setRecipes] = useState(DEMO_RECIPES);
   const [selectedRecipe, setSelectedRecipe] = useState<typeof DEMO_RECIPES[0] | null>(null);
   const [rejectReasons, setRejectReasons] = useState<Set<string>>(new Set());
@@ -265,13 +266,12 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
                     {/* LEFT — datos y acciones */}
                     <div className="lg:col-span-3 space-y-4">
                       {/* Estado */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-start">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase ${selectedRecipe.status === "approved" ? "bg-[#179150] text-white" :
                           selectedRecipe.status === "rejected" ? "bg-red-500 text-white" :
                             "bg-amber-100 text-amber-800"}`} style={H9}>
                           {selectedRecipe.status === "approved" ? "Aprobado" : selectedRecipe.status === "rejected" ? "Rechazado" : "Pendiente"}
                         </span>
-                        <span className="text-xs text-muted-foreground">{selectedRecipe.product}</span>
                       </div>
 
                       {/* Datos del medicamento */}
@@ -373,55 +373,61 @@ export function AdminPanel({ user, onNav, products, setProducts, slides, setSlid
               </div>
             )}
 
-            {/* Table */}
-            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl uppercase text-foreground" style={H9}>Auditoría de Récipes</h2>
-                  <p className="text-sm text-muted-foreground">{recipes.filter(r => r.status === "pending").length} pendiente{recipes.filter(r => r.status === "pending").length !== 1 ? "s" : ""} · {recipes.length} total</p>
-                </div>
+            {/* Auditor Header & Tabs */}
+            <div className="mb-2 px-1">
+              <h2 className="text-xl uppercase text-foreground mb-4" style={H9}>Auditoría de Récipes</h2>
+              <div className="flex gap-4 border-b border-border">
+                <button
+                  onClick={() => setRecipeTab("pending")}
+                  className={`pb-2 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${recipeTab === "pending" ? "border-[#179150] text-[#006064]" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  style={H9}
+                >
+                  Pendientes ({recipes.filter(r => r.status === "pending").length})
+                </button>
+                <button
+                  onClick={() => setRecipeTab("history")}
+                  className={`pb-2 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${recipeTab === "history" ? "border-[#179150] text-[#006064]" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  style={H9}
+                >
+                  Auditados / Historial
+                </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40">
-                      {["Nº Orden", "Producto", "Cantidad", "Estado", "Acción"].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-muted-foreground" style={H9}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recipes.map((recipe, i) => (
-                      <tr key={recipe.id} className={`border-b border-border hover:bg-muted/20 transition-colors ${i % 2 !== 0 ? "bg-muted/10" : ""}`}>
-                        <td className="px-4 py-3.5 text-[#179150] font-black text-xs" style={H9}>{recipe.orderId}</td>
-                        <td className="px-4 py-3.5">
-                          <div className="text-xs font-semibold text-foreground">{recipe.product}</div>
-                          <div className="text-[10px] text-muted-foreground">{recipe.clientName}</div>
-                        </td>
-                        <td className="px-4 py-3.5 text-xs text-muted-foreground">{recipe.quantity} {recipe.quantity === 1 ? "unidad" : "unidades"}</td>
-                        <td className="px-4 py-3.5">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${recipe.status === "approved" ? "bg-[#179150] text-white" :
-                            recipe.status === "rejected" ? "bg-red-500 text-white" :
-                              "bg-amber-100 text-amber-800"}`} style={H9}>
-                            {recipe.status === "approved" ? "Aprobado" : recipe.status === "rejected" ? "Rechazado" : "Pendiente"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <button
-                            onClick={() => { setSelectedRecipe(recipe); setRejectReasons(new Set()); setRejectComment(""); }}
-                            className="text-[#179150] text-xs font-semibold hover:underline"
-                          >
-                            Ver detalles
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {recipes.length === 0 && (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">No hay récipes registrados.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            </div>
+
+            {/* Recipe Cards List */}
+            <div className="flex flex-col gap-3">
+              {recipes.filter(r => recipeTab === "pending" ? r.status === "pending" : r.status !== "pending").length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">No hay récipes {recipeTab === "pending" ? "pendientes" : "en el historial"}.</div>
+              ) : (
+                recipes.filter(r => recipeTab === "pending" ? r.status === "pending" : r.status !== "pending").map(recipe => (
+                  <div key={recipe.id} className="bg-white rounded-2xl border border-border p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
+                      <div className="text-[#179150] font-black text-sm" style={H9}>{recipe.orderId}</div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${recipe.status === "approved" ? "bg-[#179150] text-white" :
+                        recipe.status === "rejected" ? "bg-red-500 text-white" :
+                        "bg-amber-100 text-amber-800"}`} style={H9}>
+                        {recipe.status === "approved" ? "Aprobado" : recipe.status === "rejected" ? "Rechazado" : "Pendiente"}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <div className="text-lg font-bold text-foreground mb-1">{recipe.product}</div>
+                      <div className="text-sm text-muted-foreground">Paciente: {recipe.clientName}</div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                      <div className="text-xs text-foreground font-semibold">Cantidad: {recipe.quantity} {recipe.quantity === 1 ? "unidad" : "unidades"}</div>
+                      <button
+                        onClick={() => { setSelectedRecipe(recipe); setRejectReasons(new Set()); setRejectComment(""); }}
+                        className="px-4 py-2 bg-[#50e9f8] text-[#006064] rounded-xl text-xs font-black uppercase hover:bg-[#2dd8e8] transition-colors shadow-sm"
+                        style={H9}
+                      >
+                        Revisar récipe
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
